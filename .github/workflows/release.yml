@@ -1,0 +1,65 @@
+name: Release
+
+# Tag `v*` -> unsigned installers attached to a draft GitHub Release in this repo.
+# Manual run (workflow_dispatch) -> installers are only uploaded as workflow artifacts, no release.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # create releases and upload assets
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (universal .dmg)
+            os: macos-latest
+            args: --target universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+          - name: Windows (NSIS .exe)
+            os: windows-latest
+            args: ""
+            rust-targets: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: pnpm install --frozen-lockfile
+      - uses: tauri-apps/tauri-action@action-v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Updater signing is NOT enabled in M0 (see docs/UPDATER.md). When it is, add:
+          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          releaseName: LumenGrab ${{ github.ref_name }}
+          releaseBody: |
+            Unsigned build. First launch: see "First launch" in the README
+            (macOS Gatekeeper, Windows SmartScreen).
+          releaseDraft: true # review the draft, then publish by hand
+          prerelease: false
+          uploadUpdaterJson: false # no updater in M0; set to true once it is registered
+          uploadWorkflowArtifacts: true
+          args: ${{ matrix.args }}
