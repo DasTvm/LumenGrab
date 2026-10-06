@@ -5,6 +5,7 @@ description = "LumenGrab: free, source-available screenshot app"
 authors = ["LumenGrab contributors"]
 license-file = "../LICENSE"
 edition = "2021"
+publish = false
 
 [lib]
 # The `_lib` suffix is needed to keep the lib name unique from the bin name (Windows issue,
