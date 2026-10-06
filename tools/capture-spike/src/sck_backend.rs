@@ -91,6 +91,52 @@ pub fn run(r: &mut Report, xcap_shots: &[(u32, Shot)]) {
         }
     }
 
+    // Where do the milliseconds go? capture_image alone vs pixel readback (RGBA vs BGRA).
+    r.h(3, "ScreenCaptureKit time split (median of 5)");
+    r.line("| display | capture_image only | + rgba_data() | + bgra_data() |");
+    r.line("|---|---|---|---|");
+    for d in content.displays() {
+        let Ok(filter) = SCContentFilter::create()
+            .with_display(&d)
+            .with_excluding_windows(&[])
+            .build()
+        else {
+            continue;
+        };
+        let Some((iw, ih)) = SCShareableContentInfo::for_filter(&filter).map(|i| i.pixel_size())
+        else {
+            continue;
+        };
+        let cfg = SCStreamConfiguration::new().with_width(iw).with_height(ih);
+        let med = |mut v: Vec<f64>| {
+            v.sort_by(|a, b| a.total_cmp(b));
+            v[v.len() / 2]
+        };
+        let (mut cap, mut rgba, mut bgra) = (Vec::new(), Vec::new(), Vec::new());
+        for _ in 0..5 {
+            let t = std::time::Instant::now();
+            let Ok(img) = SCScreenshotManager::capture_image(&filter, &cfg) else {
+                break;
+            };
+            cap.push(t.elapsed().as_secs_f64() * 1000.0);
+            let t = std::time::Instant::now();
+            let _ = img.rgba_data();
+            rgba.push(t.elapsed().as_secs_f64() * 1000.0);
+            let t = std::time::Instant::now();
+            let _ = img.bgra_data();
+            bgra.push(t.elapsed().as_secs_f64() * 1000.0);
+        }
+        if cap.len() == 5 {
+            r.line(format!(
+                "| {} ({iw}x{ih}) | {:.0} ms | {:.0} ms | {:.0} ms |",
+                d.display_id(),
+                med(cap),
+                med(rgba),
+                med(bgra)
+            ));
+        }
+    }
+
     // Region capture (15.2+): top-left 100x100 points of the main display.
     r.h(
         3,
