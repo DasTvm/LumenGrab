@@ -151,13 +151,22 @@ One public repo. No second repo, no servers.
 
 ## 10. Commands
 
-Fill in after M0 and keep this section current:
+Keep this section current:
 
 ```
 pnpm install
-pnpm dev:web        # frontend in browser with mocked platform calls
-pnpm tauri dev      # full native app
+pnpm dev:web          # frontend in browser with mocked platform calls (http://localhost:1420, ?window=settings for settings)
+pnpm tauri dev        # full native app (tray icon; no window at start, open Settings from the tray menu)
 pnpm lint && pnpm typecheck && pnpm test
-pnpm test:e2e       # Playwright
-pnpm tauri build    # local installer build
+pnpm format           # Prettier (docs/FORMAT.md, AGENTS.md etc. are in .prettierignore: never auto-format them)
+pnpm test:e2e         # Playwright in browser mock mode; screenshots land in test-results/
+pnpm tauri build      # local installer build (.dmg on macOS, NSIS .exe on Windows)
+pnpm licenses:update  # regenerate THIRD_PARTY_LICENSES (needs cargo-about: cargo install cargo-about --locked --features cli)
+cd src-tauri && cargo fmt --check && cargo clippy -- -D warnings   # Rust checks
 ```
+
+Notes:
+
+- Updater is not enabled yet. Setup and the later steps are in `docs/UPDATER.md`.
+- TypeScript is pinned to 6.0.x because typescript-eslint does not support 7.x yet.
+- Windows installers are only built in CI (release workflow); macOS only is verified locally.
