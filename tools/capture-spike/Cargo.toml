@@ -1,0 +1,25 @@
+[package]
+name = "capture-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Throwaway M1 diagnostics: compares screen capture backends. Not part of the app."
+
+# Standalone crate on purpose: keeps spike-only dependencies out of the app's Cargo.lock and
+# THIRD_PARTY_LICENSES until a backend is chosen (see docs/adr/0001-capture-backend.md).
+[workspace]
+
+[features]
+# Windows: use Windows.Graphics.Capture instead of GDI inside xcap. Build twice to compare.
+wgc = ["xcap/wgc"]
+
+[dependencies]
+xcap = "0.9.8"
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+# macos_15_2 = SCScreenshotManager stills (14.0+) and capture-in-rect (15.2+). Minimum OS impact is in the ADR.
+screencapturekit = { version = "11", features = ["macos_15_2"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.62", features = ["Win32_UI_HiDpi", "Win32_Foundation"] }
