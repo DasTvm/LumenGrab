@@ -48,7 +48,7 @@ it twice: default and `--features wgc`).
 
 - Hover highlight matches the real window frame on each monitor; the front window wins when overlapping; windows partly off-screen; a window **straddling two monitors with different scales**.
 - Click captures only that window (overlapping windows are not in the image); sharp at that monitor's scale.
-- Minimized windows are not offered; a fullscreen app window works.
+- Minimized windows are not offered; a fullscreen app window works. The picker never highlights the Dock, menu bar, notification banners or invisible helper/overlay windows.
 - macOS: note whether the shadow is included and the resulting size. Windows: no invisible 7 px border or blank margin; a browser with video, GPU-accelerated and UWP windows are not black or white.
 
 ## 5. Hotkeys and sessions

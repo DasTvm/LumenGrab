@@ -1,20 +1,18 @@
 # ADR 0001: Screen capture backend
 
-Status: **DRAFT.** Provisional recommendation. The macOS content tests are blocked on Screen Recording permission
-and the Windows runs have not happened yet (see "Open gates"). Do not treat the decision as final.
+Status: **macOS decided (ScreenCaptureKit), pending the minimum-macOS-14 OK. Windows provisional** until the spike has
+been run on Windows hardware (see "Open gates").
 
 ## Context
 
 M1 needs screen, window and area capture on macOS and Windows with correct multi-monitor and mixed-DPI behaviour.
 AGENTS.md says to evaluate `xcap` and `scap` and to wrap the choice behind our own `Capturer` trait, so the
 backend stays swappable. The spike in `tools/capture-spike` (standalone crate, not part of the app) compares the
-candidates. It was extended on request to also test ScreenCaptureKit on macOS and GDI vs WGC on Windows.
+candidates: on macOS `xcap` against ScreenCaptureKit, on Windows `xcap` with GDI against `xcap` with WGC.
 
-Evidence is tagged: **[measured]** = run on the dev Mac (macOS 27.0, arm64, two displays), **[source]** = read from
-the library source or its docs, **[pending]** = needs a run that has not happened.
-
-Caveat for every macOS number below: the run had **no Screen Recording permission**. Sizes, speed and permission
-behaviour are valid; anything about image _content_ is not.
+Evidence is tagged: **[measured]** = run on the dev Mac (macOS 27.0, arm64, two displays: built-in 1920x1243 pt at 2x and an
+external 2560x1440 pt at 2x with origin (-2560, -197)), **[source]** = read from library source or docs, **[pending]** = needs a run that has not
+happened. Raw spike reports contain window titles of the developer's desktop and are therefore not committed.
 
 ## Candidates
 
@@ -27,110 +25,98 @@ behaviour are valid; anything about image _content_ is not.
 
 ## Findings
 
-### Geometry and pixel sizes
+### Pixel sizes and geometry
 
-- **[measured] xcap on macOS:** sizes are correct on both displays. Built-in: 1920x1243 points x 2.0 = **3840x2486** px
-  (the panel is 2880x1864 running a scaled mode, so the image is the 2x backing store, larger than the panel).
-  External: 2560x1440 pt x 2.0 = 5120x2880 at origin **(-2560, -197)**, i.e. a negative origin. 100x100 pt region capture
-  gives 200x200 px. `Monitor::from_point` resolves both displays correctly.
-  xcap reports **points** on macOS (truncated to integers) and **physical pixels** on Windows; the capture itself is
-  physical pixels. The `Capturer` trait must therefore expose physical pixels + scale and hide this.
-- **[source] xcap on Windows:** x/y/width/height come from `DEVMODE` (physical pixels). The scale factor is only reliable
-  in a **per-monitor DPI aware** process (otherwise it falls back to `GetDeviceCaps`). The Tauri app is DPI aware;
-  the spike sets it explicitly. The `--no-dpi-awareness` flag shows the difference. [pending]
-- **[source] ScreenCaptureKit:** `SCShareableContentInfo::for_filter` gives `point_pixel_scale` and `pixel_size`, an authoritative native
-  pixel size per filter, so we do not compute it ourselves. Whether the default config (no width/height) returns native
-  pixels or point size [pending].
+- **[measured] macOS, both backends:** captured sizes equal reported **points x scale** on both displays: 3840x2486 and 5120x2880. The built-in panel is
+  2880x1864 running a scaled mode, so the image is the 2x backing store, larger than the panel (same as the system screenshot tool).
+  100x100 pt region capture gives 200x200 px in both. The negative-origin display resolves correctly (`Monitor::from_point`).
+- **[measured] ScreenCaptureKit default config returns 1920x1080** on both displays (wrong size and aspect), because no output size is set. The size must always be
+  set from `SCShareableContentInfo::pixel_size()` (authoritative native size per filter); then it matches xcap exactly.
+- **[measured] Colour agreement:** ScreenCaptureKit vs xcap full-display captures differ by a mean 0.59 per channel, with 2.5% of pixels differing by more than 8 (live screen content changing between the two captures). No colour shift or channel swap.
+- xcap reports **points** on macOS (truncated to integers) and **physical pixels** on Windows; the captures themselves are physical pixels. The `Capturer` trait therefore exposes
+  physical pixels + scale and hides this difference.
+- **[source] xcap on Windows:** x/y/width/height come from `DEVMODE` (physical pixels). The scale factor is only reliable in a **per-monitor DPI aware** process
+  (otherwise it falls back to `GetDeviceCaps`); the Tauri app is DPI aware and the spike sets it explicitly. [pending: run, also with `--no-dpi-awareness`]
 
 ### Permission behaviour (macOS)
 
-- **[measured] xcap/CG without permission:** `CGPreflightScreenCaptureAccess()` works on macOS 27 (returned `false`, no crash). Captures
-  **succeed silently and return a blank single-colour image**, and the window list shows only 2 windows. So xcap gives no
-  error: we must always preflight ourselves, otherwise we would save a wallpaper-only file.
-- **[measured] ScreenCaptureKit without permission:** `SCShareableContent::get()` fails with an explicit error ("Content
-  unavailable: user declined TCC for capture by apps, windows, displays", shown in the system language). Errors instead of blank images, and
-  a failing call is the permission check.
+- **[measured] xcap/CG without permission:** captures **succeed silently and return a blank single-colour image**, and only 2 windows are listed (vs 24 with permission). `CGPreflightScreenCaptureAccess()` works on macOS 27 (false without, true with permission).
+  xcap gives no error, so we must always preflight; otherwise we would save a wallpaper-only file.
+- **[measured] ScreenCaptureKit without permission:** `SCShareableContent::get()` fails with an explicit error ("user declined TCC for capture by apps, windows, displays"). Errors instead of blank images.
 - Windows has no capture permission.
 
 ### Excluding our own overlay windows
 
-- **Design:** we freeze all displays _before_ creating overlay windows, so the frozen frames never contain overlays. Exclusion
-  only matters for window-pick mode and for defence in depth.
-- **[source] macOS xcap/CG:** the xcap API cannot exclude windows. The underlying call can (`...OnScreenBelowWindow`), but only by bypassing xcap.
-- **[source] macOS ScreenCaptureKit:** first-class (`with_excluding_windows`, `with_excluding_applications`). The spike has a
-  demo that diffs a display capture with and without one window excluded [pending: needs permission].
-- **[source] Both OS, any backend:** Tauri's `set_content_protected(true)` maps to `WDA_EXCLUDEFROMCAPTURE` on Windows
-  (tao source) and to the window sharing type on macOS. Windows: documented to hide the window from all capture. macOS:
-  newer macOS versions may ignore the sharing type for ScreenCaptureKit; **must be tested in Phase B** [pending].
+- **Design:** we freeze all displays _before_ creating overlay windows, so frozen frames never contain overlays. Exclusion only matters for window-pick mode and as defence in depth.
+- **[measured] ScreenCaptureKit:** excluding one window from a display capture (`with_excluding_windows`) makes it disappear: 99.9% of the pixels in that window's region differ from the unexcluded capture. First-class, works.
+- **[source] xcap/CG:** the xcap API cannot exclude windows; the underlying call can (`...OnScreenBelowWindow`), but only by bypassing xcap.
+- **[source] both OS, any backend:** Tauri's `set_content_protected(true)` maps to `WDA_EXCLUDEFROMCAPTURE` on Windows (tao source) and to the window sharing type on macOS (which newer macOS
+  may ignore for ScreenCaptureKit). **Must be tested in Phase B**; not relied on alone.
 
-### Window capture, with and without shadow
+### Window capture and the shadow question
 
-- **[source] macOS xcap/CG:** window images use default options, so the shadow is included and cannot be turned off through xcap.
-  The spike table shows bounds vs captured size [pending: needs permission].
-- **[source] macOS ScreenCaptureKit:** `SCStreamConfiguration::with_ignores_shadows_single_window(bool)` (macOS 14+). The spike
-  captures each candidate window with shadows kept and ignored and prints both sizes [pending].
-  We want no shadow: the presentation layer (M5) adds our own.
-- **[source] Windows GDI:** `PrintWindow` based. **WGC:** captures the window item only (no overlapping windows), sized by the capture item.
-  Invisible DWM border behaviour [pending: Windows run].
+- **[measured] xcap/CG macOS:** window images are **exactly bounds x scale and shadow-free** (alpha only at rounded corners). Good.
+  But `Window::all()` returns everything on screen: of 24 entries several are not real windows (a display-sized Dock window about 94% transparent, fully transparent helper/overlay windows,
+  a notification-centre window). xcap exposes **no window layer**, so a window picker would have to guess with size/transparency heuristics.
+- **[measured] ScreenCaptureKit:** `SCWindow` has `window_layer()` and `is_on_screen()`; filtering `layer == 0 && on screen && titled` leaves only real windows.
+  Shadows: with `with_ignores_shadows_single_window(true)` the image is **exactly frame x scale, shadow-free** (same as xcap). With the default (shadow kept) the same pixel size is used, so the
+  window is **shrunk to make room for the shadow** (about 4 px inset, 6-11% semi-transparent pixels): it loses resolution and alignment. We want no shadow (the presentation layer, M5, adds our own),
+  so `ignores_shadows_single_window(true)` is mandatory.
+- **[source] Windows GDI:** `PrintWindow` based. **WGC:** captures the window item only (no overlapping windows). Invisible DWM border behaviour [pending: Windows run].
 
 ### Speed
 
-- **[measured] xcap/CG macOS:** warm median **20 ms** (3840x2486) and **46 ms** (5120x2880), cold 95 ms and 39 ms.
-- **[pending]** ScreenCaptureKit timings (needs permission); Windows GDI and WGC timings.
-- **[measured, not valid]** PNG encode cost was measured on _blank_ frames (too compressible), so the numbers (7 ms fast vs 67 ms
-  default) say nothing; re-run with permission to decide how frozen frames are served to the overlay.
-- **[source] xcap WGC:** creates a frame pool per capture and waits for the first frame (3 s timeout); expect more latency than
-  GDI's single `BitBlt`, to be measured. Displays can be captured in parallel threads.
+- **[measured] xcap/CG macOS:** warm median **47 ms** (3840x2486) and **62 ms** (5120x2880); cold 116 / 94 ms.
+- **[measured] ScreenCaptureKit:** `capture_image` alone **48 ms** and **57 ms** (parity with xcap). The crate's `rgba_data()` conversion adds 34 / 54 ms, while `bgra_data()` costs **2 ms**: read BGRA and swizzle in the encoder or
+  on the fly (this explains why a naive run looked about 2x slower). Cold first capture 87 / 123 ms. Capturing displays in parallel threads is possible.
+- **[measured] PNG encode of a real 5120x2880 frame:** default **515 ms** (2.6 MB), fast + Sub filter **20 ms** (3.9 MB), fast + no filter 63 ms (56 MB, effectively uncompressed).
+  Decision: serve frozen frames to the overlay with **fast + Sub (20 ms)**; encode the saved file with the default level **off the critical path** (background thread).
+- **[pending]** Windows GDI and WGC timings. **[source]** xcap's WGC path creates a frame pool per capture and waits for the first frame (3 s timeout), so expect more latency than GDI's single `BitBlt`.
 
 ### Code and dependency cost
 
 | Backend                  | Adapter code (est.)                                                                            | Extra build requirements                                                                                                                                                                                                                                                       | Dependencies                                                                                                      |
 | ------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
 | xcap (macOS and Windows) | ~60 lines for list/capture displays + windows; one dependency for both OS                      | none                                                                                                                                                                                                                                                                           | 62 crates on macOS (mostly `image` and `objc2-*`), all permissive                                                 |
-| screencapturekit (macOS) | ~100 lines (filters, configs, RGBA readback) + 1 `build.rs` line                               | **Swift toolchain at build time** (Xcode CLT; present on macOS CI runners); needs `-rpath /usr/lib/swift` or the binary fails at launch with `Library not loaded: @rpath/libswift_Concurrency.dylib` **[measured]**; links the system Swift runtime (shipped with macOS 12.3+) | 12 crates, all MIT/Apache-2.0, 288 KB Swift bridge; maintained by one author (doom-fish), last release 2026-09-24 |
+| screencapturekit (macOS) | ~100 lines (filters, configs, BGRA readback, window filter) + 1 `build.rs` line                | **Swift toolchain at build time** (Xcode CLT; present on macOS CI runners); needs `-rpath /usr/lib/swift` or the binary fails at launch with `Library not loaded: @rpath/libswift_Concurrency.dylib` **[measured]**; links the system Swift runtime (shipped with macOS 12.3+) | 12 crates, all MIT/Apache-2.0, 288 KB Swift bridge; maintained by one author (doom-fish), last release 2026-09-24 |
 | objc2-screen-capture-kit | more (hand-written block/completion-handler glue, no Swift)                                    | none                                                                                                                                                                                                                                                                           | raw bindings only; Zlib/Apache/MIT [not built]                                                                    |
 | windows-capture          | more than xcap for single frames: its model is a callback handler built for continuous capture | none                                                                                                                                                                                                                                                                           | MIT; a good candidate for M7 recording rather than stills                                                         |
 
-Minimum macOS version: `SCScreenshotManager` stills need **macOS 14**, capture-in-rect **15.2**. Tauri's default minimum is
-older; choosing ScreenCaptureKit means setting `minimumSystemVersion` to 14.0 and saying so in the README.
+Minimum macOS version: `SCScreenshotManager` stills need **macOS 14** (we do not need the 15.2 rect API: we crop frozen frames ourselves). Tauri's default minimum is
+older; choosing ScreenCaptureKit means `minimumSystemVersion` 14.0 in `tauri.conf.json` and saying so in the README.
 
 ### Other facts worth keeping
 
 - **[source]** xcap macOS window list is front-to-back and on-screen only; minimized windows are not listed (upstream #205).
-  ScreenCaptureKit can list off-screen windows too (`is_on_screen` flag).
 - **[source]** xcap's Windows `wgc` path turns off the cursor and, best effort, the yellow capture border (needs Windows 11 / capability).
   WGC needs roughly Windows 10 1903+; the GDI path has open issue reports of white or blank captures on Win11 (#130) and of game frames (#131) [issue reports, not reproduced].
 - **[source]** Open xcap issues of note: ScreenCaptureKit switch (#253), memory leak on M4 (#203), hang (#209), colour difference (#210), no HDR (#270).
+- The spike's "window vs display crop" comparison picked a transparent helper window and is inconclusive; not used for any decision.
 
-## Recommendation (provisional)
+## Decision
 
-- **macOS: ScreenCaptureKit via `screencapturekit`**, minimum macOS 14. Reasons: it is Apple's supported API (the CG one is
-  deprecated, and xcap's own tracker asks to replace it), it errors on missing permission instead of returning blank frames,
-  it has built-in window exclusion and shadow control, and it gives authoritative pixel sizes. Costs: Swift toolchain at build time,
-  one rpath line, a single-maintainer crate. Keep xcap/CG out of M1 unless the permission-enabled run shows a ScreenCaptureKit problem
-  (two macOS backends would double maintenance).
-- **Windows: `xcap` with the `wgc` feature**, GDI kept as the documented fallback (a Cargo feature, not a runtime switch).
-  Reasons: it is a thin WGC wrapper behind the same API we use on macOS, has no cursor/border in the image, avoids the GDI blank-capture reports.
-  `windows-capture` stays the alternative if xcap's per-capture frame pool is too slow or limiting (and is the likely M7 recording base).
-- **Both behind our `Capturer` trait**, which exposes physical pixels + scale and never points. Swapping a backend must not touch anything above the trait.
+- **macOS: ScreenCaptureKit via `screencapturekit`, minimum macOS 14.** Verified on macOS 27: correct sizes (when sized from the filter), equal speed (via BGRA), matching colours, working window exclusion,
+  shadow control, window layer filtering, explicit permission errors. xcap/CG also works technically on 27 but silently returns blank images without permission, cannot exclude windows and exposes no window layer,
+  and its own tracker asks for the same switch. Rules for the implementation:
+  1. Always set output width/height from `pixel_size()`.
+  2. Read **BGRA**, not RGBA.
+  3. Window capture: `ignores_shadows_single_window(true)`; list windows with `layer == 0 && is_on_screen`.
+  4. Add `-rpath /usr/lib/swift` in `src-tauri/build.rs`; document the Swift toolchain in README/CI.
+  5. Treat a failing `SCShareableContent::get()` or `CGPreflightScreenCaptureAccess() == false` as "permission missing" and show the permission window.
+- **Windows (provisional): `xcap` with the `wgc` feature**, GDI kept as the documented fallback (a Cargo feature, not a runtime switch): a thin WGC wrapper behind the same API, no cursor/border in the image,
+  avoids the GDI blank-capture reports. `windows-capture` stays the alternative if xcap's per-capture frame pool is too slow or limiting (and is the likely M7 recording base).
+- **Both behind our `Capturer` trait**, which exposes physical pixels + scale and never points, plus a `Window` type that already contains only real, capturable windows. Swapping a backend must not touch anything above the trait.
 
-## Open gates (what flips or confirms the recommendation)
+## Open gates
 
-1. **macOS content run with permission** (see below): ScreenCaptureKit pixel sizes, speed, shadow sizes, exclusion demo, content diff vs xcap
-   (colour correctness). If ScreenCaptureKit is slow (>~150 ms per display) or sizes are wrong, revisit.
-2. **Windows run** of the spike, default and `--features wgc`: sizes in a mixed-DPI setup, speed, content (no white frames), window capture size.
-   If WGC is clean, it is the default; if GDI shows the white-frame bug and WGC does too, evaluate `windows-capture`.
-3. **Overlay exclusion on both OS** with `set_content_protected(true)`: Phase B test, must not rely on it alone.
-4. **Minimum macOS version 14** acceptable to the user.
-
-### Which app needs the macOS permission
-
-The shell chain is `MonoCode.app -> claude -> zsh -> capture-spike`, so **MonoCode** (`/Applications/MonoCode.app`) is the app
-that needs **Screen Recording** (System Settings -> Privacy & Security -> Screen & System Audio Recording). Enable it, then quit and reopen MonoCode
-(the permission only applies to processes started afterwards) and start a new session.
+1. **Windows run** of the spike (default and `--features wgc`), ideally on a mixed-DPI setup: sizes, speed, content (no white frames), window capture size, DPI-unaware comparison. If WGC is clean it is the default;
+   if both show problems, evaluate `windows-capture`.
+2. **Overlay exclusion on both OS** with `set_content_protected(true)`: Phase B test.
+3. **Minimum macOS 14** acceptable to the user.
+4. A true **mixed-scale** macOS setup (1x + 2x, fractional) is not available on the dev Mac (both displays are 2x); covered by the manual checklist.
 
 ## Consequences
 
-- The `Capturer` trait and a thin `platform/{macos,windows}` split are unchanged from the M1 plan; only the macOS implementation behind it changes.
-- Phase B adds the rpath line to `src-tauri/build.rs` and a Swift toolchain requirement to the README and CI (macOS runners have it).
-- `tools/capture-spike` stays as a diagnostic until the decision is final, then can be deleted or kept.
+- The `Capturer` trait and the thin `platform/{macos,windows}` split from the M1 plan are unchanged; only the macOS implementation behind the trait is ScreenCaptureKit instead of xcap.
+- Phase B adds the rpath line to `src-tauri/build.rs`, a Swift toolchain note to README/CI, and `minimumSystemVersion`.
+- `tools/capture-spike` stays as a diagnostic until the Windows decision is final, then can be deleted or kept.
