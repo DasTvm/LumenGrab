@@ -1,0 +1,26 @@
+[package]
+name = "lumengrab"
+version = "0.1.0"
+description = "LumenGrab: free, source-available screenshot app"
+authors = ["LumenGrab contributors"]
+license-file = "../LICENSE"
+edition = "2021"
+
+[lib]
+# The `_lib` suffix is needed to keep the lib name unique from the bin name (Windows issue,
+# see https://github.com/rust-lang/cargo/issues/8519).
+name = "lumengrab_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+panic = "abort"
+strip = true

@@ -31,7 +31,7 @@ We build similar features, not a copy.
 - The compiled app is free for users. It ships with short terms of use (`EULA.md`): free to use, no reselling or repackaging.
 - The name **LumenGrab** and its logo are not licensed for reuse (stated in the README).
 - Required files in the repo root: `LICENSE` (exact official PolyForm Noncommercial 1.0.0 text, never edited or paraphrased), `README.md`, `CONTRIBUTING.md`, `EULA.md`, `THIRD_PARTY_LICENSES`.
-- **The repo is public from commit #1, including the full git history.** Never commit secrets, tokens, keys, personal data, customer data, or real screenshots of private content. Secrets live only in GitHub Actions secrets or local env files that are in `.gitignore`. Add a secret scan (e.g. gitleaks) to CI.
+- **The repo becomes public once `LICENSE` and `README.md` are verified, including the full git history.** Until then it stays private and nothing is pushed. Never commit secrets, tokens, keys, personal data, customer data, or real screenshots of private content. Secrets live only in GitHub Actions secrets or local env files that are in `.gitignore`. Add a secret scan (e.g. gitleaks) to CI.
 
 ## 2. Tech stack
 

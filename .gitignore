@@ -1,5 +1,36 @@
+# dependencies and build output
 node_modules
 target
 dist
+src-tauri/gen
+*.tsbuildinfo
+
+# test output
+playwright-report
+test-results
+coverage
+
+# env and secrets (never commit)
 .env*
+*.key
+*.pem
+*.p12
+*.p8
+*.cer
+*.pfx
+*.keychain
+*.keychain-db
+*.mobileprovision
+.tauri
+tauri-signing*
+
+# OS and editor files
 .DS_Store
+Thumbs.db
+Desktop.ini
+.idea
+.vscode/*
+!.vscode/extensions.json
+
+# local agent settings
+.claude/settings.local.json
