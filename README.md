@@ -36,11 +36,18 @@ _source-available_, not OSI open source. The compiled app is free to use under t
 
 The name **LumenGrab** and its logo are **not** licensed for reuse.
 
+## Supported systems
+
+- **macOS 14 (Sonoma) or newer.** Capture uses Apple's ScreenCaptureKit, which needs macOS 14.
+- **Windows 10 or 11.** Capture uses Windows.Graphics.Capture; the exact minimum Windows 10 build is still being confirmed.
+
 ## Run it
 
 Requirements: [Node.js](https://nodejs.org) (current LTS or newer), [pnpm](https://pnpm.io),
 and for the native app the [Rust toolchain](https://rustup.rs) plus the
 [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your OS.
+On macOS you also need the Swift toolchain (Xcode or the Command Line Tools), because the
+ScreenCaptureKit bindings compile a small Swift bridge.
 
 ```sh
 pnpm install
