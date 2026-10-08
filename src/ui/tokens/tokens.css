@@ -26,6 +26,8 @@
   --lg-destructive: light-dark(#c8281d, #ff6b60);
   --lg-destructive-foreground: light-dark(#ffffff, #1a0705);
   --lg-ring: var(--lg-accent);
+  /* Dimming over the frozen frame while selecting (same in light and dark). */
+  --lg-scrim: rgb(0 0 0 / 0.45);
 
   /* Radius */
   --lg-radius-sm: 4px;
@@ -71,6 +73,7 @@
   --color-destructive: var(--lg-destructive);
   --color-destructive-foreground: var(--lg-destructive-foreground);
   --color-ring: var(--lg-ring);
+  --color-scrim: var(--lg-scrim);
 
   --radius-sm: var(--lg-radius-sm);
   --radius-md: var(--lg-radius-md);
