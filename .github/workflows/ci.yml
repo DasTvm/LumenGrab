@@ -63,3 +63,33 @@ jobs:
           tar -xzf "${archive}" -C gitleaks gitleaks
           echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
       - run: gitleaks detect --source . --redact --verbose --exit-code 1
+
+  rust:
+    name: Rust (${{ matrix.name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-26
+          - name: Windows
+            os: windows-2025
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      # tauri::generate_context!() needs the frontend dist folder to exist at compile time.
+      - name: Stub frontend dist
+        shell: bash
+        run: mkdir -p ../dist && echo "<!doctype html>" > ../dist/index.html
+      - run: cargo fmt --check
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test
