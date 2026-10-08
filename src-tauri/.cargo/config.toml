@@ -1,0 +1,5 @@
+# LumenGrab requires macOS 14 (ScreenCaptureKit stills). Keeps the Rust code and the Swift bridge
+# at the same deployment target when building with plain cargo (the Tauri CLI sets it from
+# `bundle.macOS.minimumSystemVersion` as well).
+[env]
+MACOSX_DEPLOYMENT_TARGET = "14.0"

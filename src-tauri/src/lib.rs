@@ -1,11 +1,13 @@
 //! LumenGrab native shell. Kept thin on purpose: product logic lives in TypeScript.
-//! M0 only provides the tray icon, its menu and the settings window placeholder.
 
+mod capture;
+mod platform;
 mod tray;
 
 pub fn run() {
     tauri::Builder::default()
         .setup(|app| {
+            platform::setup_app(app);
             tray::init(app.handle())?;
             Ok(())
         })

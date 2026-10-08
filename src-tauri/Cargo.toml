@@ -13,11 +13,34 @@ publish = false
 name = "lumengrab_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+[features]
+# Windows capture backend. Default: Windows.Graphics.Capture (via xcap).
+# `cargo build --no-default-features` falls back to GDI. Has no effect on macOS.
+default = ["wgc"]
+wgc = ["xcap/wgc"]
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-global-shortcut = "2.4"
+tauri-plugin-clipboard-manager = "2.4"
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+png = "0.18"
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+
+# macOS: ScreenCaptureKit (macOS 14+) for capture; objc2 for window level and window z-order.
+[target.'cfg(target_os = "macos")'.dependencies]
+screencapturekit = { version = "11", features = ["macos_14_0"] }
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSView"] }
+objc2-core-foundation = { version = "0.3", features = ["CFArray", "CFDictionary", "CFNumber", "CFString"] }
+objc2-core-graphics = { version = "0.3", features = ["CGWindow", "CGEvent"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+xcap = { version = "0.9.8", default-features = false }
 
 [profile.release]
 codegen-units = 1
