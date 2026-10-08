@@ -8,8 +8,12 @@
 //!   Only used to place windows and to map the cursor to a display.
 
 pub mod backend;
+pub mod commands;
 pub mod encode;
+pub mod flow;
 pub mod geometry;
+pub mod output;
+pub mod overlay;
 pub mod pixels;
 pub mod store;
 

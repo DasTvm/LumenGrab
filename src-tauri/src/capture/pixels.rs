@@ -4,7 +4,8 @@
 /// Converts BGRA8 with premultiplied alpha to RGBA8 with straight alpha, in place.
 /// Fully opaque pixels (all of a display capture) only get their R and B swapped.
 pub fn bgra_premultiplied_to_rgba(buf: &mut [u8]) {
-    for px in buf.chunks_exact_mut(4) {
+    let (pixels, _) = buf.as_chunks_mut::<4>();
+    for px in pixels {
         let a = px[3];
         let (b, g, r) = (px[0], px[1], px[2]);
         match a {

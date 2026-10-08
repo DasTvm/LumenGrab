@@ -91,6 +91,28 @@ pub fn run(r: &mut Report, xcap_shots: &[(u32, Shot)]) {
         }
     }
 
+    // Is SCShareableContent::windows() in z-order? Compare with CGWindowList order (xcap's `z`, 0 = ... see below).
+    r.h(3, "Window order: ScreenCaptureKit list vs CGWindowList z-order");
+    let cg: Vec<(u32, i32)> = xcap::Window::all()
+        .map(|v| v.iter().filter_map(|w| Some((w.id().ok()?, w.z().ok()?))).collect())
+        .unwrap_or_default();
+    let sck_ids: Vec<u32> = content
+        .windows()
+        .into_iter()
+        .filter(|w| w.is_on_screen() && w.window_layer() == 0)
+        .map(|w| w.window_id())
+        .collect();
+    let mut rows: Vec<String> = Vec::new();
+    for (i, id) in sck_ids.iter().enumerate().take(12) {
+        let z = cg.iter().find(|(cid, _)| cid == id).map(|(_, z)| z.to_string()).unwrap_or_else(|| "-".into());
+        rows.push(format!("({i}: id {id}, cg z {z})"));
+    }
+    r.line(rows.join(" "));
+    let zs: Vec<i32> = sck_ids.iter().filter_map(|id| cg.iter().find(|(c, _)| c == id).map(|(_, z)| *z)).collect();
+    let asc = zs.windows(2).all(|p| p[0] <= p[1]);
+    let desc = zs.windows(2).all(|p| p[0] >= p[1]);
+    r.line(format!("SCK list order is monotonic in CG z: ascending={asc} descending={desc} (n={})", zs.len()));
+
     // Where do the milliseconds go? capture_image alone vs pixel readback (RGBA vs BGRA).
     r.h(3, "ScreenCaptureKit time split (median of 5)");
     r.line("| display | capture_image only | + rgba_data() | + bgra_data() |");

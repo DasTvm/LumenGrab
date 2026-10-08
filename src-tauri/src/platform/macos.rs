@@ -94,3 +94,16 @@ pub fn configure_overlay(window: &WebviewWindow) {
         ns_window.setHasShadow(false);
     });
 }
+
+/// Overlay position/size in logical points (macOS native units are points).
+pub fn position_overlay<'a>(
+    builder: tauri::WebviewWindowBuilder<'a, tauri::Wry, AppHandle>,
+    native: &crate::capture::NativeRect,
+) -> tauri::WebviewWindowBuilder<'a, tauri::Wry, AppHandle> {
+    builder
+        .position(native.x, native.y)
+        .inner_size(native.width, native.height)
+}
+
+/// Placement already happened in the builder.
+pub fn finish_overlay_placement(_window: &WebviewWindow, _native: &crate::capture::NativeRect) {}
