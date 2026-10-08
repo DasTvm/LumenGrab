@@ -1,7 +1,5 @@
 # LumenGrab Terms of Use
 
-> **DRAFT: not reviewed yet.** The maintainer must review and adjust this text before the first release.
-
 These are the terms for using the compiled LumenGrab app. The source code has its own license
 (PolyForm Noncommercial 1.0.0, see `LICENSE`).
 
