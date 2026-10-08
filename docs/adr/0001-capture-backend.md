@@ -93,6 +93,30 @@ older; choosing ScreenCaptureKit means `minimumSystemVersion` 14.0 in `tauri.con
 - **[source]** Open xcap issues of note: ScreenCaptureKit switch (#253), memory leak on M4 (#203), hang (#209), colour difference (#210), no HDR (#270).
 - The spike's "window vs display crop" comparison picked a transparent helper window and is inconclusive; not used for any decision.
 
+## Phase B findings (macOS, measured in the real app)
+
+Release build, dev Mac (two 2x displays, 3840x2486 and 5120x2880), `cargo build --release --features dev-hooks`.
+
+- **End to end works natively:** fullscreen (5120x2880, opaque), area (exact requested size), window
+  (5120x2640 = frame x scale, alpha 0..255 for the rounded corners, no shadow), saved to Pictures and copied to the clipboard.
+- **Premultiplied alpha confirmed:** ScreenCaptureKit window frames are premultiplied (colour is ~20% of alpha at alpha 53 for a dark window).
+  Frames are un-premultiplied before PNG encoding (`capture/pixels.rs`, unit tested).
+- **`SCShareableContent::windows()` is not in z-order** (compared with CGWindowList). Window picking takes the order from
+  `CGWindowListCopyWindowInfo` via `objc2-core-graphics` (`platform/macos.rs`).
+- **`SCShareableContent::get()` costs 70-110 ms**, more than the capture itself. One snapshot per capture is reused for all displays.
+- **Latency, hotkey to overlay visible** (warm runs): about **780 ms** at first, about **570 ms** after (a) creating the hidden overlay windows
+  while the displays are being captured, (b) one `SCShareableContent` snapshot instead of one per display, (c) a vectorisable opaque swizzle.
+  Breakdown of the 570 ms: permission 25, list displays 100-110, freeze displays + create overlay windows about 280 (parallel; two parallel
+  `capture_image` calls take 80-140 ms each), PNG encode of the frozen frames about 120 under load (22 ms alone), webview load and image decode about 25 after publish.
+  Measured with the Vite dev server as frontend; the production bundle should be faster. **Not yet "instant"**; options if it does not feel right:
+  keep the overlay windows alive hidden after the first capture, or pre-warm one at startup (costs memory), capture displays sequentially to avoid the contention.
+- **Not verified, needs an active desktop:** the machine was showing the Aerial screensaver during the self-tests, so overlay visibility
+  (level above the menu bar and fullscreen apps, keyboard focus) and whether `set_content_protected(true)` keeps the overlays out of
+  ScreenCaptureKit captures could **not** be confirmed. The dev self-test (`LUMENGRAB_DEV_SELFTEST=1`, see the checklist) measures it
+  and must be re-run with the screen awake. An early run printed `focused=false` for the overlay windows, hence the global Escape fallback.
+- **Build on macOS with only the Command Line Tools:** the screencapturekit crate links `libswiftCompatibility56` from a path that only exists with full Xcode;
+  `src-tauri/build.rs` adds the CLT path. Executables hid this in the spike (dead stripping), the cdylib target of a Tauri app does not.
+
 ## Decision
 
 - **macOS: ScreenCaptureKit via `screencapturekit`, minimum macOS 14.** Verified on macOS 27: correct sizes (when sized from the filter), equal speed (via BGRA), matching colours, working window exclusion,

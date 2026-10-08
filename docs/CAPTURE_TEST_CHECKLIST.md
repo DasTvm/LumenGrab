@@ -41,7 +41,7 @@ it twice: default and `--features wgc`).
   pixel-accurate: compare with a full-screen grid/ruler image, check the first and last row/column.
 - Selections at the exact edges and corners of each monitor and near the seam between monitors.
 - Dragging past the monitor edge clamps to that monitor; dragging into another monitor does not cross.
-- Esc cancels on every monitor and saves nothing; a click without drag cancels; a tiny drag (<5 px) is ignored.
+- Esc cancels (also when the overlay has no keyboard focus: Esc is grabbed globally during a capture) and saves nothing; right click cancels; a click without drag or a tiny drag (<5 px) is ignored and you can keep selecting.
 - The live size readout shows output pixels.
 
 ## 4. Window (Ctrl+Shift+5)
@@ -84,3 +84,20 @@ it twice: default and `--features wgc`).
 
 - PNG opens everywhere, fully opaque, correct orientation on a rotated monitor.
 - The folder is created if missing; a read-only or missing Pictures folder produces an error dialog and the clipboard copy still happens.
+
+## Developer self-test (debug builds or `--features dev-hooks`)
+
+Drives a capture from the terminal, no mouse needed, and prints the timings. **Run it with the screen awake** (no screensaver, not locked).
+
+```sh
+pnpm dev:web &                       # debug builds load the frontend from the Vite dev server
+cd src-tauri
+LUMENGRAB_DEV_CAPTURE=area LUMENGRAB_DEV_AUTOSUBMIT=1 cargo run                    # also: window, fullscreen
+LUMENGRAB_DEV_CAPTURE=area LUMENGRAB_DEV_AUTOSUBMIT=1 LUMENGRAB_DEV_SELFTEST=1 cargo run   # overlay exclusion check
+```
+
+- The log shows `+N ms` per phase and `overlay on display X visible N ms after the capture started` (hotkey to overlay).
+- Self-test: with the overlays up, every display is captured again and compared with the frozen frame. Ratio about **1.00** = overlays are
+  not in the capture (`set_content_protected` works). A ratio near **0.55** = the overlay is in the capture (it dims by 45%).
+  It also saves `/tmp/lg-selftest-sck-<id>.png` and a `screencapture` reference. Please send me the printed lines.
+- Files land in `Pictures/LumenGrab`; delete the test files afterwards.
