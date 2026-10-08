@@ -73,6 +73,14 @@ export function hitTestWindow<W extends PixelRect>(windows: readonly W[], p: Poi
   );
 }
 
+/** How far a rectangle may move by (dx, dy) and still stay inside `bounds` (used for Space-to-move). */
+export function clampTranslation(r: Rect, dx: number, dy: number, bounds: Size): Point {
+  return {
+    x: clamp(dx, -r.x, bounds.width - (r.x + r.width)),
+    y: clamp(dy, -r.y, bounds.height - (r.y + r.height)),
+  };
+}
+
 function clamp(v: number, min: number, max: number): number {
   return Math.min(Math.max(v, min), max);
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PixelRect } from "@/platform";
 import {
   clampPoint,
+  clampTranslation,
   cssPointToPixelPoint,
   cssRectToPixelRect,
   hitTestWindow,
@@ -131,5 +132,26 @@ describe("hitTestWindow", () => {
   it("returns undefined when nothing is under the pointer", () => {
     const none: PixelRect[] = [];
     expect(hitTestWindow(none, { x: 1, y: 1 })).toBeUndefined();
+  });
+});
+
+describe("clampTranslation", () => {
+  const bounds = { width: 800, height: 600 };
+  const rect = { x: 100, y: 50, width: 200, height: 100 };
+
+  it("passes small moves through", () => {
+    expect(clampTranslation(rect, 30, -20, bounds)).toEqual({ x: 30, y: -20 });
+  });
+
+  it("stops the selection at every edge instead of resizing it", () => {
+    expect(clampTranslation(rect, -500, -500, bounds)).toEqual({ x: -100, y: -50 });
+    expect(clampTranslation(rect, 900, 900, bounds)).toEqual({ x: 500, y: 450 });
+  });
+
+  it("a selection that already touches an edge cannot move further that way", () => {
+    expect(clampTranslation({ x: 0, y: 0, width: 800, height: 600 }, 10, 10, bounds)).toEqual({
+      x: 0,
+      y: 0,
+    });
   });
 });

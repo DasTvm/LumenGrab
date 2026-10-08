@@ -78,7 +78,7 @@ export const mockPlatform: Platform = {
         scale: FRAME.scale,
       },
       frameUrl: sampleCaptureUrl,
-      windows: mode === "window" ? MOCK_WINDOWS : [],
+      windows: MOCK_WINDOWS,
     };
   },
 

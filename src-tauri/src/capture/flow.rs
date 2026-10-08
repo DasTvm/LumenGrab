@@ -87,13 +87,8 @@ fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
     guard::spawn(app, &id);
     let (frozen, windows, opened) = std::thread::scope(|s| {
         let open = s.spawn(|| overlay::open_all(app, &id, mode, &displays));
-        let windows = s.spawn(|| {
-            if mode == CaptureMode::Window {
-                capturer.windows()
-            } else {
-                Ok(Vec::new())
-            }
-        });
+        // The overlay can switch between area and window mode, so the windows are always listed.
+        let windows = s.spawn(|| capturer.windows());
         let handles: Vec<_> = displays
             .iter()
             .map(|d| s.spawn(|| capturer.capture_display(d.id)))
@@ -129,7 +124,12 @@ fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
             started,
             mode,
             displays: session_displays,
-            windows: windows?,
+            // A failing window list must not break a plain area capture.
+            windows: if mode == CaptureMode::Window {
+                windows?
+            } else {
+                windows.unwrap_or_default()
+            },
         })
     })();
     let session = match built {

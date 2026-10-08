@@ -32,7 +32,7 @@ export interface OverlaySession {
   display: OverlayDisplay;
   /** URL of the frozen frame for an <img>. */
   frameUrl: string;
-  /** Front to back. Empty in area mode. */
+  /** Selectable windows, front to back. Always present: the overlay can switch between area and window mode. */
   windows: OverlayWindowInfo[];
 }
 
