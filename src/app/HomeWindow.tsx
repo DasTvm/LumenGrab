@@ -65,7 +65,7 @@ export function HomeWindow() {
         </p>
       ) : null}
 
-      <div className="border-border bg-surface text-muted-foreground flex h-48 items-center justify-center rounded-lg border border-dashed px-6 text-center text-sm">
+      <div className="border-border bg-secondary text-muted-foreground flex h-48 items-center justify-center rounded-lg border border-dashed px-6 text-center text-sm">
         {started === "fullscreen"
           ? "Fullscreen capture requested. In the app it is saved to Pictures/LumenGrab and copied to the clipboard."
           : "In the app, use the hotkeys or the menu bar icon. In the browser, these buttons open the capture overlay with a sample image."}

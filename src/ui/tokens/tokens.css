@@ -1,52 +1,79 @@
 /*
  * Design tokens: the single place for colors, radius, spacing and type.
- * Neutral placeholder values; the real design comes from Figma later.
+ * Source of truth: LumenGrab.pen (Pencil), variables `--background` ... `--accent-brand`.
  *
- * Light/dark: colors use light-dark(), so they follow the system setting by default.
- * Set data-theme="light" or data-theme="dark" on <html> to force one (tests, screenshots).
- * Components must use the Tailwind names mapped below (bg-background, text-muted-foreground, ...),
+ * Light values are copied from the design. The design has no dark theme yet: the dark values are
+ * derived (zinc scale) and need a designer's review. Colors use light-dark(), so they follow the
+ * system setting by default. Set data-theme="light" or "dark" on <html> to force one.
+ * Components use the Tailwind names mapped below (bg-background, text-muted-foreground, ...),
  * never raw color values.
  */
 
 :root {
   color-scheme: light dark;
 
-  /* Color */
-  --lg-background: light-dark(#ffffff, #101216);
-  --lg-foreground: light-dark(#14161a, #ecedf0);
-  --lg-surface: light-dark(#f6f7f9, #171a1f);
-  --lg-surface-foreground: light-dark(#14161a, #ecedf0);
-  --lg-muted: light-dark(#eef0f3, #1d2128);
-  --lg-muted-foreground: light-dark(#596070, #9aa1ad);
-  --lg-border: light-dark(#dfe2e7, #2b303a);
-  --lg-primary: light-dark(#14161a, #ecedf0);
-  --lg-primary-foreground: light-dark(#fafafa, #101216);
-  --lg-accent: light-dark(#2f6fed, #6b9bff);
-  --lg-accent-foreground: light-dark(#ffffff, #0b1020);
-  --lg-destructive: light-dark(#c8281d, #ff6b60);
-  --lg-destructive-foreground: light-dark(#ffffff, #1a0705);
-  --lg-ring: var(--lg-accent);
-  /* Dimming over the frozen frame while selecting (same in light and dark). */
-  --lg-scrim: rgb(0 0 0 / 0.45);
+  /* Surfaces and text */
+  --lg-background: light-dark(#ffffff, #09090b);
+  --lg-foreground: light-dark(#09090b, #fafafa);
+  --lg-card: light-dark(#ffffff, #0f0f12);
+  --lg-card-foreground: light-dark(#09090b, #fafafa);
+  --lg-border: light-dark(#e4e4e7, #27272a);
+  --lg-input: light-dark(#e4e4e7, #27272a);
+  --lg-primary: light-dark(#18181b, #fafafa);
+  --lg-primary-foreground: light-dark(#fafafa, #18181b);
+  --lg-secondary: light-dark(#f4f4f5, #27272a);
+  --lg-secondary-foreground: light-dark(#18181b, #fafafa);
+  --lg-muted: light-dark(#f4f4f5, #27272a);
+  --lg-muted-foreground: light-dark(#71717a, #a1a1aa);
+  --lg-accent: light-dark(#f4f4f5, #27272a);
+  --lg-accent-foreground: light-dark(#18181b, #fafafa);
+  --lg-destructive: light-dark(#ef4444, #dc2626);
+  --lg-destructive-foreground: light-dark(#fafafa, #fafafa);
+  --lg-ring: light-dark(#18181b, #d4d4d8);
 
-  /* Radius */
-  --lg-radius-sm: 4px;
-  --lg-radius-md: 8px;
-  --lg-radius-lg: 12px;
+  /* Brand accent: lime, identical in both themes */
+  --lg-brand: #c8ff2e;
+  --lg-brand-foreground: #09090b;
+
+  /* Status */
+  --lg-success: light-dark(#16a34a, #22c55e);
+  --lg-success-foreground: light-dark(#ffffff, #052e16);
+  --lg-warning: light-dark(#d97706, #f59e0b);
+  --lg-warning-foreground: light-dark(#ffffff, #1c1917);
+  --lg-warning-soft: light-dark(#fffbeb, #2a1f08);
+  --lg-warning-border: light-dark(#fcd34d, #78560f);
+  --lg-info: light-dark(#2563eb, #60a5fa);
+  --lg-info-foreground: light-dark(#ffffff, #0b1220);
+
+  /* The capture overlay and its toolbar are always dark, whatever the theme (design: Capture Overlay) */
+  --lg-scrim: rgb(0 0 0 / 0.5);
+  --lg-overlay-surface: #18181b;
+  --lg-overlay-foreground: #e4e4e7;
+  --lg-overlay-muted: #a1a1aa;
+  --lg-overlay-divider: #3f3f46;
+
+  /* Radius (design: radius-s/m/l/pill) */
+  --lg-radius-s: 6px;
+  --lg-radius-m: 8px;
+  --lg-radius-l: 12px;
   --lg-radius-xl: 16px;
 
   /* Spacing: base unit, Tailwind multiplies it (p-4 = 4 * --lg-space) */
   --lg-space: 4px;
 
-  /* Type */
+  /* Type: Inter for UI, Outfit for the wordmark only. System fonts are the fallback. */
   --lg-font-sans:
-    system-ui, -apple-system, "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    "Inter Variable", system-ui, -apple-system, "Segoe UI Variable", "Segoe UI", Roboto,
+    "Helvetica Neue", sans-serif;
+  --lg-font-brand: "Outfit", "Inter Variable", system-ui, sans-serif;
   --lg-font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Consolas, monospace;
   --lg-text-xs: 0.75rem;
   --lg-text-sm: 0.8125rem;
-  --lg-text-base: 0.9375rem;
-  --lg-text-lg: 1.0625rem;
-  --lg-text-xl: 1.375rem;
+  --lg-text-base: 0.875rem;
+  --lg-text-lg: 1rem;
+  --lg-text-xl: 1.25rem;
+  --lg-text-2xl: 1.625rem;
+  --lg-text-3xl: 1.875rem;
 }
 
 :root[data-theme="light"] {
@@ -61,32 +88,52 @@
 @theme inline {
   --color-background: var(--lg-background);
   --color-foreground: var(--lg-foreground);
-  --color-surface: var(--lg-surface);
-  --color-surface-foreground: var(--lg-surface-foreground);
-  --color-muted: var(--lg-muted);
-  --color-muted-foreground: var(--lg-muted-foreground);
+  --color-card: var(--lg-card);
+  --color-card-foreground: var(--lg-card-foreground);
   --color-border: var(--lg-border);
+  --color-input: var(--lg-input);
   --color-primary: var(--lg-primary);
   --color-primary-foreground: var(--lg-primary-foreground);
+  --color-secondary: var(--lg-secondary);
+  --color-secondary-foreground: var(--lg-secondary-foreground);
+  --color-muted: var(--lg-muted);
+  --color-muted-foreground: var(--lg-muted-foreground);
   --color-accent: var(--lg-accent);
   --color-accent-foreground: var(--lg-accent-foreground);
   --color-destructive: var(--lg-destructive);
   --color-destructive-foreground: var(--lg-destructive-foreground);
   --color-ring: var(--lg-ring);
+  --color-brand: var(--lg-brand);
+  --color-brand-foreground: var(--lg-brand-foreground);
+  --color-success: var(--lg-success);
+  --color-success-foreground: var(--lg-success-foreground);
+  --color-warning: var(--lg-warning);
+  --color-warning-foreground: var(--lg-warning-foreground);
+  --color-warning-soft: var(--lg-warning-soft);
+  --color-warning-border: var(--lg-warning-border);
+  --color-info: var(--lg-info);
+  --color-info-foreground: var(--lg-info-foreground);
   --color-scrim: var(--lg-scrim);
+  --color-overlay-surface: var(--lg-overlay-surface);
+  --color-overlay-foreground: var(--lg-overlay-foreground);
+  --color-overlay-muted: var(--lg-overlay-muted);
+  --color-overlay-divider: var(--lg-overlay-divider);
 
-  --radius-sm: var(--lg-radius-sm);
-  --radius-md: var(--lg-radius-md);
-  --radius-lg: var(--lg-radius-lg);
+  --radius-sm: var(--lg-radius-s);
+  --radius-md: var(--lg-radius-m);
+  --radius-lg: var(--lg-radius-l);
   --radius-xl: var(--lg-radius-xl);
 
   --spacing: var(--lg-space);
 
   --font-sans: var(--lg-font-sans);
+  --font-brand: var(--lg-font-brand);
   --font-mono: var(--lg-font-mono);
   --text-xs: var(--lg-text-xs);
   --text-sm: var(--lg-text-sm);
   --text-base: var(--lg-text-base);
   --text-lg: var(--lg-text-lg);
   --text-xl: var(--lg-text-xl);
+  --text-2xl: var(--lg-text-2xl);
+  --text-3xl: var(--lg-text-3xl);
 }
