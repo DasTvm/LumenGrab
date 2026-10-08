@@ -51,11 +51,15 @@ jobs:
       # organization repos, so we run the verified binary directly.
       - name: Install gitleaks
         run: |
+          # Download next to the checksum file under its original name, otherwise `sha256sum -c`
+          # cannot find it. Work in the runner temp dir to keep the repo checkout clean.
+          cd "$RUNNER_TEMP"
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
           base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
-          curl -sSfL -o gitleaks.tar.gz "${base}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -O "${base}/${archive}"
           curl -sSfL -o checksums.txt "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
-          grep " gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz\$" checksums.txt | sha256sum -c -
-          mkdir -p "$RUNNER_TEMP/gitleaks"
-          tar -xzf gitleaks.tar.gz -C "$RUNNER_TEMP/gitleaks" gitleaks
+          grep " ${archive}\$" checksums.txt | sha256sum -c -
+          mkdir -p gitleaks
+          tar -xzf "${archive}" -C gitleaks gitleaks
           echo "$RUNNER_TEMP/gitleaks" >> "$GITHUB_PATH"
       - run: gitleaks detect --source . --redact --verbose --exit-code 1
