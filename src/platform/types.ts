@@ -2,14 +2,38 @@
 
 export type CaptureMode = "area" | "window" | "fullscreen";
 
-export interface CaptureResult {
-  /** URL the UI can put into an <img>. */
-  imageUrl: string;
-  /** Size in source-image pixels. */
+/** Rectangle in physical pixels of one display's frozen frame (never CSS pixels). */
+export interface PixelRect {
+  x: number;
+  y: number;
   width: number;
   height: number;
-  /** Display scale of the captured screen (1, 2, ...). */
+}
+
+export interface OverlayDisplay {
+  id: number;
+  name: string;
+  /** Size of the frozen frame in physical pixels. */
+  pixelWidth: number;
+  pixelHeight: number;
+  /** Pixels per OS unit (informational). */
   scale: number;
+}
+
+/** A selectable window, in pixels relative to this display's frame. */
+export interface OverlayWindowInfo extends PixelRect {
+  id: number;
+  title: string;
+  appName: string;
+}
+
+export interface OverlaySession {
+  mode: Exclude<CaptureMode, "fullscreen">;
+  display: OverlayDisplay;
+  /** URL of the frozen frame for an <img>. */
+  frameUrl: string;
+  /** Front to back. Empty in area mode. */
+  windows: OverlayWindowInfo[];
 }
 
 export interface AppInfo {
@@ -20,7 +44,14 @@ export interface AppInfo {
 
 export interface Platform {
   getAppInfo(): Promise<AppInfo>;
-  capture(mode: CaptureMode): Promise<CaptureResult>;
+  /** Starts a capture exactly as the global hotkey would. */
+  startCapture(mode: CaptureMode): Promise<void>;
+  getOverlaySession(sessionId: string, displayId: number): Promise<OverlaySession>;
+  /** The overlay painted its frame: the native side may show the window now. */
+  overlayReady(sessionId: string, displayId: number): Promise<void>;
+  submitArea(sessionId: string, displayId: number, rect: PixelRect): Promise<void>;
+  submitWindow(sessionId: string, windowId: number): Promise<void>;
+  cancelCapture(sessionId: string): Promise<void>;
 }
 
 export class PlatformError extends Error {
