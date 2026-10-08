@@ -22,11 +22,11 @@ jobs:
       matrix:
         include:
           - name: macOS (universal .dmg)
-            os: macos-latest
+            os: macos-26
             args: --target universal-apple-darwin
             rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
           - name: Windows (NSIS .exe)
-            os: windows-latest
+            os: windows-2025
             args: ""
             rust-targets: ""
     runs-on: ${{ matrix.os }}
