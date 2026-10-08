@@ -59,6 +59,11 @@ it twice: default and `--features wgc`).
 
 ## 6. Overlay behaviour
 
+- **Regression, must pass first:** start an area capture, press **Esc**: the overlays disappear immediately and the Mac stays responsive (the first test build froze here). Repeat 10 times, also pressing Esc right after the overlays appear, and once with the mouse on each display.
+- Window mode: move the pointer to the **second display**: its windows highlight on hover and a click captures that window. Then back to the first display.
+- If the app ever stops responding while an overlay is up, it exits by itself after about 4 seconds (watchdog); please tell me when that happens.
+- Tray menu "Open Screenshots Folder" opens `Pictures/LumenGrab`; after a capture the menu bar icon shows "Saved" for 2 s (macOS).
+
 - Covers menu bar/Dock/taskbar and fullscreen apps; crosshair cursor.
 - No Dock icon (macOS) and no taskbar button for overlays (Windows).
 - Focus returns to the previous app after finish or cancel; works across Spaces/virtual desktops.

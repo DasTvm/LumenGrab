@@ -14,11 +14,30 @@ use crate::platform;
 
 const FOLDER: &str = "LumenGrab";
 
+/// `Pictures/LumenGrab`.
+pub fn screenshot_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    app.path()
+        .picture_dir()
+        .map(|p| p.join(FOLDER))
+        .map_err(|e| format!("The Pictures folder could not be found: {e}"))
+}
+
+/// Tray entry: opens the folder (created if it does not exist yet).
+pub fn open_screenshot_folder(app: &AppHandle) {
+    match screenshot_dir(app) {
+        Ok(dir) => {
+            let _ = fs::create_dir_all(&dir);
+            platform::open_folder(&dir);
+        }
+        Err(e) => error_dialog(app, &e),
+    }
+}
+
 pub fn deliver(app: &AppHandle, frame: Frame) {
-    let dir = match app.path().picture_dir() {
-        Ok(p) => p.join(FOLDER),
+    let dir = match screenshot_dir(app) {
+        Ok(dir) => dir,
         Err(e) => {
-            error_dialog(app, &format!("The Pictures folder could not be found: {e}"));
+            error_dialog(app, &e);
             return;
         }
     };
@@ -31,6 +50,9 @@ pub fn deliver(app: &AppHandle, frame: Frame) {
                 .unwrap_or_else(|_| Err("copying crashed".into())),
         )
     });
+    if let Ok(path) = &saved {
+        announce_saved(app, path);
+    }
     let problems: Vec<String> = [
         saved
             .err()
@@ -47,6 +69,24 @@ pub fn deliver(app: &AppHandle, frame: Frame) {
     }
     #[cfg(any(debug_assertions, feature = "dev-hooks"))]
     crate::dev::after_deliver(app, &problems);
+}
+
+/// Minimal feedback until the quick-access overlay (M2): the tray tooltip names the file, and on
+/// macOS the menu bar icon shows "Saved" next to it for two seconds.
+fn announce_saved(app: &AppHandle, path: &Path) {
+    let Some(tray) = app.tray_by_id("main") else {
+        return;
+    };
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let _ = tray.set_tooltip(Some(format!("LumenGrab: saved {name}")));
+    let _ = tray.set_title(Some("Saved"));
+    std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_secs(2));
+        let _ = tray.set_title(None::<&str>);
+    });
 }
 
 /// Atomic write: temp file in the same folder, then rename.

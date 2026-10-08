@@ -11,7 +11,7 @@ use std::{sync::Arc, time::Instant};
 use tauri::{AppHandle, Manager};
 
 use super::{
-    geometry, output, overlay,
+    geometry, guard, output, overlay,
     store::{CaptureStore, Session, SessionDisplay},
     CaptureError, CaptureMode, CaptureResult, Capturer, Frame, PxRect,
 };
@@ -84,6 +84,7 @@ fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
     let store = app.state::<CaptureStore>();
     let id = store.reserve();
     hotkeys::grab_escape(app);
+    guard::spawn(app, &id);
     let (frozen, windows, opened) = std::thread::scope(|s| {
         let open = s.spawn(|| overlay::open_all(app, &id, mode, &displays));
         let windows = s.spawn(|| {
@@ -152,6 +153,7 @@ fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
 
 /// Ends a session (idempotent) and closes its overlays.
 pub fn finish(app: &AppHandle, session_id: &str) {
+    eprintln!("[lumengrab] capture {session_id} ended");
     hotkeys::release_escape(app);
     app.state::<CaptureStore>().finish(Some(session_id));
     overlay::close_all(app, session_id);

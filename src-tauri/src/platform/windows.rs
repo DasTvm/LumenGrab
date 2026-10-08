@@ -38,3 +38,8 @@ pub fn finish_overlay_placement(window: &WebviewWindow, native: &crate::capture:
 
 /// Windows has no screen recording permission; kept so shared code compiles on both OSes.
 pub fn open_screen_recording_settings() {}
+
+/// Shows a folder in Explorer.
+pub fn open_folder(path: &std::path::Path) {
+    let _ = std::process::Command::new("explorer").arg(path).spawn();
+}

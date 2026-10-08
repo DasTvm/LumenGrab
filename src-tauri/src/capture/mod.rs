@@ -12,6 +12,7 @@ pub mod commands;
 pub mod encode;
 pub mod flow;
 pub mod geometry;
+pub mod guard;
 pub mod output;
 pub mod overlay;
 pub mod pixels;

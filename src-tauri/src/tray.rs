@@ -6,7 +6,7 @@ use tauri::{
     AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
-use crate::capture::{flow, CaptureMode};
+use crate::capture::{flow, output, CaptureMode};
 
 const SETTINGS_LABEL: &str = "settings";
 
@@ -33,6 +33,13 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         true,
         Some("Ctrl+Shift+3"),
     )?;
+    let folder = MenuItem::with_id(
+        app,
+        "open-folder",
+        "Open Screenshots Folder",
+        true,
+        None::<&str>,
+    )?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit LumenGrab", true, None::<&str>)?;
     let menu = Menu::with_items(
@@ -42,6 +49,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
             &window,
             &fullscreen,
             &PredefinedMenuItem::separator(app)?,
+            &folder,
             &settings,
             &PredefinedMenuItem::separator(app)?,
             &quit,
@@ -55,6 +63,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
             "capture-area" => flow::start(app, CaptureMode::Area),
             "capture-window" => flow::start(app, CaptureMode::Window),
             "capture-fullscreen" => flow::start(app, CaptureMode::Fullscreen),
+            "open-folder" => output::open_screenshot_folder(app),
             "settings" => show_settings(app),
             "quit" => app.exit(0),
             _ => {}

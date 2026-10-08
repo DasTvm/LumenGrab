@@ -1,7 +1,9 @@
 //! Global hotkeys. Fixed for now (configurable later): Ctrl+Shift+3 fullscreen, 4 area, 5 window,
 //! on both macOS and Windows. Registered in Rust at startup so they work with no window open.
 
-use tauri::AppHandle;
+use std::sync::mpsc::{channel, Sender};
+
+use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 use crate::capture::{flow, output, CaptureMode};
@@ -18,15 +20,44 @@ fn escape() -> Shortcut {
     Shortcut::new(None, Code::Escape)
 }
 
-/// While a capture is in progress Esc cancels it even if the overlay window did not get keyboard
-/// focus (an accessory app on macOS is not always allowed to take focus). Released again when the
-/// capture ends, so Esc is only ever taken from other apps for the few seconds an overlay is up.
+/// Esc is grabbed globally only while a capture is in progress, so it cancels even if the overlay did
+/// not get keyboard focus. Registering and unregistering is done by ONE worker thread, in order:
+///
+/// **Never call `register`/`unregister` from a shortcut handler, a command or an event callback.**
+/// The plugin runs handlers while holding its internal shortcut lock, and `unregister` takes the same
+/// lock, so calling it from a handler deadlocks the main thread (this froze the overlays, and with
+/// them the whole screen, in the first test build). The worker also keeps grab/release in order.
+pub struct EscapeGrab(Sender<bool>);
+
+pub fn start_escape_worker(app: &AppHandle) {
+    let (tx, rx) = channel::<bool>();
+    let handle = app.clone();
+    std::thread::spawn(move || {
+        let mut grabbed = false;
+        for want in rx {
+            if want == grabbed {
+                continue;
+            }
+            let shortcuts = handle.global_shortcut();
+            let result = if want {
+                shortcuts.register(escape())
+            } else {
+                shortcuts.unregister(escape())
+            };
+            if result.is_ok() {
+                grabbed = want;
+            }
+        }
+    });
+    app.manage(EscapeGrab(tx));
+}
+
 pub fn grab_escape(app: &AppHandle) {
-    let _ = app.global_shortcut().register(escape());
+    let _ = app.state::<EscapeGrab>().0.send(true);
 }
 
 pub fn release_escape(app: &AppHandle) {
-    let _ = app.global_shortcut().unregister(escape());
+    let _ = app.state::<EscapeGrab>().0.send(false);
 }
 
 pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
@@ -36,7 +67,9 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
                 return;
             }
             if *shortcut == escape() {
-                flow::cancel_active(app);
+                // Hand off to another thread: this handler runs with the plugin's lock held.
+                let app = app.clone();
+                std::thread::spawn(move || flow::cancel_active(&app));
                 return;
             }
             if let Some((_, _, mode)) = HOTKEYS

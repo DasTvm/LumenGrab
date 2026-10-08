@@ -51,6 +51,7 @@ pub fn run() {
         .setup(|app| {
             platform::setup_app(app);
             tray::init(app.handle())?;
+            hotkeys::start_escape_worker(app.handle());
             hotkeys::register(app.handle());
             #[cfg(any(debug_assertions, feature = "dev-hooks"))]
             dev::autostart(app.handle());

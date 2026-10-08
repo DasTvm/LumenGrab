@@ -35,6 +35,11 @@ pub fn open_screen_recording_settings() {
         .spawn();
 }
 
+/// Shows a folder in Finder.
+pub fn open_folder(path: &std::path::Path) {
+    let _ = Command::new("open").arg(path).spawn();
+}
+
 /// Cursor in native units (points, global desktop, y down), same space as `CGDisplayBounds`.
 pub fn cursor_position(_app: &AppHandle) -> Option<(f64, f64)> {
     let event = CGEvent::new(None)?;
@@ -92,6 +97,7 @@ pub fn configure_overlay(window: &WebviewWindow) {
                 | NSWindowCollectionBehavior::IgnoresCycle,
         );
         ns_window.setHasShadow(false);
+        ns_window.setAcceptsMouseMovedEvents(true);
     });
 }
 

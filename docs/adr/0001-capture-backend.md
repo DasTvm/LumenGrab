@@ -110,12 +110,28 @@ Release build, dev Mac (two 2x displays, 3840x2486 and 5120x2880), `cargo build 
   `capture_image` calls take 80-140 ms each), PNG encode of the frozen frames about 120 under load (22 ms alone), webview load and image decode about 25 after publish.
   Measured with the Vite dev server as frontend; the production bundle should be faster. **Not yet "instant"**; options if it does not feel right:
   keep the overlay windows alive hidden after the first capture, or pre-warm one at startup (costs memory), capture displays sequentially to avoid the contention.
-- **Not verified, needs an active desktop:** the machine was showing the Aerial screensaver during the self-tests, so overlay visibility
-  (level above the menu bar and fullscreen apps, keyboard focus) and whether `set_content_protected(true)` keeps the overlays out of
-  ScreenCaptureKit captures could **not** be confirmed. The dev self-test (`LUMENGRAB_DEV_SELFTEST=1`, see the checklist) measures it
-  and must be re-run with the screen awake. An early run printed `focused=false` for the overlay windows, hence the global Escape fallback.
+- **Overlay visibility, focus and content protection** were first measured while the Aerial screensaver covered the screen (meaningless) and
+  re-measured with the screen awake: see the section on the first user test below.
 - **Build on macOS with only the Command Line Tools:** the screencapturekit crate links `libswiftCompatibility56` from a path that only exists with full Xcode;
   `src-tauri/build.rs` adds the CLT path. Executables hid this in the spike (dead stripping), the cdylib target of a Tauri app does not.
+
+## First user test, 2026-10-08: what broke and what we learned
+
+- **Esc froze the whole Mac.** Cause: the global-shortcut plugin runs a handler while holding its internal shortcut lock; our Esc
+  handler called `unregister`, which takes the same lock -> self-deadlock on the main thread. The overlays (window level 1000, over the
+  menu bar) stayed up and made the screen unusable. Fixes: (1) handlers never touch the shortcut manager; Esc grab/release goes through
+  one ordered worker thread (`hotkeys::start_escape_worker`), (2) a **watchdog** thread that does not depend on the main thread exits the
+  process 4 s after the main thread stops answering during a capture (tested: exit code 70, overlays gone), (3) a capture is cancelled after 10 min.
+  Rule: never call `register`/`unregister` from a shortcut handler, a command or an event callback.
+- **Window picking dead on the second display.** A window that is not the key window gets no hover events, and only the overlay under the cursor
+  became key. A cursor follower thread now makes the overlay under the cursor the key window (verified: the key overlay switches with the cursor between both
+  displays), and overlays accept mouse-moved events. Hover/click with a physical mouse still needs a human check on the second display.
+- **Overlay visibility confirmed** (screen awake, protection off): both overlays sit exactly over their displays and dim them to 0.57 of the frozen luma.
+- **`set_content_protected(true)` makes ScreenCaptureKit return a completely black frame** for the whole display while such a window is visible
+  (the system screenshot tool simply leaves the window out). Overlays are therefore **not** content protected. We never capture while an overlay is up
+  (displays are frozen first), but a black frame in a race would ruin a screenshot silently.
+- **Where do the files go?** `~/Pictures/LumenGrab`, saving worked, but success was silent and nobody could find the folder. Added the tray entry
+  "Open Screenshots Folder" and a minimal cue (tray tooltip names the file, macOS shows "Saved" next to the icon for 2 s). The real feedback is the M2 overlay.
 
 ## Decision
 

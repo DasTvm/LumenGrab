@@ -7,6 +7,10 @@
 //!   LUMENGRAB_DEV_SELFTEST=1                       while the overlays are visible, capture every display
 //!                                                  again and report whether the overlays show up in it
 //!
+//!   LUMENGRAB_DEV_HOLD=1                           keep the overlays open and print per-display window lists
+//!   LUMENGRAB_DEV_HANG=1                           block the main thread (with HOLD) to test the watchdog
+//!   LUMENGRAB_DEV_PROTECTED=1                      make the overlays content protected (off by default)
+//!
 //! When `LUMENGRAB_DEV_CAPTURE` is set the app quits after the capture was delivered.
 
 use std::time::Duration;
@@ -42,7 +46,9 @@ pub fn autostart(app: &AppHandle) {
 
 /// Called when the overlay under the cursor is visible.
 pub fn autosubmit(app: &AppHandle, session: &Session, display: &DisplayInfo) {
-    if requested_mode().is_none() || std::env::var("LUMENGRAB_DEV_AUTOSUBMIT").is_err() {
+    let submit = std::env::var("LUMENGRAB_DEV_AUTOSUBMIT").is_ok();
+    // LUMENGRAB_DEV_HOLD=1: keep the overlays open (print the window lists, never submit).
+    if requested_mode().is_none() || !(submit || std::env::var("LUMENGRAB_DEV_HOLD").is_ok()) {
         return;
     }
     let (app, id, display, mode) = (
@@ -54,6 +60,9 @@ pub fn autosubmit(app: &AppHandle, session: &Session, display: &DisplayInfo) {
     let first_window = geometry::windows_on_display(&display, &session.windows)
         .first()
         .map(|(id, _)| *id);
+    let session_displays_info: Vec<DisplayInfo> =
+        session.displays.iter().map(|d| d.info.clone()).collect();
+    let session_windows = session.windows.clone();
     let frozen: Vec<(u32, f64)> = session
         .displays
         .iter()
@@ -62,6 +71,17 @@ pub fn autosubmit(app: &AppHandle, session: &Session, display: &DisplayInfo) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(500));
         if std::env::var("LUMENGRAB_DEV_SELFTEST").is_ok() {
+            for d in &session_displays_info {
+                let list = geometry::windows_on_display(d, &session_windows);
+                eprintln!(
+                    "[lumengrab:dev] display {} offers {} selectable windows: {:?}",
+                    d.id,
+                    list.len(),
+                    list.iter()
+                        .map(|(id, r)| (*id, r.x, r.y, r.width, r.height))
+                        .collect::<Vec<_>>()
+                );
+            }
             for (label, w) in app.webview_windows() {
                 if label.starts_with("overlay-") {
                     eprintln!(
@@ -102,6 +122,14 @@ pub fn autosubmit(app: &AppHandle, session: &Session, display: &DisplayInfo) {
                     }
                 }
             }
+        }
+        if std::env::var("LUMENGRAB_DEV_HANG").is_ok() {
+            // Simulates a frozen main thread while overlays are up: the watchdog must end the process.
+            eprintln!("[lumengrab:dev] blocking the main thread for 60 s on purpose");
+            let _ = app.run_on_main_thread(|| std::thread::sleep(Duration::from_secs(60)));
+        }
+        if !submit {
+            return;
         }
         let result = match (mode, first_window) {
             (CaptureMode::Window, Some(window)) => flow::submit_window(&app, &id, window),
