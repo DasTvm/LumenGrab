@@ -3,6 +3,8 @@
 
 /// Converts BGRA8 with premultiplied alpha to RGBA8 with straight alpha, in place.
 /// Fully opaque pixels (all of a display capture) only get their R and B swapped.
+// Only the macOS backend delivers premultiplied BGRA; the math is unit tested on every OS.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn bgra_premultiplied_to_rgba(buf: &mut [u8]) {
     let (pixels, _) = buf.as_chunks_mut::<4>();
     for px in pixels {

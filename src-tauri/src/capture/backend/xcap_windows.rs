@@ -26,7 +26,10 @@ const FORCE_OPAQUE_WINDOWS: bool = !cfg!(feature = "wgc");
 
 fn frame(width: u32, height: u32, mut rgba: Vec<u8>, force_opaque: bool) -> Frame {
     if force_opaque {
-        rgba.chunks_exact_mut(4).for_each(|px| px[3] = 255);
+        rgba.as_chunks_mut::<4>()
+            .0
+            .iter_mut()
+            .for_each(|px| px[3] = 255);
     }
     Frame {
         width,
