@@ -3,7 +3,7 @@
 
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
-use super::{store::Session, CaptureMode, DisplayInfo};
+use super::{CaptureMode, DisplayInfo};
 use crate::platform;
 
 pub fn label(session: &str, display: u32) -> String {
@@ -31,32 +31,34 @@ fn mode_name(mode: CaptureMode) -> &'static str {
 }
 
 /// Creates the overlays hidden. Each one shows itself through `show` once its frame is painted,
-/// so there is no white flash and no half-loaded overlay.
-pub fn open_all(app: &AppHandle, session: &Session) -> tauri::Result<()> {
-    for d in &session.displays {
+/// so there is no white flash and no half-loaded overlay. Called while the displays are still being
+/// captured (hidden windows are never part of a capture), which hides the window creation time.
+pub fn open_all(
+    app: &AppHandle,
+    session_id: &str,
+    mode: CaptureMode,
+    displays: &[DisplayInfo],
+) -> tauri::Result<()> {
+    for d in displays {
         let url = format!(
-            "index.html?window=overlay&session={}&display={}&mode={}",
-            session.id,
-            d.info.id,
-            mode_name(session.mode)
+            "index.html?window=overlay&session={session_id}&display={}&mode={}",
+            d.id,
+            mode_name(mode)
         );
-        let builder = WebviewWindowBuilder::new(
-            app,
-            label(&session.id, d.info.id),
-            WebviewUrl::App(url.into()),
-        )
-        .title("LumenGrab Capture")
-        .decorations(false)
-        .resizable(false)
-        .shadow(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .visible(false)
-        // Defence in depth: ask the OS to keep the overlay out of captures.
-        .content_protected(true);
-        let window = platform::position_overlay(builder, &d.info.native).build()?;
+        let builder =
+            WebviewWindowBuilder::new(app, label(session_id, d.id), WebviewUrl::App(url.into()))
+                .title("LumenGrab Capture")
+                .decorations(false)
+                .resizable(false)
+                .shadow(false)
+                .always_on_top(true)
+                .skip_taskbar(true)
+                .visible(false)
+                // Defence in depth: ask the OS to keep the overlay out of captures.
+                .content_protected(true);
+        let window = platform::position_overlay(builder, &d.native).build()?;
         platform::configure_overlay(&window);
-        platform::finish_overlay_placement(&window, &d.info.native);
+        platform::finish_overlay_placement(&window, &d.native);
     }
     Ok(())
 }

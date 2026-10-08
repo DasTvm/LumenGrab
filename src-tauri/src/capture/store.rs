@@ -1,9 +1,12 @@
 //! The one active capture session: frozen frames of every display (and the window list) while the
 //! overlays are open. At most one at a time; dropped on finish or cancel to release the memory.
 
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Arc, Mutex,
+use std::{
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Arc, Mutex,
+    },
+    time::Instant,
 };
 
 use super::{encode, CaptureMode, DisplayInfo, Frame, WindowInfo};
@@ -37,6 +40,8 @@ impl SessionDisplay {
 
 pub struct Session {
     pub id: String,
+    /// When the hotkey was handled; used to log hotkey-to-overlay latency.
+    pub started: Instant,
     pub mode: CaptureMode,
     pub displays: Vec<SessionDisplay>,
     /// Front to back. Empty unless `mode` is `Window`.
@@ -54,6 +59,8 @@ struct Inner {
     /// True from the moment a capture starts until it is finished, so key repeat and double
     /// presses cannot start a second one while the first is still freezing displays.
     busy: bool,
+    /// Reserved id of a session whose frames are still being captured (overlays may already ask for it).
+    pending: Option<String>,
     session: Option<Arc<Session>>,
 }
 
@@ -78,9 +85,31 @@ impl CaptureStore {
         format!("s{}", self.counter.fetch_add(1, Ordering::Relaxed) + 1)
     }
 
+    /// Reserves an id for a capture that is still freezing displays, so overlay windows can already
+    /// be created and ask for it (`is_pending`) while the frames are captured.
+    pub fn reserve(&self) -> String {
+        let id = self.next_id();
+        self.inner.lock().expect("store lock").pending = Some(id.clone());
+        id
+    }
+
+    /// Id of the capture in progress (still freezing, or with overlays up), if any.
+    pub fn active_id(&self) -> Option<String> {
+        let g = self.inner.lock().expect("store lock");
+        g.pending
+            .clone()
+            .or_else(|| g.session.as_ref().map(|s| s.id.clone()))
+    }
+
+    pub fn is_pending(&self, id: &str) -> bool {
+        self.inner.lock().expect("store lock").pending.as_deref() == Some(id)
+    }
+
     pub fn publish(&self, session: Session) -> Arc<Session> {
         let session = Arc::new(session);
-        self.inner.lock().expect("store lock").session = Some(session.clone());
+        let mut g = self.inner.lock().expect("store lock");
+        g.pending = None;
+        g.session = Some(session.clone());
         session
     }
 
@@ -100,6 +129,7 @@ impl CaptureStore {
             (Some(want), Some(have)) if have.id != want => None, // stale request for an old session
             _ => {
                 g.busy = false;
+                g.pending = None;
                 g.session.take()
             }
         }
@@ -139,6 +169,7 @@ mod tests {
         };
         Session {
             id: store.next_id(),
+            started: Instant::now(),
             mode: CaptureMode::Area,
             displays: vec![SessionDisplay::new(info, frame)],
             windows: vec![],
@@ -169,6 +200,31 @@ mod tests {
         assert!(store.finish(Some(&s.id)).is_some());
         assert!(store.get(&s.id).is_none());
         assert!(store.try_begin());
+    }
+
+    #[test]
+    fn reserved_id_is_pending_until_published_or_finished() {
+        let store = CaptureStore::default();
+        assert!(store.try_begin());
+        let id = store.reserve();
+        assert!(store.is_pending(&id));
+        assert!(
+            store.get(&id).is_none(),
+            "not usable before the frames exist"
+        );
+        let s = Session {
+            id: id.clone(),
+            ..session(&store)
+        };
+        store.publish(s);
+        assert!(!store.is_pending(&id));
+        assert!(store.get(&id).is_some());
+        // Cancelled while still pending.
+        store.finish(None);
+        assert!(store.try_begin());
+        let id2 = store.reserve();
+        store.finish(Some(&id2));
+        assert!(!store.is_pending(&id2));
     }
 
     #[test]

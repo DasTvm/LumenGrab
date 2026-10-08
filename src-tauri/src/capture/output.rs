@@ -45,6 +45,8 @@ pub fn deliver(app: &AppHandle, frame: Frame) {
     if !problems.is_empty() {
         error_dialog(app, &problems.join("\n\n"));
     }
+    #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+    crate::dev::after_deliver(app, &problems);
 }
 
 /// Atomic write: temp file in the same folder, then rename.

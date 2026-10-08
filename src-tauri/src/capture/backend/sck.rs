@@ -6,6 +6,11 @@
 //! - never include the cursor,
 //! - `SCShareableContent::windows()` is not in z-order, so order comes from CGWindowList.
 
+use std::{
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
+
 use screencapturekit::{
     prelude::*,
     screenshot_manager::{CGImageExt, SCScreenshotManager},
@@ -17,7 +22,31 @@ use crate::capture::{
 };
 use crate::platform;
 
-pub struct SckCapturer;
+/// How long a display snapshot from `displays()` may be reused by the `capture_display` calls that
+/// follow it. Fetching `SCShareableContent` costs 70-110 ms, so one fetch serves the whole freeze.
+const SNAPSHOT_TTL: Duration = Duration::from_secs(3);
+
+#[derive(Default)]
+pub struct SckCapturer {
+    snapshot: Mutex<Option<(Instant, Arc<SCShareableContent>)>>,
+}
+
+impl SckCapturer {
+    fn fresh_displays(&self) -> CaptureResult<Arc<SCShareableContent>> {
+        let content = Arc::new(content(false)?);
+        *self.snapshot.lock().expect("snapshot lock") = Some((Instant::now(), content.clone()));
+        Ok(content)
+    }
+
+    fn recent_displays(&self) -> CaptureResult<Arc<SCShareableContent>> {
+        if let Some((at, content)) = self.snapshot.lock().expect("snapshot lock").as_ref() {
+            if at.elapsed() < SNAPSHOT_TTL {
+                return Ok(content.clone());
+            }
+        }
+        self.fresh_displays()
+    }
+}
 
 /// Windows smaller than this are never worth selecting (tooltips, handles, helper windows).
 const MIN_WINDOW_POINTS: (f64, f64) = (100.0, 50.0);
@@ -38,7 +67,11 @@ fn content(on_screen_windows: bool) -> CaptureResult<SCShareableContent> {
         .map_err(backend_err)
 }
 
-fn grab(filter: &SCContentFilter, config: &SCStreamConfiguration) -> CaptureResult<Frame> {
+fn grab(
+    filter: &SCContentFilter,
+    config: &SCStreamConfiguration,
+    opaque: bool,
+) -> CaptureResult<Frame> {
     let image = SCScreenshotManager::capture_image(filter, config).map_err(backend_err)?;
     let (width, height) = (image.width() as u32, image.height() as u32);
     let mut rgba = image.bgra_data().map_err(backend_err)?;
@@ -48,7 +81,11 @@ fn grab(filter: &SCContentFilter, config: &SCStreamConfiguration) -> CaptureResu
             rgba.len()
         )));
     }
-    pixels::bgra_premultiplied_to_rgba(&mut rgba);
+    if opaque {
+        pixels::bgra_opaque_to_rgba(&mut rgba);
+    } else {
+        pixels::bgra_premultiplied_to_rgba(&mut rgba);
+    }
     Ok(Frame {
         width,
         height,
@@ -75,7 +112,7 @@ impl Capturer for SckCapturer {
     }
 
     fn displays(&self) -> CaptureResult<Vec<DisplayInfo>> {
-        let content = content(false)?;
+        let content = self.fresh_displays()?;
         let mut out = Vec::new();
         for d in content.displays() {
             let filter = SCContentFilter::create()
@@ -132,7 +169,7 @@ impl Capturer for SckCapturer {
     }
 
     fn capture_display(&self, display_id: u32) -> CaptureResult<Frame> {
-        let content = content(false)?;
+        let content = self.recent_displays()?;
         let display = content
             .displays()
             .into_iter()
@@ -150,7 +187,7 @@ impl Capturer for SckCapturer {
             .with_width(w)
             .with_height(h)
             .with_shows_cursor(false);
-        grab(&filter, &config)
+        grab(&filter, &config, true)
     }
 
     fn capture_window(&self, window_id: u32) -> CaptureResult<Frame> {
@@ -173,6 +210,6 @@ impl Capturer for SckCapturer {
             .with_shows_cursor(false)
             .with_ignores_shadows_single_window(true)
             .map_err(backend_err)?;
-        grab(&filter, &config)
+        grab(&filter, &config, false)
     }
 }

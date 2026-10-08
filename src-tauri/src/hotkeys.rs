@@ -14,10 +14,29 @@ const HOTKEYS: [(Code, &str, CaptureMode); 3] = [
     (Code::Digit5, "Ctrl+Shift+5", CaptureMode::Window),
 ];
 
+fn escape() -> Shortcut {
+    Shortcut::new(None, Code::Escape)
+}
+
+/// While a capture is in progress Esc cancels it even if the overlay window did not get keyboard
+/// focus (an accessory app on macOS is not always allowed to take focus). Released again when the
+/// capture ends, so Esc is only ever taken from other apps for the few seconds an overlay is up.
+pub fn grab_escape(app: &AppHandle) {
+    let _ = app.global_shortcut().register(escape());
+}
+
+pub fn release_escape(app: &AppHandle) {
+    let _ = app.global_shortcut().unregister(escape());
+}
+
 pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
     tauri_plugin_global_shortcut::Builder::new()
         .with_handler(|app, shortcut, event| {
             if event.state() != ShortcutState::Pressed {
+                return;
+            }
+            if *shortcut == escape() {
+                flow::cancel_active(app);
                 return;
             }
             if let Some((_, _, mode)) = HOTKEYS

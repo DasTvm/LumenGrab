@@ -27,9 +27,34 @@ pub fn bgra_premultiplied_to_rgba(buf: &mut [u8]) {
     }
 }
 
+/// BGRA8 -> RGBA8 for fully opaque images (display captures), in place. Faster than the general
+/// path: no alpha branching, so the compiler vectorises the channel swap. Alpha is forced to 255.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn bgra_opaque_to_rgba(buf: &mut [u8]) {
+    let (pixels, _) = buf.as_chunks_mut::<4>();
+    for px in pixels {
+        px.swap(0, 2);
+        px[3] = 255;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn opaque_fast_path_matches_the_general_path_for_opaque_pixels() {
+        let mut a: Vec<u8> = (0..64u8)
+            .flat_map(|i| [i, i.wrapping_mul(3), i.wrapping_mul(7), 255])
+            .collect();
+        let mut b = a.clone();
+        bgra_premultiplied_to_rgba(&mut a);
+        bgra_opaque_to_rgba(&mut b);
+        assert_eq!(a, b);
+        let mut c = [1, 2, 3, 17]; // alpha is forced opaque
+        bgra_opaque_to_rgba(&mut c);
+        assert_eq!(c, [3, 2, 1, 255]);
+    }
 
     #[test]
     fn opaque_pixels_swap_channels_only() {

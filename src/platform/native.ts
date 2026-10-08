@@ -12,6 +12,9 @@ import {
 /** What the Rust command `capture_overlay_session` returns (see src-tauri/src/capture/commands.rs). */
 type RawOverlaySession = Omit<OverlaySession, "frameUrl"> & { frameKey: string };
 
+const SESSION_POLL_MS = 20;
+const SESSION_TIMEOUT_MS = 5000;
+
 /** Rust returns errors as plain strings; surface them as PlatformError. */
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   try {
@@ -33,12 +36,22 @@ export const nativePlatform: Platform = {
   },
 
   async getOverlaySession(sessionId: string, displayId: number): Promise<OverlaySession> {
-    const { frameKey, ...session } = await call<RawOverlaySession>("capture_overlay_session", {
-      session: sessionId,
-      display: displayId,
-    });
-    // Served from memory by the Rust `lgcapture` URI scheme.
-    return { ...session, frameUrl: convertFileSrc(frameKey, "lgcapture") };
+    // The native side creates the overlay windows while it is still capturing the displays, so the
+    // session may not exist yet: it answers `null` until it does.
+    const deadline = Date.now() + SESSION_TIMEOUT_MS;
+    for (;;) {
+      const raw = await call<RawOverlaySession | null>("capture_overlay_session", {
+        session: sessionId,
+        display: displayId,
+      });
+      if (raw) {
+        const { frameKey, ...session } = raw;
+        // Served from memory by the Rust `lgcapture` URI scheme.
+        return { ...session, frameUrl: convertFileSrc(frameKey, "lgcapture") };
+      }
+      if (Date.now() > deadline) throw new PlatformError("The capture took too long to start.");
+      await new Promise<void>((resolve) => setTimeout(resolve, SESSION_POLL_MS));
+    }
   },
 
   async overlayReady(sessionId: string, displayId: number): Promise<void> {

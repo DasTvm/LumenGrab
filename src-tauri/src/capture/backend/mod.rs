@@ -12,7 +12,7 @@ mod xcap_windows;
 
 pub fn default_capturer() -> Arc<dyn Capturer> {
     #[cfg(target_os = "macos")]
-    return Arc::new(sck::SckCapturer);
+    return Arc::new(sck::SckCapturer::default());
     #[cfg(target_os = "windows")]
     return Arc::new(xcap_windows::XcapCapturer);
 }

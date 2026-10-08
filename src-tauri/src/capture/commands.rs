@@ -45,10 +45,16 @@ pub fn capture_overlay_session(
     store: State<CaptureStore>,
     session: String,
     display: u32,
-) -> Result<OverlaySession, String> {
-    let s = store
-        .get(&session)
-        .ok_or("This capture is no longer active.")?;
+) -> Result<Option<OverlaySession>, String> {
+    // Overlay windows are created while the displays are still being captured: `None` means "not
+    // ready yet, ask again" (the frontend polls). An unknown id is a real error.
+    let Some(s) = store.get(&session) else {
+        return if store.is_pending(&session) {
+            Ok(None)
+        } else {
+            Err("This capture is no longer active.".into())
+        };
+    };
     let d = s
         .display(display)
         .ok_or("This display is no longer available.")?;
@@ -67,7 +73,7 @@ pub fn capture_overlay_session(
             })
         })
         .collect();
-    Ok(OverlaySession {
+    Ok(Some(OverlaySession {
         mode: s.mode,
         display: OverlayDisplay {
             id: d.info.id,
@@ -78,7 +84,7 @@ pub fn capture_overlay_session(
         },
         frame_key: format!("{session}-{display}"),
         windows,
-    })
+    }))
 }
 
 /// The overlay has painted its frame: show it. The one under the cursor takes keyboard focus.
@@ -103,6 +109,14 @@ pub fn capture_overlay_ready(
         .map(|c| c.id)
     }) == Some(display);
     overlay::show(&app, &session, &d.info, focus);
+    eprintln!(
+        "[lumengrab] overlay on display {display} visible {} ms after the capture started",
+        s.started.elapsed().as_millis()
+    );
+    #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+    if focus {
+        crate::dev::autosubmit(&app, &s, &d.info);
+    }
 }
 
 #[tauri::command]

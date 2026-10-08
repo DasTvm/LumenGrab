@@ -1,6 +1,8 @@
 //! LumenGrab native shell. Kept thin on purpose: product logic lives in TypeScript.
 
 mod capture;
+#[cfg(any(debug_assertions, feature = "dev-hooks"))]
+mod dev;
 mod hotkeys;
 mod platform;
 mod tray;
@@ -50,6 +52,8 @@ pub fn run() {
             platform::setup_app(app);
             tray::init(app.handle())?;
             hotkeys::register(app.handle());
+            #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+            dev::autostart(app.handle());
             Ok(())
         })
         .build(tauri::generate_context!())

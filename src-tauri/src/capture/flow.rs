@@ -6,7 +6,7 @@
 //!
 //! Displays are frozen **before** the overlays exist, so overlays can never appear in a capture.
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use tauri::{AppHandle, Manager};
 
@@ -15,7 +15,7 @@ use super::{
     store::{CaptureStore, Session, SessionDisplay},
     CaptureError, CaptureMode, CaptureResult, Capturer, Frame, PxRect,
 };
-use crate::platform;
+use crate::{hotkeys, platform};
 
 fn capturer(app: &AppHandle) -> Arc<dyn Capturer> {
     app.state::<Arc<dyn Capturer>>().inner().clone()
@@ -52,11 +52,20 @@ enum Started {
 }
 
 fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
+    let started = Instant::now();
+    let stage = |name: &str| {
+        eprintln!(
+            "[lumengrab] +{:>4} ms {name}",
+            started.elapsed().as_millis()
+        )
+    };
     let capturer = capturer(app);
     if !capturer.permission_granted() && !capturer.request_permission() {
         return Err(CaptureError::PermissionDenied);
     }
+    stage("permission checked");
     let displays = capturer.displays()?;
+    stage("displays listed");
     if displays.is_empty() {
         return Err(CaptureError::NotFound("Any display".into()));
     }
@@ -70,57 +79,89 @@ fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
         return Ok(Started::Done);
     }
 
-    // Freeze every display at the same moment, in parallel.
-    let frames: Vec<CaptureResult<Frame>> = std::thread::scope(|s| {
+    // Freeze every display (and list windows) while the hidden overlay windows are being created, so
+    // the window creation time is hidden. Hidden windows are never part of a capture.
+    let store = app.state::<CaptureStore>();
+    let id = store.reserve();
+    hotkeys::grab_escape(app);
+    let (frozen, windows, opened) = std::thread::scope(|s| {
+        let open = s.spawn(|| overlay::open_all(app, &id, mode, &displays));
+        let windows = s.spawn(|| {
+            if mode == CaptureMode::Window {
+                capturer.windows()
+            } else {
+                Ok(Vec::new())
+            }
+        });
         let handles: Vec<_> = displays
             .iter()
             .map(|d| s.spawn(|| capturer.capture_display(d.id)))
             .collect();
-        handles
+        let frames: Vec<CaptureResult<Frame>> = handles
             .into_iter()
             .map(|h| {
                 h.join()
                     .unwrap_or_else(|_| Err(CaptureError::Backend("capture thread crashed".into())))
             })
-            .collect()
+            .collect();
+        (
+            frames,
+            windows
+                .join()
+                .unwrap_or_else(|_| Err(CaptureError::Backend("window list crashed".into()))),
+            open.join()
+                .unwrap_or_else(|_| Err(tauri::Error::FailedToReceiveMessage)),
+        )
     });
-    let mut session_displays = Vec::new();
-    for (info, frame) in displays.iter().zip(frames) {
-        session_displays.push(SessionDisplay::new(info.clone(), frame?));
-    }
-    let windows = if mode == CaptureMode::Window {
-        capturer.windows()?
-    } else {
-        Vec::new()
+    stage("displays frozen, overlays created");
+
+    let built = (|| -> CaptureResult<Session> {
+        let mut session_displays = Vec::new();
+        for (info, frame) in displays.iter().zip(frozen) {
+            session_displays.push(SessionDisplay::new(info.clone(), frame?));
+        }
+        opened.map_err(|e| {
+            CaptureError::Backend(format!("could not open the capture overlay: {e}"))
+        })?;
+        Ok(Session {
+            id: id.clone(),
+            started,
+            mode,
+            displays: session_displays,
+            windows: windows?,
+        })
+    })();
+    let session = match built {
+        Ok(session) => session,
+        Err(e) => {
+            finish(app, &id);
+            return Err(e);
+        }
     };
 
-    // Encode the frames for the overlays now (in parallel) so the overlays can load instantly.
+    // Encode the frames for the overlays (in parallel) before publishing, so they load instantly.
     std::thread::scope(|s| {
-        for d in &session_displays {
+        for d in &session.displays {
             s.spawn(|| d.png());
         }
     });
-
-    let store = app.state::<CaptureStore>();
-    let session = store.publish(Session {
-        id: store.next_id(),
-        mode,
-        displays: session_displays,
-        windows,
-    });
-    if let Err(e) = overlay::open_all(app, &session) {
-        finish(app, &session.id);
-        return Err(CaptureError::Backend(format!(
-            "could not open the capture overlay: {e}"
-        )));
-    }
+    stage("frames encoded");
+    store.publish(session);
     Ok(Started::Overlays)
 }
 
 /// Ends a session (idempotent) and closes its overlays.
 pub fn finish(app: &AppHandle, session_id: &str) {
+    hotkeys::release_escape(app);
     app.state::<CaptureStore>().finish(Some(session_id));
     overlay::close_all(app, session_id);
+}
+
+/// Cancels whatever capture is in progress (global Esc).
+pub fn cancel_active(app: &AppHandle) {
+    if let Some(id) = app.state::<CaptureStore>().active_id() {
+        finish(app, &id);
+    }
 }
 
 /// The user selected an area on one display. Coordinates are physical pixels of that display's frame.
