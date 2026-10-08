@@ -76,6 +76,8 @@ it twice: default and `--features wgc`).
 
 ## 8. macOS permission
 
+- Test builds signed with the local certificate (see AGENTS.md) keep the permission across rebuilds. Ad-hoc builds lose it every time: the dialog appears although LumenGrab is switched on in System Settings. Fix: remove LumenGrab with the minus button, add it again, quit and reopen it.
+
 - First run without permission shows the friendly window (no wallpaper-only file saved).
 - After granting and restarting, capture works; denied state; permission revoked while running.
 - After installing a **new unsigned build** over an old one, follow the on-screen remove-and-re-add hint and confirm it recovers.

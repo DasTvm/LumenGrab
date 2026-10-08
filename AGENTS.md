@@ -170,3 +170,7 @@ Notes:
 - Updater is not enabled yet. Setup and the later steps are in `docs/UPDATER.md`.
 - TypeScript is pinned to 6.0.x because typescript-eslint does not support 7.x yet.
 - Windows installers are only built in CI (release workflow); macOS only is verified locally.
+- Local macOS test builds: ad-hoc signed builds are identified by their binary hash, so macOS forgets the Screen Recording
+  permission after every rebuild. Run `scripts/create-dev-signing-cert.sh` once (self-signed "LumenGrab Local Dev" identity in the
+  login keychain, nothing is committed), then build with `APPLE_SIGNING_IDENTITY="LumenGrab Local Dev" pnpm tauri build`. Release builds in CI stay unsigned.
+- Never call `register`/`unregister` of the global-shortcut plugin from a shortcut handler, a command or an event callback (deadlock, see `docs/adr/0001-capture-backend.md`).
