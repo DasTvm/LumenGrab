@@ -115,7 +115,7 @@ pub fn capture_overlay_ready(
         )
         .map(|c| c.id)
     }) == Some(display);
-    overlay::show(&app, &session, &d.info, focus);
+    overlay::show(&app, &d.info, focus);
     eprintln!(
         "[lumengrab] overlay on display {display} visible {} ms after the capture started",
         s.started.elapsed().as_millis()
@@ -124,6 +124,12 @@ pub fn capture_overlay_ready(
     if focus {
         crate::dev::autosubmit(&app, &s, &d.info);
     }
+}
+
+/// A freshly loaded (warm) overlay window asks which capture it belongs to, if one is already running.
+#[tauri::command]
+pub fn capture_overlay_assignment(app: AppHandle) -> Option<String> {
+    overlay::assignment(&app)
 }
 
 #[tauri::command]

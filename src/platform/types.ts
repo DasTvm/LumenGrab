@@ -74,6 +74,17 @@ export interface Platform {
   /** Starts a capture like the global hotkeys: `toolbar` is the main shortcut (with the capture bar), otherwise a quick pick. */
   startCapture(mode: CaptureMode, toolbar?: boolean): Promise<void>;
   getOverlaySession(sessionId: string, displayId: number): Promise<OverlaySession>;
+  /**
+   * The overlay windows are created once and wait hidden. This calls `listener` with the capture a
+   * waiting overlay of `displayId` should show, or `null` when it should go back to waiting.
+   * Resolves to the unsubscribe function.
+   */
+  onOverlayAssignment(
+    displayId: number,
+    listener: (sessionId: string | null) => void,
+  ): Promise<() => void>;
+  /** The capture a freshly loaded overlay should show, if one is already running. */
+  getOverlayAssignment(displayId: number): Promise<string | null>;
   /** The overlay painted its frame: the native side may show the window now. */
   overlayReady(sessionId: string, displayId: number): Promise<void>;
   submitArea(sessionId: string, displayId: number, rect: PixelRect): Promise<void>;

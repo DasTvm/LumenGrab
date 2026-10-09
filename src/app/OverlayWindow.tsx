@@ -23,15 +23,17 @@ import { Button } from "@/ui/components/button";
 import { cn } from "@/ui/lib/utils";
 
 interface OverlayParams {
-  sessionId: string;
+  /** In the URL only in the browser mock; a native overlay is told its capture while it waits. */
+  sessionId: string | null;
   displayId: number;
 }
 
 function readParams(): OverlayParams | null {
   const q = new URLSearchParams(window.location.search);
-  const sessionId = q.get("session");
   const displayId = Number(q.get("display"));
-  return sessionId && Number.isInteger(displayId) ? { sessionId, displayId } : null;
+  return q.get("display") !== null && Number.isInteger(displayId)
+    ? { sessionId: q.get("session"), displayId }
+    : null;
 }
 
 function viewport(): Size {
@@ -68,12 +70,10 @@ const MODES: readonly {
  * operable (Tab / arrows to choose, Enter to capture). The toolbar switches between area, window
  * and the whole display.
  */
-export function OverlayWindow() {
-  const params = useMemo(() => readParams(), []);
+function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId: number }) {
+  const params = useMemo(() => ({ sessionId, displayId }), [sessionId, displayId]);
   const [session, setSession] = useState<OverlaySession | null>(null);
-  const [error, setError] = useState<string | null>(
-    params ? null : "This capture overlay was opened without a session.",
-  );
+  const [error, setError] = useState<string | null>(null);
   const [size, setSize] = useState<Size>(viewport);
   const [mode, setMode] = useState<OverlayMode>("area");
   const [drag, setDrag] = useState<{ start: Point; current: Point } | null>(null);
@@ -83,11 +83,10 @@ export function OverlayWindow() {
   const lastPointer = useRef<Point | null>(null);
 
   const cancel = useCallback(() => {
-    if (params) void platform.cancelCapture(params.sessionId);
+    void platform.cancelCapture(params.sessionId);
   }, [params]);
 
   useEffect(() => {
-    if (!params) return;
     platform.getOverlaySession(params.sessionId, params.displayId).then(
       (s) => {
         setSession(s);
@@ -116,7 +115,6 @@ export function OverlayWindow() {
 
   // The capture bar lives on one display only: a mode switched there applies to all displays.
   useEffect(() => {
-    if (!params) return;
     let off: (() => void) | undefined;
     let disposed = false;
     void platform
@@ -153,13 +151,13 @@ export function OverlayWindow() {
 
   const submitWindow = useCallback(
     (w: OverlayWindowInfo | undefined) => {
-      if (params && w) void platform.submitWindow(params.sessionId, w.id);
+      if (w) void platform.submitWindow(params.sessionId, w.id);
     },
     [params],
   );
 
   const captureFullDisplay = useCallback(() => {
-    if (params && px) {
+    if (px) {
       void platform.submitArea(params.sessionId, params.displayId, {
         x: 0,
         y: 0,
@@ -178,7 +176,7 @@ export function OverlayWindow() {
       setMode(next);
       setDrag(null);
       setHovered(undefined);
-      if (params) void platform.setCaptureMode(params.sessionId, next);
+      void platform.setCaptureMode(params.sessionId, next);
     },
     [captureFullDisplay, params],
   );
@@ -272,7 +270,7 @@ export function OverlayWindow() {
   };
 
   const onPointerUp = () => {
-    if (!drag || !session || !params || !px) return;
+    if (!drag || !session || !px) return;
     const rect = normalizeRect(drag.start, drag.current);
     setDrag(null);
     if (!isSelectionBigEnough(rect)) return; // accidental click: keep selecting
@@ -342,7 +340,7 @@ export function OverlayWindow() {
           draggable={false}
           className="pointer-events-none absolute inset-0 size-full"
           onLoad={() => {
-            if (params && !sentReady.current) {
+            if (!sentReady.current) {
               sentReady.current = true;
               void platform.overlayReady(params.sessionId, params.displayId);
             }
@@ -461,4 +459,58 @@ export function OverlayWindow() {
       ) : null}
     </div>
   );
+}
+
+/**
+ * The overlay window of one display. Native overlays are created once, hidden, and wait here; the
+ * native side tells them which capture to show (and later to go back to waiting). Each capture gets
+ * a fresh `OverlaySurface`, so no state of the previous one is left behind.
+ */
+export function OverlayWindow() {
+  const params = useMemo(() => readParams(), []);
+  const [assigned, setAssigned] = useState<string | null>(params?.sessionId ?? null);
+  const displayId = params?.displayId;
+  const waiting = params !== null && params.sessionId === null;
+
+  useEffect(() => {
+    if (!waiting || displayId === undefined) return;
+    let off: (() => void) | undefined;
+    let disposed = false;
+    // Listen first, then ask: a capture assigned in between is not missed.
+    void platform
+      .onOverlayAssignment(displayId, setAssigned)
+      .then((unlisten) => {
+        if (disposed) unlisten();
+        else off = unlisten;
+        return platform.getOverlayAssignment(displayId);
+      })
+      .then((current) => {
+        if (current && !disposed) setAssigned((was) => was ?? current);
+      });
+    return () => {
+      disposed = true;
+      off?.();
+    };
+  }, [waiting, displayId]);
+
+  if (!params) {
+    return (
+      <main className="flex h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-foreground">
+        <p role="alert" className="text-sm text-destructive">
+          This capture overlay was opened without a session.
+        </p>
+        <Button
+          variant="outline"
+          autoFocus
+          onClick={() => {
+            window.close();
+          }}
+        >
+          Close
+        </Button>
+      </main>
+    );
+  }
+  if (!assigned) return <div className="fixed inset-0 bg-black" />;
+  return <OverlaySurface key={assigned} sessionId={assigned} displayId={params.displayId} />;
 }

@@ -16,8 +16,7 @@ import {
 /** What the Rust command `capture_overlay_session` returns (see src-tauri/src/capture/commands.rs). */
 type RawOverlaySession = Omit<OverlaySession, "frameUrl"> & { frameKey: string };
 
-const SESSION_POLL_MS = 20;
-const SESSION_TIMEOUT_MS = 5000;
+const SESSION_TIMEOUT_MS = 8000;
 
 /** Rust returns errors as plain strings; surface them as PlatformError. */
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -40,22 +39,66 @@ export const nativePlatform: Platform = {
   },
 
   async getOverlaySession(sessionId: string, displayId: number): Promise<OverlaySession> {
-    // The native side creates the overlay windows while it is still capturing the displays, so the
-    // session may not exist yet: it answers `null` until it does.
-    const deadline = Date.now() + SESSION_TIMEOUT_MS;
-    for (;;) {
-      const raw = await call<RawOverlaySession | null>("capture_overlay_session", {
+    // The native side may still be capturing the displays, so the session may not exist yet: it
+    // answers `null` until it does, and announces `capture-published` when it is there. No timer
+    // polling: a hidden overlay window has its timers throttled by the web view.
+    const fetchSession = () =>
+      call<RawOverlaySession | null>("capture_overlay_session", {
         session: sessionId,
         display: displayId,
       });
-      if (raw) {
-        const { frameKey, ...session } = raw;
-        // Served from memory by the Rust `lgcapture` URI scheme.
-        return { ...session, frameUrl: convertFileSrc(frameKey, "lgcapture") };
-      }
-      if (Date.now() > deadline) throw new PlatformError("The capture took too long to start.");
-      await new Promise<void>((resolve) => setTimeout(resolve, SESSION_POLL_MS));
-    }
+    const toSession = ({ frameKey, ...session }: RawOverlaySession): OverlaySession =>
+      // Served from memory by the Rust `lgcapture` URI scheme.
+      ({ ...session, frameUrl: convertFileSrc(frameKey, "lgcapture") });
+
+    return new Promise<OverlaySession>((resolve, reject) => {
+      let unlisten: (() => void) | undefined;
+      let finished = false;
+      const finish = (done: () => void) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timeout);
+        unlisten?.();
+        done();
+      };
+      const attempt = () => {
+        fetchSession().then(
+          (raw) => {
+            if (raw)
+              finish(() => {
+                resolve(toSession(raw));
+              });
+          },
+          (err: unknown) => {
+            finish(() => {
+              reject(err instanceof Error ? err : new PlatformError("Capture failed."));
+            });
+          },
+        );
+      };
+      const timeout = setTimeout(() => {
+        finish(() => {
+          reject(new PlatformError("The capture took too long to start."));
+        });
+      }, SESSION_TIMEOUT_MS);
+      void listen<string>("capture-published", (event) => {
+        if (event.payload === sessionId) attempt();
+      }).then((off) => {
+        if (finished) off();
+        else unlisten = off;
+        attempt(); // after listening, so a publish in between is not missed
+      });
+    });
+  },
+
+  async onOverlayAssignment(displayId, listener) {
+    return listen<{ display: number; session: string | null }>("capture-overlay", (event) => {
+      if (event.payload.display === displayId) listener(event.payload.session);
+    });
+  },
+
+  getOverlayAssignment(): Promise<string | null> {
+    return call<string | null>("capture_overlay_assignment");
   },
 
   async overlayReady(sessionId: string, displayId: number): Promise<void> {

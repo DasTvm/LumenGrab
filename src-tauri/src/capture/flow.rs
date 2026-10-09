@@ -95,14 +95,18 @@ fn run(app: &AppHandle, mode: CaptureMode, toolbar: bool) -> CaptureResult<Start
 
     let home_display = under_cursor.id;
 
-    // Freeze every display (and list windows) while the hidden overlay windows are being created, so
-    // the window creation time is hidden. Hidden windows are never part of a capture.
+    // Freeze every display (and list windows). If the overlay windows have to be rebuilt (the displays
+    // changed), that happens at the same time, so its time is hidden. Hidden windows are never part
+    // of a capture.
     let store = app.state::<CaptureStore>();
     let id = store.reserve();
     hotkeys::grab_escape(app);
     guard::spawn(app, &id);
+    // The waiting overlay windows start asking for this capture right away.
+    overlay::assign(app, &id);
     let (frozen, windows, opened) = std::thread::scope(|s| {
-        let open = s.spawn(|| overlay::open_all(app, &id, mode, &displays));
+        // Normally a no-op (the windows are already there); rebuilds them if the displays changed.
+        let open = s.spawn(|| overlay::ensure(app, &displays));
         // The overlay can switch between area and window mode, so the windows are always listed.
         let windows = s.spawn(|| capturer.windows());
         let handles: Vec<_> = displays
@@ -166,6 +170,7 @@ fn run(app: &AppHandle, mode: CaptureMode, toolbar: bool) -> CaptureResult<Start
     });
     stage("frames encoded");
     store.publish(session);
+    overlay::announce_published(app, &id);
     Ok(Started::Overlays)
 }
 
@@ -174,7 +179,7 @@ pub fn finish(app: &AppHandle, session_id: &str) {
     eprintln!("[lumengrab] capture {session_id} ended");
     hotkeys::release_escape(app);
     app.state::<CaptureStore>().finish(Some(session_id));
-    overlay::close_all(app, session_id);
+    overlay::release(app, session_id);
 }
 
 /// The capture bar switched between area and window: all overlays follow, so the displays never

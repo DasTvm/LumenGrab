@@ -79,6 +79,16 @@ it twice: default and `--features wgc`).
 - Record the time from hotkey to overlay visible.
 - The overlay never appears in the captured image (also when a capture is triggered while another overlay is closing).
 
+## 6b. Warm overlay windows
+
+- The overlay windows are created once, hidden, shortly after the app starts and reused for every capture. After 20 captures in a row the memory is stable and
+  no earlier selection, highlight or image is visible when an overlay appears (it must always show the new frozen frame).
+- Start a capture right after launching the app (before the windows exist): it still works, only the first one is slower.
+- Change the display layout (plug or unplug a monitor, change the resolution or scale, move a monitor): the next capture rebuilds the overlay windows and
+  covers every monitor exactly; the capture after that is fast again.
+- Switch Space / virtual desktop, or use a fullscreen app, then capture: the overlay appears on the current desktop, not on the one where it was created.
+- Idle: no CPU use while the app sits in the tray.
+
 ## 7. Display changes
 
 - Plug/unplug a monitor, change resolution or scale, rearrange monitors, sleep/wake, lock screen: the next capture uses the new layout, no stale or offset overlays, no crash.

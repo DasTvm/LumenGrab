@@ -118,6 +118,15 @@ export const mockPlatform: Platform = {
     };
   },
 
+  // The browser mock opens an overlay with its session in the URL; nothing is ever assigned.
+  onOverlayAssignment(): Promise<() => void> {
+    return Promise.resolve(() => undefined);
+  },
+
+  getOverlayAssignment(): Promise<string | null> {
+    return Promise.resolve(null);
+  },
+
   overlayReady(): Promise<void> {
     return Promise.resolve();
   },

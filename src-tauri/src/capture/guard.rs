@@ -76,7 +76,7 @@ fn follow_cursor(app: &AppHandle, id: &str) {
         };
         if last != Some(display.id) {
             last = Some(display.id);
-            overlay::focus(app, id, display.id);
+            overlay::focus(app, display.id);
             #[cfg(any(debug_assertions, feature = "dev-hooks"))]
             {
                 std::thread::sleep(Duration::from_millis(150));

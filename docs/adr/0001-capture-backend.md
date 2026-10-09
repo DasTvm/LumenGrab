@@ -110,6 +110,16 @@ Release build, dev Mac (two 2x displays, 3840x2486 and 5120x2880), `cargo build 
   `capture_image` calls take 80-140 ms each), PNG encode of the frozen frames about 120 under load (22 ms alone), webview load and image decode about 25 after publish.
   Measured with the Vite dev server as frontend; the production bundle should be faster. **Not yet "instant"**; options if it does not feel right:
   keep the overlay windows alive hidden after the first capture, or pre-warm one at startup (costs memory), capture displays sequentially to avoid the contention.
+- **Warm overlay windows (decided after the user tests).** Creating the overlay windows (a web view each) took 285-480 ms in every capture. They are
+  now created once, hidden, shortly after startup (`capture/overlay.rs`, `Pool`) and reused: a capture only assigns its session to them (event
+  `capture-overlay`) and releasing hides them again. They are rebuilt only if the display layout changed. Measured on release builds on a machine
+  under heavy load (load average 7-17, where even the standalone spike's `capture_image` took 135-147 ms instead of 48-57 ms): hotkey to overlay
+  visible **about 520-720 ms with warm windows against 800-1100 ms before**, 4 captures in a row in one process without problems
+  (`LUMENGRAB_DEV_REPEAT=4`). The remaining time is the display capture itself (two in parallel plus the window list) and `SCShareableContent::get`
+  (100-300 ms under load). Not tried: caching the display list until a display reconfiguration, capturing sequentially. A hidden web view throttles
+  its timers, so the overlay waits for the capture with events (`capture-published`), not with a polling timer.
+  Two pitfalls found on the way: a sync Tauri command runs on the main thread, so the pool's state lock is never held while creating windows; and the pool
+  windows' labels contain no `-` after the prefix so they cannot be mistaken for session windows.
 - **Overlay visibility, focus and content protection** were first measured while the Aerial screensaver covered the screen (meaningless) and
   re-measured with the screen awake: see the section on the first user test below.
 - **Build on macOS with only the Command Line Tools:** the screencapturekit crate links `libswiftCompatibility56` from a path that only exists with full Xcode;

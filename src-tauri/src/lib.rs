@@ -21,6 +21,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(hotkeys::plugin())
         .manage(CaptureStore::default())
+        .manage(overlay::Pool::default())
         .manage::<Arc<dyn Capturer>>(backend::default_capturer())
         // Frozen frames for the overlay windows, served from memory.
         .register_uri_scheme_protocol("lgcapture", |ctx, request| {
@@ -38,6 +39,7 @@ pub fn run() {
             commands::capture_start,
             commands::capture_overlay_session,
             commands::capture_overlay_ready,
+            commands::capture_overlay_assignment,
             commands::capture_submit_area,
             commands::capture_submit_window,
             commands::capture_cancel,
@@ -52,10 +54,8 @@ pub fn run() {
         ])
         .on_window_event(|window, event| {
             // An overlay closed by the OS or the user must not leave the capture stuck "busy".
-            if let (WindowEvent::Destroyed, Some(session)) =
-                (event, overlay::session_of_label(window.label()))
-            {
-                capture::flow::finish(window.app_handle(), session);
+            if let WindowEvent::Destroyed = event {
+                overlay::on_destroyed(window.app_handle(), window.label());
             }
         })
         .setup(|app| {
@@ -67,6 +67,7 @@ pub fn run() {
             if !app.state::<Arc<dyn Capturer>>().permission_granted() {
                 permission::show(app.handle());
             }
+            overlay::warm_up(app.handle());
             hotkeys::start_escape_worker(app.handle());
             let failed = hotkeys::register(app.handle());
             app.manage(hotkeys::HotkeyFailures(failed));

@@ -13,6 +13,9 @@
 //!   LUMENGRAB_DEV_HANG=1                           block the main thread (with HOLD) to test the watchdog
 //!   LUMENGRAB_DEV_PROTECTED=1                      make the overlays content protected (off by default)
 //!
+//!   LUMENGRAB_DEV_REPEAT=n                         run the capture n times in a row in one process (re-uses the
+//!                                                  warm overlay windows), then quit
+//!
 //! When `LUMENGRAB_DEV_CAPTURE` is set the app quits after the capture was delivered.
 
 use std::time::Duration;
@@ -169,6 +172,19 @@ pub fn after_deliver(app: &AppHandle, problems: &[String]) {
     let app = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(500));
+        static DONE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1);
+        let wanted: u32 = std::env::var("LUMENGRAB_DEV_REPEAT")
+            .ok()
+            .and_then(|n| n.parse().ok())
+            .unwrap_or(1);
+        let done = DONE.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        if done < wanted {
+            if let Some(mode) = requested_mode() {
+                eprintln!("[lumengrab:dev] --- repeat {} of {wanted}", done + 1);
+                flow::start(&app, mode, std::env::var("LUMENGRAB_DEV_TOOLBAR").is_ok());
+                return;
+            }
+        }
         let _ = tauri::Manager::state::<CaptureStore>(&app); // keep the import used in all cfgs
         app.exit(0);
     });
