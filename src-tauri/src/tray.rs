@@ -72,11 +72,23 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
             "quit" => app.exit(0),
             _ => {}
         });
-    if let Some(icon) = app.default_window_icon() {
-        tray = tray.icon(icon.clone());
+    if let Some(icon) = tray_icon(app) {
+        tray = tray.icon(icon).icon_as_template(cfg!(target_os = "macos"));
     }
     tray.build(app)?;
     Ok(())
+}
+
+/// macOS: the one-colour template mark, which the menu bar tints for light, dark and highlighted.
+/// Windows: the full-colour app icon (a black template would vanish on a dark taskbar).
+fn tray_icon(app: &AppHandle) -> Option<tauri::image::Image<'_>> {
+    #[cfg(target_os = "macos")]
+    if let Ok(icon) =
+        tauri::image::Image::from_bytes(include_bytes!("../../assets/brand/tray-template@2x.png"))
+    {
+        return Some(icon);
+    }
+    app.default_window_icon().cloned()
 }
 
 /// Opens the settings window, or focuses it if it already exists.
