@@ -52,6 +52,10 @@
   --lg-overlay-muted: #a1a1aa;
   --lg-overlay-divider: #3f3f46;
 
+  /* Brand panel (permission window): dark in both themes */
+  --lg-panel: #18181b;
+  --lg-panel-foreground: #fafafa;
+
   /* Radius (design: radius-s/m/l/pill) */
   --lg-radius-s: 6px;
   --lg-radius-m: 8px;
@@ -118,6 +122,8 @@
   --color-overlay-foreground: var(--lg-overlay-foreground);
   --color-overlay-muted: var(--lg-overlay-muted);
   --color-overlay-divider: var(--lg-overlay-divider);
+  --color-panel: var(--lg-panel);
+  --color-panel-foreground: var(--lg-panel-foreground);
 
   --radius-sm: var(--lg-radius-s);
   --radius-md: var(--lg-radius-m);

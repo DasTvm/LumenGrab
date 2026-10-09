@@ -76,7 +76,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
 }
 
 /// Opens the settings window, or focuses it if it already exists.
-fn show_settings(app: &AppHandle) {
+pub fn show_settings(app: &AppHandle) {
     if let Some(window) = app.get_webview_window(SETTINGS_LABEL) {
         let _ = window.show();
         let _ = window.set_focus();

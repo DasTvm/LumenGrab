@@ -71,6 +71,13 @@ export interface Platform {
   cancelCapture(sessionId: string): Promise<void>;
   getSettingsInfo(): Promise<SettingsInfo>;
   openScreenshotsFolder(): Promise<void>;
+  /** Whether the OS currently lets LumenGrab record the screen (always true on Windows). */
+  getPermissionStatus(): Promise<boolean>;
+  /** Asks the OS once and opens System Settings at Screen Recording. */
+  openPermissionSettings(): Promise<void>;
+  closePermissionWindow(): Promise<void>;
+  /** Quits and starts LumenGrab again (macOS applies a new permission only to new processes). */
+  restartApp(): Promise<void>;
 }
 
 export class PlatformError extends Error {

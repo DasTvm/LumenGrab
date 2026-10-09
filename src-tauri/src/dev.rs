@@ -7,6 +7,7 @@
 //!   LUMENGRAB_DEV_SELFTEST=1                       while the overlays are visible, capture every display
 //!                                                  again and report whether the overlays show up in it
 //!
+//!   LUMENGRAB_DEV_WINDOW=settings|permission       open that window shortly after launch
 //!   LUMENGRAB_DEV_HOLD=1                           keep the overlays open and print per-display window lists
 //!   LUMENGRAB_DEV_HANG=1                           block the main thread (with HOLD) to test the watchdog
 //!   LUMENGRAB_DEV_PROTECTED=1                      make the overlays content protected (off by default)
@@ -35,6 +36,17 @@ fn requested_mode() -> Option<CaptureMode> {
 }
 
 pub fn autostart(app: &AppHandle) {
+    if let Ok(which) = std::env::var("LUMENGRAB_DEV_WINDOW") {
+        let app = app.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(1200));
+            match which.as_str() {
+                "settings" => crate::tray::show_settings(&app),
+                "permission" => crate::permission::show(&app),
+                other => eprintln!("[lumengrab:dev] unknown LUMENGRAB_DEV_WINDOW {other}"),
+            }
+        });
+    }
     let Some(mode) = requested_mode() else { return };
     let app = app.clone();
     std::thread::spawn(move || {

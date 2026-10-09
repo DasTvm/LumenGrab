@@ -7,7 +7,7 @@ use std::{fs, io::Write, path::Path};
 use chrono::{Datelike, Local, Timelike};
 use tauri::{image::Image, AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
 use super::{encode, geometry, Frame};
 use crate::platform;
@@ -132,22 +132,7 @@ pub fn error_dialog(app: &AppHandle, message: &str) {
         .show(|_| {});
 }
 
-/// Part 1: a plain dialog. Part 2 replaces it with a proper permission window.
+/// Shows the permission window (design: Onboarding Permission).
 pub fn permission_help(app: &AppHandle) {
-    app.dialog()
-        .message(
-            "LumenGrab needs permission to record your screen.\n\n\
-             Open System Settings > Privacy & Security > Screen & System Audio Recording, \
-             switch LumenGrab on, then quit and reopen LumenGrab.",
-        )
-        .title("Screen Recording permission needed")
-        .buttons(MessageDialogButtons::OkCancelCustom(
-            "Open System Settings".into(),
-            "Cancel".into(),
-        ))
-        .show(|open| {
-            if open {
-                platform::open_screen_recording_settings();
-            }
-        });
+    crate::permission::show(app);
 }

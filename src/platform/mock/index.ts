@@ -30,7 +30,15 @@ const MOCK_WINDOWS: OverlayWindowInfo[] = [
 
 /** Everything the mock was asked to do, so browser tests can assert on it. */
 export interface MockSubmission {
-  kind: "area" | "window" | "cancel" | "start" | "openFolder";
+  kind:
+    | "area"
+    | "window"
+    | "cancel"
+    | "start"
+    | "openFolder"
+    | "openPermissionSettings"
+    | "closePermission"
+    | "restart";
   sessionId?: string;
   displayId?: number;
   rect?: PixelRect;
@@ -121,6 +129,26 @@ export const mockPlatform: Platform = {
 
   openScreenshotsFolder(): Promise<void> {
     record({ kind: "openFolder" });
+    return Promise.resolve();
+  },
+
+  /** `?granted=1` makes the mock report the permission as granted. */
+  getPermissionStatus(): Promise<boolean> {
+    return Promise.resolve(new URLSearchParams(window.location.search).get("granted") === "1");
+  },
+
+  openPermissionSettings(): Promise<void> {
+    record({ kind: "openPermissionSettings" });
+    return Promise.resolve();
+  },
+
+  closePermissionWindow(): Promise<void> {
+    record({ kind: "closePermission" });
+    return Promise.resolve();
+  },
+
+  restartApp(): Promise<void> {
+    record({ kind: "restart" });
     return Promise.resolve();
   },
 };

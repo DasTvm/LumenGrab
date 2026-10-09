@@ -1,6 +1,7 @@
 import { DesignSystemWindow } from "./DesignSystemWindow";
 import { HomeWindow } from "./HomeWindow";
 import { OverlayWindow } from "./OverlayWindow";
+import { PermissionWindow } from "./PermissionWindow";
 import { SettingsWindow } from "./SettingsWindow";
 
 /** Picks the window to render from `?window=`. One frontend bundle serves every native window. */
@@ -12,6 +13,8 @@ export function App() {
       return import.meta.env.DEV ? <DesignSystemWindow /> : <HomeWindow />;
     case "overlay":
       return <OverlayWindow />;
+    case "permission":
+      return <PermissionWindow />;
     case "settings":
       return <SettingsWindow />;
     default:

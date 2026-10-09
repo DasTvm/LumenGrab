@@ -79,4 +79,20 @@ export const nativePlatform: Platform = {
   async openScreenshotsFolder(): Promise<void> {
     await call("open_screenshots_folder");
   },
+
+  getPermissionStatus(): Promise<boolean> {
+    return call<boolean>("permission_status");
+  },
+
+  async openPermissionSettings(): Promise<void> {
+    await call("permission_open_settings");
+  },
+
+  async closePermissionWindow(): Promise<void> {
+    await call("permission_close");
+  },
+
+  async restartApp(): Promise<void> {
+    await call("restart_app");
+  },
 };

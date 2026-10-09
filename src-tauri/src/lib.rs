@@ -4,6 +4,7 @@ mod capture;
 #[cfg(any(debug_assertions, feature = "dev-hooks"))]
 mod dev;
 mod hotkeys;
+mod permission;
 mod platform;
 mod tray;
 
@@ -41,6 +42,10 @@ pub fn run() {
             commands::capture_cancel,
             commands::settings_info,
             commands::open_screenshots_folder,
+            permission::permission_status,
+            permission::permission_open_settings,
+            permission::permission_close,
+            permission::restart_app,
         ])
         .on_window_event(|window, event| {
             // An overlay closed by the OS or the user must not leave the capture stuck "busy".
@@ -53,6 +58,11 @@ pub fn run() {
         .setup(|app| {
             platform::setup_app(app);
             tray::init(app.handle())?;
+            // First run (or after an update that reset it): explain the Screen Recording permission.
+            #[cfg(not(any(debug_assertions, feature = "dev-hooks")))]
+            if !app.state::<Arc<dyn Capturer>>().permission_granted() {
+                permission::show(app.handle());
+            }
             hotkeys::start_escape_worker(app.handle());
             let failed = hotkeys::register(app.handle());
             app.manage(hotkeys::HotkeyFailures(failed));
