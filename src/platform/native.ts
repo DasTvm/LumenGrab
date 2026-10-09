@@ -1,10 +1,12 @@
 import { getName, getVersion } from "@tauri-apps/api/app";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { currentOs } from "./os";
 import {
   PlatformError,
   type AppInfo,
   type CaptureMode,
+  type OverlayMode,
   type OverlaySession,
   type PixelRect,
   type SettingsInfo,
@@ -33,8 +35,8 @@ export const nativePlatform: Platform = {
     return { name, version, runtime: "native", os: currentOs() };
   },
 
-  async startCapture(mode: CaptureMode): Promise<void> {
-    await call("capture_start", { mode });
+  async startCapture(mode: CaptureMode, toolbar = false): Promise<void> {
+    await call("capture_start", { mode, toolbar });
   },
 
   async getOverlaySession(sessionId: string, displayId: number): Promise<OverlaySession> {
@@ -70,6 +72,21 @@ export const nativePlatform: Platform = {
 
   async cancelCapture(sessionId: string): Promise<void> {
     await call("capture_cancel", { session: sessionId });
+  },
+
+  async setCaptureMode(sessionId: string, mode: OverlayMode): Promise<void> {
+    await call("capture_set_mode", { session: sessionId, mode });
+  },
+
+  async onCaptureMode(sessionId, listener) {
+    // Sent by Rust to all overlays of the capture whenever one of them switched the mode.
+    return listen<{ session: string; mode: OverlayMode }>("capture-mode", (event) => {
+      if (event.payload.session === sessionId) listener(event.payload.mode);
+    });
+  },
+
+  async setDefaultMode(mode: OverlayMode): Promise<void> {
+    await call("settings_set_default_mode", { mode });
   },
 
   getSettingsInfo(): Promise<SettingsInfo> {

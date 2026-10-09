@@ -27,8 +27,16 @@ export interface OverlayWindowInfo extends PixelRect {
   appName: string;
 }
 
+/** The modes the capture bar switches between. Fullscreen is an action, not a mode. */
+export type OverlayMode = Exclude<CaptureMode, "fullscreen">;
+
 export interface OverlaySession {
-  mode: Exclude<CaptureMode, "fullscreen">;
+  /** The current mode (the capture bar may have switched it since the start). */
+  mode: OverlayMode;
+  /** Started with the capture bar: the mode can be switched with the bar or the keys A / W / F. */
+  toolbar: boolean;
+  /** This display shows the bar and the hint. Exactly one display of a capture is home. */
+  home: boolean;
   display: OverlayDisplay;
   /** URL of the frozen frame for an <img>. */
   frameUrl: string;
@@ -46,7 +54,7 @@ export interface AppInfo {
 }
 
 export interface HotkeyInfo {
-  id: "area" | "window" | "fullscreen";
+  id: "capture" | "area" | "window" | "fullscreen";
   /** Key names such as `Ctrl`, `Shift`, `4`; render them with `formatKey`. */
   keys: string[];
   /** False when another app already owns the shortcut. */
@@ -56,19 +64,26 @@ export interface HotkeyInfo {
 export interface SettingsInfo {
   /** Absolute folder screenshots are saved to. */
   saveDir: string;
+  /** What the main shortcut starts in. */
+  defaultMode: OverlayMode;
   hotkeys: HotkeyInfo[];
 }
 
 export interface Platform {
   getAppInfo(): Promise<AppInfo>;
-  /** Starts a capture exactly as the global hotkey would. */
-  startCapture(mode: CaptureMode): Promise<void>;
+  /** Starts a capture like the global hotkeys: `toolbar` is the main shortcut (with the capture bar), otherwise a quick pick. */
+  startCapture(mode: CaptureMode, toolbar?: boolean): Promise<void>;
   getOverlaySession(sessionId: string, displayId: number): Promise<OverlaySession>;
   /** The overlay painted its frame: the native side may show the window now. */
   overlayReady(sessionId: string, displayId: number): Promise<void>;
   submitArea(sessionId: string, displayId: number, rect: PixelRect): Promise<void>;
   submitWindow(sessionId: string, windowId: number): Promise<void>;
   cancelCapture(sessionId: string): Promise<void>;
+  /** Switches the mode on every display of this capture (the capture bar shows on one display only). */
+  setCaptureMode(sessionId: string, mode: OverlayMode): Promise<void>;
+  /** Calls `listener` when the mode was switched on any display. Resolves to the unsubscribe function. */
+  onCaptureMode(sessionId: string, listener: (mode: OverlayMode) => void): Promise<() => void>;
+  setDefaultMode(mode: OverlayMode): Promise<void>;
   getSettingsInfo(): Promise<SettingsInfo>;
   openScreenshotsFolder(): Promise<void>;
   /** Whether the OS currently lets LumenGrab record the screen (always true on Windows). */

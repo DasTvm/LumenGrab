@@ -2470,6 +2470,7 @@ dependencies = [
  "png 0.18.1",
  "screencapturekit",
  "serde",
+ "serde_json",
  "tauri",
  "tauri-build",
  "tauri-plugin-clipboard-manager",

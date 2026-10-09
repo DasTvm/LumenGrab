@@ -42,13 +42,50 @@ pub struct Session {
     pub id: String,
     /// When the hotkey was handled; used to log hotkey-to-overlay latency.
     pub started: Instant,
+    /// The mode the capture started in.
     pub mode: CaptureMode,
+    /// The mode the overlays are in right now: the capture bar switches it for all displays at once.
+    live_mode: Mutex<CaptureMode>,
+    /// Whether the capture bar (mode switcher) is shown. Quick shortcuts start without it.
+    pub toolbar: bool,
+    /// The display the capture bar and the hint live on: the one under the cursor at the start.
+    /// Only one display shows them, so there is never a second, out-of-sync bar.
+    pub home_display: u32,
     pub displays: Vec<SessionDisplay>,
     /// Front to back. Empty unless `mode` is `Window`.
     pub windows: Vec<WindowInfo>,
 }
 
 impl Session {
+    pub fn new(
+        id: String,
+        started: Instant,
+        mode: CaptureMode,
+        toolbar: bool,
+        home_display: u32,
+        displays: Vec<SessionDisplay>,
+        windows: Vec<WindowInfo>,
+    ) -> Self {
+        Self {
+            id,
+            started,
+            mode,
+            live_mode: Mutex::new(mode),
+            toolbar,
+            home_display,
+            displays,
+            windows,
+        }
+    }
+
+    pub fn live_mode(&self) -> CaptureMode {
+        *self.live_mode.lock().expect("mode lock")
+    }
+
+    pub fn set_live_mode(&self, mode: CaptureMode) {
+        *self.live_mode.lock().expect("mode lock") = mode;
+    }
+
     pub fn display(&self, id: u32) -> Option<&SessionDisplay> {
         self.displays.iter().find(|d| d.info.id == id)
     }
@@ -167,13 +204,15 @@ mod tests {
             width: 1,
             height: 1,
         };
-        Session {
-            id: store.next_id(),
-            started: Instant::now(),
-            mode: CaptureMode::Area,
-            displays: vec![SessionDisplay::new(info, frame)],
-            windows: vec![],
-        }
+        Session::new(
+            store.next_id(),
+            Instant::now(),
+            CaptureMode::Area,
+            true,
+            1,
+            vec![SessionDisplay::new(info, frame)],
+            vec![],
+        )
     }
 
     #[test]
@@ -225,6 +264,16 @@ mod tests {
         let id2 = store.reserve();
         store.finish(Some(&id2));
         assert!(!store.is_pending(&id2));
+    }
+
+    #[test]
+    fn the_live_mode_starts_as_the_start_mode_and_can_be_switched() {
+        let store = CaptureStore::default();
+        let s = session(&store);
+        assert_eq!(s.live_mode(), CaptureMode::Area);
+        s.set_live_mode(CaptureMode::Window);
+        assert_eq!(s.live_mode(), CaptureMode::Window);
+        assert_eq!(s.mode, CaptureMode::Area, "the start mode is kept");
     }
 
     #[test]

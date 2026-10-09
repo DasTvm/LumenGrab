@@ -15,21 +15,33 @@ use super::{
     store::{CaptureStore, Session, SessionDisplay},
     CaptureError, CaptureMode, CaptureResult, Capturer, Frame, PxRect,
 };
-use crate::{hotkeys, platform};
+use crate::{hotkeys, platform, settings::SettingsStore};
 
 fn capturer(app: &AppHandle) -> Arc<dyn Capturer> {
     app.state::<Arc<dyn Capturer>>().inner().clone()
 }
 
+/// The main shortcut (Ctrl+Shift+1) and the tray's "Capture…": the user's default mode, with the
+/// capture bar to switch it.
+pub fn start_with_bar(app: &AppHandle) {
+    let mode = app
+        .state::<SettingsStore>()
+        .get()
+        .default_mode
+        .capture_mode();
+    start(app, mode, true);
+}
+
 /// Entry point for hotkeys, the tray and the `capture_start` command. Returns immediately.
-pub fn start(app: &AppHandle, mode: CaptureMode) {
+/// `toolbar`: show the capture bar (mode switcher) on the overlays.
+pub fn start(app: &AppHandle, mode: CaptureMode, toolbar: bool) {
     let app = app.clone();
     std::thread::spawn(move || {
         let store = app.state::<CaptureStore>();
         if !store.try_begin() {
             return; // key repeat or a second press while a capture is running
         }
-        match run(&app, mode) {
+        match run(&app, mode, toolbar) {
             Ok(Started::Overlays) => {} // stays busy until submit or cancel
             Ok(Started::Done) => {
                 store.finish(None);
@@ -51,7 +63,7 @@ enum Started {
     Done,
 }
 
-fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
+fn run(app: &AppHandle, mode: CaptureMode, toolbar: bool) -> CaptureResult<Started> {
     let started = Instant::now();
     let stage = |name: &str| {
         eprintln!(
@@ -70,14 +82,18 @@ fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
         return Err(CaptureError::NotFound("Any display".into()));
     }
 
+    let (x, y) = platform::cursor_position(app).unwrap_or((0.0, 0.0));
+    let under_cursor = geometry::display_at_point(&displays, x, y)
+        .ok_or_else(|| CaptureError::NotFound("The display".into()))?;
+
     if mode == CaptureMode::Fullscreen {
-        let (x, y) = platform::cursor_position(app).unwrap_or((0.0, 0.0));
-        let display = geometry::display_at_point(&displays, x, y)
-            .ok_or_else(|| CaptureError::NotFound("The display".into()))?;
+        let display = under_cursor;
         let frame = capturer.capture_display(display.id)?;
         output::deliver(app, frame);
         return Ok(Started::Done);
     }
+
+    let home_display = under_cursor.id;
 
     // Freeze every display (and list windows) while the hidden overlay windows are being created, so
     // the window creation time is hidden. Hidden windows are never part of a capture.
@@ -119,18 +135,20 @@ fn run(app: &AppHandle, mode: CaptureMode) -> CaptureResult<Started> {
         opened.map_err(|e| {
             CaptureError::Backend(format!("could not open the capture overlay: {e}"))
         })?;
-        Ok(Session {
-            id: id.clone(),
+        Ok(Session::new(
+            id.clone(),
             started,
             mode,
-            displays: session_displays,
+            toolbar,
+            home_display,
+            session_displays,
             // A failing window list must not break a plain area capture.
-            windows: if mode == CaptureMode::Window {
+            if mode == CaptureMode::Window {
                 windows?
             } else {
                 windows.unwrap_or_default()
             },
-        })
+        ))
     })();
     let session = match built {
         Ok(session) => session,
@@ -157,6 +175,23 @@ pub fn finish(app: &AppHandle, session_id: &str) {
     hotkeys::release_escape(app);
     app.state::<CaptureStore>().finish(Some(session_id));
     overlay::close_all(app, session_id);
+}
+
+/// The capture bar switched between area and window: all overlays follow, so the displays never
+/// disagree about what a click does.
+pub fn set_mode(app: &AppHandle, session_id: &str, mode: CaptureMode) -> CaptureResult<()> {
+    if mode == CaptureMode::Fullscreen {
+        return Err(CaptureError::InvalidSelection(
+            "fullscreen is not a mode that can be switched to".into(),
+        ));
+    }
+    let session = app
+        .state::<CaptureStore>()
+        .get(session_id)
+        .ok_or_else(|| CaptureError::NotFound("The capture".into()))?;
+    session.set_live_mode(mode);
+    overlay::broadcast_mode(app, session_id, mode);
+    Ok(())
 }
 
 /// Cancels whatever capture is in progress (global Esc).

@@ -1,6 +1,7 @@
 import type {
   AppInfo,
   CaptureMode,
+  OverlayMode,
   OverlaySession,
   OverlayWindowInfo,
   PixelRect,
@@ -35,6 +36,8 @@ export interface MockSubmission {
     | "window"
     | "cancel"
     | "start"
+    | "mode"
+    | "defaultMode"
     | "openFolder"
     | "openPermissionSettings"
     | "closePermission"
@@ -57,6 +60,19 @@ function record(entry: MockSubmission): void {
   log.submissions.push(entry);
 }
 
+const DEFAULT_MODE_KEY = "lumengrab.mock.defaultMode";
+
+function storedDefaultMode(): OverlayMode {
+  try {
+    return window.localStorage.getItem(DEFAULT_MODE_KEY) === "window" ? "window" : "area";
+  } catch {
+    return "area";
+  }
+}
+
+const modeChannel = (): BroadcastChannel | null =>
+  typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel("lumengrab-mock-mode");
+
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /** Browser implementation: no native calls, uses a bundled sample image as the frozen frame. */
@@ -70,21 +86,26 @@ export const mockPlatform: Platform = {
     });
   },
 
-  async startCapture(mode: CaptureMode): Promise<void> {
+  async startCapture(mode: CaptureMode, toolbar = false): Promise<void> {
     record({ kind: "start", mode });
     await sleep(FAKE_LATENCY_MS);
     if (mode !== "fullscreen") {
       // In the app the overlay opens in its own windows; in the browser we navigate to it.
-      window.location.assign(`/?window=overlay&session=mock&display=1&mode=${mode}`);
+      window.location.assign(
+        `/?window=overlay&session=mock&display=1&mode=${mode}${toolbar ? "&toolbar=1" : ""}`,
+      );
     }
   },
 
   async getOverlaySession(_sessionId: string, displayId: number): Promise<OverlaySession> {
-    const mode =
-      new URLSearchParams(window.location.search).get("mode") === "window" ? "window" : "area";
+    const query = new URLSearchParams(window.location.search);
+    const mode = query.get("mode") === "window" ? "window" : "area";
     await sleep(0);
     return {
       mode,
+      // `?toolbar=1` is the main shortcut; `?home=0` is a second display, which stays clean.
+      toolbar: query.get("toolbar") === "1",
+      home: query.get("home") !== "0",
       display: {
         id: displayId,
         name: "Mock display",
@@ -116,10 +137,43 @@ export const mockPlatform: Platform = {
     return Promise.resolve();
   },
 
+  setCaptureMode(_sessionId: string, mode: OverlayMode): Promise<void> {
+    record({ kind: "mode", mode });
+    // Two browser tabs of the same browser stand in for two displays.
+    const channel = modeChannel();
+    channel?.postMessage(mode);
+    channel?.close();
+    return Promise.resolve();
+  },
+
+  onCaptureMode(_sessionId: string, listener: (mode: OverlayMode) => void): Promise<() => void> {
+    const channel = modeChannel();
+    const onMessage = (e: MessageEvent<OverlayMode>) => {
+      listener(e.data);
+    };
+    channel?.addEventListener("message", onMessage);
+    return Promise.resolve(() => {
+      channel?.removeEventListener("message", onMessage);
+      channel?.close();
+    });
+  },
+
+  setDefaultMode(mode: OverlayMode): Promise<void> {
+    record({ kind: "defaultMode", mode });
+    try {
+      window.localStorage.setItem(DEFAULT_MODE_KEY, mode);
+    } catch {
+      // storage unavailable: the choice just does not persist
+    }
+    return Promise.resolve();
+  },
+
   getSettingsInfo(): Promise<SettingsInfo> {
     return Promise.resolve({
       saveDir: "~/Pictures/LumenGrab",
+      defaultMode: storedDefaultMode(),
       hotkeys: [
+        { id: "capture", keys: ["Ctrl", "Shift", "1"], registered: true },
         { id: "area", keys: ["Ctrl", "Shift", "4"], registered: true },
         { id: "window", keys: ["Ctrl", "Shift", "5"], registered: true },
         { id: "fullscreen", keys: ["Ctrl", "Shift", "3"], registered: true },

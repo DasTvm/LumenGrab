@@ -32,7 +32,12 @@ pub struct OverlayWindow {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OverlaySession {
+    /// The current mode (may differ from the start mode if the capture bar switched it).
     mode: CaptureMode,
+    /// The capture is started with the capture bar: the mode can be switched (bar or keys A/W/F).
+    toolbar: bool,
+    /// This display shows the bar and the hint; the others stay clean.
+    home: bool,
     display: OverlayDisplay,
     /// Path for the `lgcapture` URI scheme; the frontend turns it into a URL.
     frame_key: String,
@@ -74,7 +79,9 @@ pub fn capture_overlay_session(
         })
         .collect();
     Ok(Some(OverlaySession {
-        mode: s.mode,
+        mode: s.live_mode(),
+        toolbar: s.toolbar,
+        home: d.info.id == s.home_display,
         display: OverlayDisplay {
             id: d.info.id,
             name: d.info.name.clone(),
@@ -144,8 +151,13 @@ pub fn capture_cancel(app: AppHandle, session: String) {
 }
 
 #[tauri::command]
-pub fn capture_start(app: AppHandle, mode: CaptureMode) {
-    flow::start(&app, mode);
+pub fn capture_start(app: AppHandle, mode: CaptureMode, toolbar: Option<bool>) {
+    flow::start(&app, mode, toolbar.unwrap_or(false));
+}
+
+#[tauri::command]
+pub fn capture_set_mode(app: AppHandle, session: String, mode: CaptureMode) -> Result<(), String> {
+    flow::set_mode(&app, &session, mode).map_err(|e| e.to_string())
 }
 
 /// Serves frozen frames to the overlay as `lgcapture://localhost/<session>-<display>`
@@ -165,6 +177,8 @@ pub fn serve_frame(app: &AppHandle, path: &str) -> Option<Vec<u8>> {
 #[serde(rename_all = "camelCase")]
 pub struct SettingsInfo {
     save_dir: String,
+    /// What the main shortcut starts in: `area` or `window`.
+    default_mode: crate::settings::DefaultMode,
     hotkeys: Vec<crate::hotkeys::HotkeyInfo>,
 }
 
@@ -173,6 +187,10 @@ pub fn settings_info(app: AppHandle) -> Result<SettingsInfo, String> {
     let failures = app.state::<crate::hotkeys::HotkeyFailures>();
     Ok(SettingsInfo {
         save_dir: super::output::screenshot_dir(&app)?.display().to_string(),
+        default_mode: app
+            .state::<crate::settings::SettingsStore>()
+            .get()
+            .default_mode,
         hotkeys: crate::hotkeys::list(&failures.0),
     })
 }

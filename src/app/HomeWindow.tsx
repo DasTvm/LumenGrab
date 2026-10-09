@@ -1,12 +1,31 @@
 import { useEffect, useState } from "react";
-import { Crop, Monitor, SquareDashed } from "lucide-react";
+import { Crop, Monitor, ScanLine, SquareDashed } from "lucide-react";
 import { platform, type AppInfo, type CaptureMode } from "@/platform";
 import { Button } from "@/ui/components/button";
 
-const ACTIONS: { mode: CaptureMode; label: string; hotkey: string; icon: typeof Crop }[] = [
-  { mode: "area", label: "Capture area", hotkey: "Ctrl+Shift+4", icon: Crop },
-  { mode: "window", label: "Capture window", hotkey: "Ctrl+Shift+5", icon: SquareDashed },
-  { mode: "fullscreen", label: "Capture fullscreen", hotkey: "Ctrl+Shift+3", icon: Monitor },
+const ACTIONS: {
+  mode: CaptureMode;
+  toolbar: boolean;
+  label: string;
+  hotkey: string;
+  icon: typeof Crop;
+}[] = [
+  { mode: "area", toolbar: true, label: "Capture", hotkey: "Ctrl+Shift+1", icon: ScanLine },
+  { mode: "area", toolbar: false, label: "Capture area", hotkey: "Ctrl+Shift+4", icon: Crop },
+  {
+    mode: "window",
+    toolbar: false,
+    label: "Capture window",
+    hotkey: "Ctrl+Shift+5",
+    icon: SquareDashed,
+  },
+  {
+    mode: "fullscreen",
+    toolbar: false,
+    label: "Capture fullscreen",
+    hotkey: "Ctrl+Shift+3",
+    icon: Monitor,
+  },
 ];
 
 /** Dev/demo screen for browser mock mode. The native app has no main window: it lives in the tray. */
@@ -21,10 +40,10 @@ export function HomeWindow() {
     });
   }, []);
 
-  const start = (mode: CaptureMode) => {
+  const start = (mode: CaptureMode, toolbar: boolean) => {
     setError(null);
     setStarted(null);
-    platform.startCapture(mode).then(
+    platform.startCapture(mode, toolbar).then(
       () => {
         setStarted(mode);
       },
@@ -44,12 +63,12 @@ export function HomeWindow() {
       </header>
 
       <div className="flex flex-wrap gap-3">
-        {ACTIONS.map(({ mode, label, hotkey, icon: Icon }) => (
+        {ACTIONS.map(({ mode, toolbar, label, hotkey, icon: Icon }) => (
           <Button
-            key={mode}
-            variant={mode === "area" ? "default" : "outline"}
+            key={label}
+            variant={toolbar ? "default" : "outline"}
             onClick={() => {
-              start(mode);
+              start(mode, toolbar);
             }}
           >
             <Icon />

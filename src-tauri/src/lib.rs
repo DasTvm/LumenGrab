@@ -6,6 +6,7 @@ mod dev;
 mod hotkeys;
 mod permission;
 mod platform;
+mod settings;
 mod tray;
 
 use std::{borrow::Cow, sync::Arc};
@@ -40,6 +41,8 @@ pub fn run() {
             commands::capture_submit_area,
             commands::capture_submit_window,
             commands::capture_cancel,
+            commands::capture_set_mode,
+            settings::settings_set_default_mode,
             commands::settings_info,
             commands::open_screenshots_folder,
             permission::permission_status,
@@ -57,6 +60,7 @@ pub fn run() {
         })
         .setup(|app| {
             platform::setup_app(app);
+            settings::init(app.handle())?;
             tray::init(app.handle())?;
             // First run (or after an update that reset it): explain the Screen Recording permission.
             #[cfg(not(any(debug_assertions, feature = "dev-hooks")))]

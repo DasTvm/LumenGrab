@@ -1,7 +1,7 @@
 //! Overlay windows: one borderless, always-on-top window per display that shows that display's
 //! frozen frame. The UI is TypeScript (`?window=overlay`); this only creates, shows and closes them.
 
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use super::{CaptureMode, DisplayInfo};
 use crate::platform;
@@ -89,6 +89,22 @@ pub fn show(app: &AppHandle, session: &str, display: &DisplayInfo, focus: bool) 
 pub fn focus(app: &AppHandle, session: &str, display: u32) {
     if let Some(window) = app.get_webview_window(&label(session, display)) {
         let _ = window.set_focus();
+    }
+}
+
+#[derive(Clone, serde::Serialize)]
+struct ModeChanged<'a> {
+    session: &'a str,
+    mode: CaptureMode,
+}
+
+/// Tells every overlay of the session that the mode changed (event `capture-mode`).
+pub fn broadcast_mode(app: &AppHandle, session: &str, mode: CaptureMode) {
+    let prefix = prefix(session);
+    for (label, window) in app.webview_windows() {
+        if label.starts_with(&prefix) {
+            let _ = window.emit("capture-mode", ModeChanged { session, mode });
+        }
     }
 }
 

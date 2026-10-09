@@ -1,7 +1,13 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Folder, Keyboard, SlidersHorizontal } from "lucide-react";
 import { formatKey, spokenShortcut } from "@/platform/keys";
-import { platform, type AppInfo, type HotkeyInfo, type SettingsInfo } from "@/platform";
+import {
+  platform,
+  type AppInfo,
+  type HotkeyInfo,
+  type OverlayMode,
+  type SettingsInfo,
+} from "@/platform";
 import { Badge } from "@/ui/components/badge";
 import { Button } from "@/ui/components/button";
 import { Keycap } from "@/ui/components/keycap";
@@ -13,10 +19,23 @@ import { readThemePreference, saveThemePreference, type ThemePreference } from "
 type Page = "general" | "hotkeys";
 
 const HOTKEY_TEXT: Record<HotkeyInfo["id"], { title: string; description: string }> = {
-  area: { title: "Capture Area", description: "Select a region of the screen" },
-  window: { title: "Capture Window", description: "Pick a single window" },
-  fullscreen: { title: "Capture Fullscreen", description: "The whole display under the cursor" },
+  capture: {
+    title: "Capture",
+    description:
+      "Opens the capture bar to switch between area and window. Starts in your default mode.",
+  },
+  area: { title: "Capture Area", description: "Quick pick: select a region, no capture bar" },
+  window: { title: "Capture Window", description: "Quick pick: choose a window, no capture bar" },
+  fullscreen: {
+    title: "Capture Fullscreen",
+    description: "Quick pick: the whole display under the cursor",
+  },
 };
+
+const DEFAULT_MODE_OPTIONS = [
+  { value: "area", label: "Area" },
+  { value: "window", label: "Window" },
+] as const satisfies readonly { value: OverlayMode; label: string }[];
 
 const THEME_OPTIONS = [
   { value: "system", label: "System" },
@@ -116,6 +135,9 @@ const Divider = () => <hr className="border-border" />;
 
 function GeneralPage({ info }: { info: SettingsInfo | null }) {
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
+  // What the user picked this session; until then the saved value from the native side.
+  const [picked, setPicked] = useState<OverlayMode | null>(null);
+  const defaultMode = picked ?? info?.defaultMode ?? "area";
 
   return (
     <div className="flex max-w-[836px] flex-col gap-7">
@@ -146,6 +168,21 @@ function GeneralPage({ info }: { info: SettingsInfo | null }) {
       <Divider />
 
       <Section title="Capture">
+        <Row
+          title="Default capture mode"
+          description="What the main shortcut starts in. You can still switch in the capture bar."
+        >
+          <Segmented
+            tone="neutral"
+            label="Default capture mode"
+            value={defaultMode}
+            options={DEFAULT_MODE_OPTIONS}
+            onValueChange={(next) => {
+              setPicked(next);
+              void platform.setDefaultMode(next);
+            }}
+          />
+        </Row>
         <Row title="Save location" description="Where new screenshots are saved.">
           <div className="flex w-[280px] items-center gap-2 rounded-md border border-border bg-background px-3 py-[7px]">
             <Folder className="size-[15px] shrink-0 text-muted-foreground" aria-hidden />
@@ -217,7 +254,8 @@ function HotkeysPage({ info, app }: { info: SettingsInfo | null; app: AppInfo | 
       </ul>
 
       <p className="text-xs text-muted-foreground">
-        These shortcuts are fixed for now. Custom shortcuts come later.
+        These shortcuts are fixed for now. Custom shortcuts come later. The default mode of the main
+        shortcut is set under General.
       </p>
     </div>
   );

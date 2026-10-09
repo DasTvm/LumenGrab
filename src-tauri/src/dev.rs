@@ -1,6 +1,7 @@
 //! Debug-build helpers for native smoke tests from a terminal (compiled out of release builds).
 //!
 //!   LUMENGRAB_DEV_CAPTURE=fullscreen|area|window   start that capture shortly after launch
+//!   LUMENGRAB_DEV_TOOLBAR=1                        show the capture bar (like the main shortcut)
 //!   LUMENGRAB_DEV_AUTOSUBMIT=1                     area: select a centred 400x300 px rectangle,
 //!                                                  window: take the frontmost window
 //!
@@ -52,7 +53,7 @@ pub fn autostart(app: &AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(1500));
         eprintln!("[lumengrab:dev] starting {mode:?} capture");
-        flow::start(&app, mode);
+        flow::start(&app, mode, std::env::var("LUMENGRAB_DEV_TOOLBAR").is_ok());
     });
 }
 

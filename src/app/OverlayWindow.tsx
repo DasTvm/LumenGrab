@@ -13,11 +13,14 @@ import {
   type Rect,
   type Size,
 } from "@/capture/geometry";
-import { platform, type OverlaySession, type OverlayWindowInfo } from "@/platform";
+import {
+  platform,
+  type OverlayMode,
+  type OverlaySession,
+  type OverlayWindowInfo,
+} from "@/platform";
 import { Button } from "@/ui/components/button";
 import { cn } from "@/ui/lib/utils";
-
-type Mode = "area" | "window";
 
 interface OverlayParams {
   sessionId: string;
@@ -48,7 +51,7 @@ const HANDLES: readonly (readonly [number, number])[] = [
 ];
 
 const MODES: readonly {
-  mode: Mode | "fullscreen";
+  mode: OverlayMode | "fullscreen";
   label: string;
   key: string;
   icon: typeof ScanLine;
@@ -72,7 +75,7 @@ export function OverlayWindow() {
     params ? null : "This capture overlay was opened without a session.",
   );
   const [size, setSize] = useState<Size>(viewport);
-  const [mode, setMode] = useState<Mode>("area");
+  const [mode, setMode] = useState<OverlayMode>("area");
   const [drag, setDrag] = useState<{ start: Point; current: Point } | null>(null);
   const [hovered, setHovered] = useState<OverlayWindowInfo | undefined>(undefined);
   const sentReady = useRef(false);
@@ -94,6 +97,27 @@ export function OverlayWindow() {
         setError(e instanceof Error ? e.message : "The capture could not be loaded.");
       },
     );
+  }, [params]);
+
+  // The capture bar lives on one display only: a mode switched there applies to all displays.
+  useEffect(() => {
+    if (!params) return;
+    let off: (() => void) | undefined;
+    let disposed = false;
+    void platform
+      .onCaptureMode(params.sessionId, (next) => {
+        setMode(next);
+        setDrag(null);
+        setHovered(undefined);
+      })
+      .then((unlisten) => {
+        if (disposed) unlisten();
+        else off = unlisten;
+      });
+    return () => {
+      disposed = true;
+      off?.();
+    };
   }, [params]);
 
   useEffect(() => {
@@ -131,7 +155,7 @@ export function OverlayWindow() {
   }, [params, px]);
 
   const chooseMode = useCallback(
-    (next: Mode | "fullscreen") => {
+    (next: OverlayMode | "fullscreen") => {
       if (next === "fullscreen") {
         captureFullDisplay();
         return;
@@ -139,8 +163,9 @@ export function OverlayWindow() {
       setMode(next);
       setDrag(null);
       setHovered(undefined);
+      if (params) void platform.setCaptureMode(params.sessionId, next);
     },
-    [captureFullDisplay],
+    [captureFullDisplay, params],
   );
 
   // Keyboard: Esc always cancels, Space moves a selection being dragged. Window mode: Tab/arrows
@@ -153,10 +178,12 @@ export function OverlayWindow() {
         cancel();
         return;
       }
-      const shortcut = { a: "area", w: "window", f: "fullscreen" }[e.key.toLowerCase()];
+      const shortcut = session?.toolbar
+        ? { a: "area", w: "window", f: "fullscreen" }[e.key.toLowerCase()]
+        : undefined;
       if (shortcut && !e.metaKey && !e.ctrlKey && !e.altKey && !drag) {
         e.preventDefault();
-        chooseMode(shortcut as Mode | "fullscreen");
+        chooseMode(shortcut as OverlayMode | "fullscreen");
         return;
       }
       if (e.code === "Space" && mode === "area") {
@@ -355,7 +382,7 @@ export function OverlayWindow() {
         </div>
       ) : null}
 
-      {session ? (
+      {session?.home ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-9 flex flex-col items-center gap-3">
           {!drag ? (
             <p
@@ -365,51 +392,56 @@ export function OverlayWindow() {
               {hint}
             </p>
           ) : null}
-          <div
-            role="toolbar"
-            aria-label="Capture mode"
-            className="pointer-events-auto flex items-center gap-1 rounded-2xl bg-overlay-surface p-1.5 shadow-[0_10px_30px_rgb(0_0_0/0.4)]"
-            onPointerDown={(e) => {
-              e.stopPropagation();
-            }}
-            onPointerMove={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            {MODES.map(({ mode: m, label: text, key, icon: Icon }) => {
-              const active = m === mode;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  aria-pressed={m === "fullscreen" ? undefined : active}
-                  aria-keyshortcuts={key}
-                  title={`${text} (${key})`}
-                  onClick={() => {
-                    chooseMode(m);
-                  }}
-                  className={cn(
-                    "flex items-center gap-2 rounded-[10px] px-3.5 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-brand",
-                    active
-                      ? "bg-brand text-brand-foreground"
-                      : "text-overlay-foreground hover:bg-white/10",
-                  )}
-                >
-                  <Icon className={cn("size-4", active ? "" : "text-overlay-muted")} aria-hidden />
-                  {text}
-                </button>
-              );
-            })}
-            <span aria-hidden className="mx-1 h-[22px] w-px bg-overlay-divider" />
-            <button
-              type="button"
-              aria-label="Cancel capture"
-              onClick={cancel}
-              className="flex size-9 items-center justify-center rounded-[10px] text-overlay-muted outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand"
+          {session.toolbar ? (
+            <div
+              role="toolbar"
+              aria-label="Capture mode"
+              className="pointer-events-auto flex items-center gap-1 rounded-2xl bg-overlay-surface p-1.5 shadow-[0_10px_30px_rgb(0_0_0/0.4)]"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
+              onPointerMove={(e) => {
+                e.stopPropagation();
+              }}
             >
-              <X className="size-4" aria-hidden />
-            </button>
-          </div>
+              {MODES.map(({ mode: m, label: text, key, icon: Icon }) => {
+                const active = m === mode;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    aria-pressed={m === "fullscreen" ? undefined : active}
+                    aria-keyshortcuts={key}
+                    title={`${text} (${key})`}
+                    onClick={() => {
+                      chooseMode(m);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 rounded-[10px] px-3.5 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                      active
+                        ? "bg-brand text-brand-foreground"
+                        : "text-overlay-foreground hover:bg-white/10",
+                    )}
+                  >
+                    <Icon
+                      className={cn("size-4", active ? "" : "text-overlay-muted")}
+                      aria-hidden
+                    />
+                    {text}
+                  </button>
+                );
+              })}
+              <span aria-hidden className="mx-1 h-[22px] w-px bg-overlay-divider" />
+              <button
+                type="button"
+                aria-label="Cancel capture"
+                onClick={cancel}
+                className="flex size-9 items-center justify-center rounded-[10px] text-overlay-muted outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

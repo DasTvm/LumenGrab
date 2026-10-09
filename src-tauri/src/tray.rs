@@ -12,6 +12,7 @@ const SETTINGS_LABEL: &str = "settings";
 
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
     // The accelerator text only shows the shortcut; the real hotkeys are registered in `hotkeys`.
+    let bar = MenuItem::with_id(app, "capture", "Capture…", true, Some("Ctrl+Shift+1"))?;
     let area = MenuItem::with_id(
         app,
         "capture-area",
@@ -45,6 +46,8 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
     let menu = Menu::with_items(
         app,
         &[
+            &bar,
+            &PredefinedMenuItem::separator(app)?,
             &area,
             &window,
             &fullscreen,
@@ -60,9 +63,10 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         .tooltip("LumenGrab")
         .menu(&menu)
         .on_menu_event(|app, event| match event.id.as_ref() {
-            "capture-area" => flow::start(app, CaptureMode::Area),
-            "capture-window" => flow::start(app, CaptureMode::Window),
-            "capture-fullscreen" => flow::start(app, CaptureMode::Fullscreen),
+            "capture" => flow::start_with_bar(app),
+            "capture-area" => flow::start(app, CaptureMode::Area, false),
+            "capture-window" => flow::start(app, CaptureMode::Window, false),
+            "capture-fullscreen" => flow::start(app, CaptureMode::Fullscreen, false),
             "open-folder" => output::open_screenshot_folder(app),
             "settings" => show_settings(app),
             "quit" => app.exit(0),

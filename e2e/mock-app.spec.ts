@@ -3,8 +3,15 @@ import { expect, test, type Page } from "@playwright/test";
 // The mock frame is 1440x900 px. A 720x450 viewport makes the CSS->pixel ratio exactly 2.
 test.use({ viewport: { width: 720, height: 450 } });
 
-async function openOverlay(page: Page, mode: "area" | "window") {
-  await page.goto(`/?window=overlay&session=mock&display=1&mode=${mode}`);
+/** `toolbar`: started with the main shortcut (capture bar). `home: false`: a second display. */
+async function openOverlay(
+  page: Page,
+  mode: "area" | "window",
+  { toolbar = true, home = true } = {},
+) {
+  await page.goto(
+    `/?window=overlay&session=mock&display=1&mode=${mode}${toolbar ? "&toolbar=1" : ""}${home ? "" : "&home=0"}`,
+  );
   await page.waitForFunction(() => {
     const img = document.querySelector("img");
     return img !== null && img.complete && img.naturalWidth > 0;
@@ -14,19 +21,29 @@ async function openOverlay(page: Page, mode: "area" | "window") {
 const submissions = (page: Page) => page.evaluate(() => window.__lumengrabMock?.submissions ?? []);
 
 test.describe("home (browser mock)", () => {
-  test("shows the runtime and the three capture actions", async ({ page }) => {
+  test("shows the runtime and the four capture actions", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("runtime")).toContainText("browser-mock");
-    for (const name of [/Capture area/, /Capture window/, /Capture fullscreen/]) {
+    for (const name of [/Capture Ctrl/, /Capture area/, /Capture window/, /Capture fullscreen/]) {
       await expect(page.getByRole("button", { name })).toBeVisible();
     }
     await page.screenshot({ path: "test-results/mock-home-light.png", animations: "disabled" });
   });
 
-  test("area button opens the capture overlay", async ({ page }) => {
+  test("area button is a quick pick: the overlay opens without the capture bar", async ({
+    page,
+  }) => {
     await page.goto("/");
     await page.getByRole("button", { name: /Capture area/ }).click();
     await expect(page).toHaveURL(/window=overlay.*mode=area/);
+    await expect(page).not.toHaveURL(/toolbar=1/);
+  });
+
+  test("the main capture button opens the overlay with the capture bar", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /Capture Ctrl/ }).click();
+    await expect(page).toHaveURL(/window=overlay.*toolbar=1/);
+    await expect(page.getByRole("toolbar", { name: "Capture mode" })).toBeVisible();
   });
 
   test("fullscreen button reports the request", async ({ page }) => {
@@ -248,6 +265,69 @@ test.describe("capture overlay: toolbar and Space to move (browser mock)", () =>
     await page.mouse.up();
     const [first] = await submissions(page);
     expect(first?.rect).toEqual({ x: 1040, y: 400, width: 400, height: 200 });
+  });
+});
+
+test.describe("capture overlay: quick picks and several displays (browser mock)", () => {
+  test("a quick pick has the hint but no capture bar, and A / W / F do nothing", async ({
+    page,
+  }) => {
+    await openOverlay(page, "area", { toolbar: false });
+    await expect(page.getByRole("toolbar")).toHaveCount(0);
+    await expect(page.getByText("Drag to select")).toBeVisible();
+    await page.keyboard.press("w");
+    await expect(page.getByText("Drag to select")).toBeVisible();
+    expect(await submissions(page)).toEqual([]);
+    await page.screenshot({
+      path: "test-results/mock-overlay-quick-pick-light.png",
+      animations: "disabled",
+    });
+  });
+
+  test("a second display shows neither the capture bar nor the hint", async ({ page }) => {
+    await openOverlay(page, "area", { home: false });
+    await expect(page.getByRole("toolbar")).toHaveCount(0);
+    await expect(page.getByText("Drag to select")).toHaveCount(0);
+  });
+
+  test("switching the mode on the display with the bar switches the other display too", async ({
+    context,
+  }) => {
+    const home = await context.newPage();
+    const other = await context.newPage();
+    await openOverlay(home, "area");
+    await openOverlay(other, "area", { home: false });
+
+    await home.getByRole("button", { name: "Window" }).click();
+    // The second display now hovers windows (it did nothing when each display had its own mode).
+    await other.mouse.move(400, 300);
+    await expect(other.getByTestId("selection-label")).toContainText("Sheets");
+    await other.mouse.click(400, 300);
+    expect(await submissions(other)).toEqual([
+      { kind: "window", sessionId: "mock", windowId: 101 },
+    ]);
+
+    // And back: area mode on the second display starts a drag again, not a window pick.
+    await home.getByRole("button", { name: "Area" }).click();
+    await other.mouse.move(100, 100);
+    await other.mouse.down();
+    await other.mouse.move(300, 250, { steps: 4 });
+    await expect(other.getByTestId("selection-label")).toHaveText("400 × 300");
+    await other.mouse.up();
+  });
+
+  test("keys A / W work on the second display too and reach the display with the bar", async ({
+    context,
+  }) => {
+    const home = await context.newPage();
+    const other = await context.newPage();
+    await openOverlay(home, "area");
+    await openOverlay(other, "area", { home: false });
+    await other.keyboard.press("w");
+    await expect(home.getByRole("button", { name: "Window" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 });
 

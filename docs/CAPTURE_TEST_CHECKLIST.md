@@ -1,7 +1,8 @@
 # Capture test checklist: multi-monitor and mixed DPI
 
 Manual tests for M1 (capture MVP). Run them on your own hardware; nothing here can be verified in CI.
-Hotkeys: **Ctrl+Shift+4** area, **Ctrl+Shift+5** window, **Ctrl+Shift+3** fullscreen (both OS).
+Hotkeys (both OS): **Ctrl+Shift+1** is the main one (capture bar, starts in the default mode from Settings > General).
+The quick picks start straight in one mode, without the bar: **Ctrl+Shift+4** area, **Ctrl+Shift+5** window, **Ctrl+Shift+3** fullscreen.
 
 **How to report:** one row per setup: machine, OS version, monitors (resolution, scale %, arrangement), result per
 section, notes, screenshot. Attach the spike reports from `tools/capture-spike` (see its README; on Windows run
@@ -50,6 +51,14 @@ it twice: default and `--features wgc`).
 - Click captures only that window (overlapping windows are not in the image); sharp at that monitor's scale.
 - Minimized windows are not offered; a fullscreen app window works. The picker never highlights the Dock, menu bar, notification banners or invisible helper/overlay windows.
 - macOS: note whether the shadow is included and the resulting size. Windows: no invisible 7 px border or blank margin; a browser with video, GPU-accelerated and UWP windows are not black or white.
+
+## 4b. Capture bar (Ctrl+Shift+1), several displays
+
+- The bar and the hint show on **one** display only (the one under the cursor at the start); the others show just the dimmed frame.
+- Switch to Window with the bar (or key W) and move to another display: windows highlight there too. Switch back to Area: dragging works on every display.
+- Keys A / W / F work with the pointer on any display (F captures the display under the pointer).
+- Settings > General > Default capture mode: switch to Window, press Ctrl+Shift+1: starts in window mode. Restart LumenGrab: the choice is kept.
+- The quick picks (4 / 5) show no bar, and A / W / F do nothing there.
 
 ## 5. Hotkeys and sessions
 

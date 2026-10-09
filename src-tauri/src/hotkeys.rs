@@ -1,5 +1,7 @@
-//! Global hotkeys. Fixed for now (configurable later): Ctrl+Shift+3 fullscreen, 4 area, 5 window,
-//! on both macOS and Windows. Registered in Rust at startup so they work with no window open.
+//! Global hotkeys. Fixed for now (configurable later), the same on macOS and Windows:
+//! Ctrl+Shift+1 is the main one (capture bar, starts in the default mode from the settings), and
+//! 3 fullscreen, 4 area, 5 window are quick picks that start straight in that mode without the bar.
+//! Registered in Rust at startup so they work with no window open.
 
 use std::sync::mpsc::{channel, Sender};
 
@@ -11,11 +13,32 @@ use crate::capture::{flow, output, CaptureMode};
 
 const MODIFIERS: Modifiers = Modifiers::CONTROL.union(Modifiers::SHIFT);
 
-/// Fixed for now. `(key, display text, mode)`; the display text is also what the settings page shows.
-const HOTKEYS: [(Code, &str, CaptureMode); 3] = [
-    (Code::Digit3, "Ctrl+Shift+3", CaptureMode::Fullscreen),
-    (Code::Digit4, "Ctrl+Shift+4", CaptureMode::Area),
-    (Code::Digit5, "Ctrl+Shift+5", CaptureMode::Window),
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Action {
+    /// The capture bar, in the user's default mode.
+    Bar,
+    /// Straight into one mode, no bar.
+    Quick(CaptureMode),
+}
+
+/// Fixed for now. `(key, display text, action)`; the display text is also what the settings page shows.
+const HOTKEYS: [(Code, &str, Action); 4] = [
+    (Code::Digit1, "Ctrl+Shift+1", Action::Bar),
+    (
+        Code::Digit3,
+        "Ctrl+Shift+3",
+        Action::Quick(CaptureMode::Fullscreen),
+    ),
+    (
+        Code::Digit4,
+        "Ctrl+Shift+4",
+        Action::Quick(CaptureMode::Area),
+    ),
+    (
+        Code::Digit5,
+        "Ctrl+Shift+5",
+        Action::Quick(CaptureMode::Window),
+    ),
 ];
 
 fn escape() -> Shortcut {
@@ -74,11 +97,14 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
                 std::thread::spawn(move || flow::cancel_active(&app));
                 return;
             }
-            if let Some((_, _, mode)) = HOTKEYS
+            if let Some((_, _, action)) = HOTKEYS
                 .iter()
                 .find(|(code, _, _)| *shortcut == Shortcut::new(Some(MODIFIERS), *code))
             {
-                flow::start(app, *mode);
+                match action {
+                    Action::Bar => flow::start_with_bar(app),
+                    Action::Quick(mode) => flow::start(app, *mode, false),
+                }
             }
         })
         .build()
@@ -88,7 +114,7 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HotkeyInfo {
-    /// `area`, `window` or `fullscreen`.
+    /// `capture` (the main shortcut with the capture bar), `area`, `window` or `fullscreen`.
     pub id: &'static str,
     /// Key names, e.g. `["Ctrl", "Shift", "4"]`. The frontend renders them per OS.
     pub keys: Vec<&'static str>,
@@ -99,25 +125,27 @@ pub struct HotkeyInfo {
 /// Shortcuts that could not be registered (taken by another app), kept for the settings page.
 pub struct HotkeyFailures(pub Vec<&'static str>);
 
-fn mode_id(mode: CaptureMode) -> &'static str {
-    match mode {
-        CaptureMode::Area => "area",
-        CaptureMode::Window => "window",
-        CaptureMode::Fullscreen => "fullscreen",
+fn action_id(action: Action) -> &'static str {
+    match action {
+        Action::Bar => "capture",
+        Action::Quick(CaptureMode::Area) => "area",
+        Action::Quick(CaptureMode::Window) => "window",
+        Action::Quick(CaptureMode::Fullscreen) => "fullscreen",
     }
 }
 
-/// Area, window, fullscreen: the order the settings page lists them in.
+/// Capture, area, window, fullscreen: the order the settings page lists them in.
 pub fn list(failed: &[&'static str]) -> Vec<HotkeyInfo> {
     [
-        CaptureMode::Area,
-        CaptureMode::Window,
-        CaptureMode::Fullscreen,
+        Action::Bar,
+        Action::Quick(CaptureMode::Area),
+        Action::Quick(CaptureMode::Window),
+        Action::Quick(CaptureMode::Fullscreen),
     ]
     .into_iter()
-    .filter_map(|mode| HOTKEYS.iter().find(|(_, _, m)| *m == mode))
-    .map(|(_, name, mode)| HotkeyInfo {
-        id: mode_id(*mode),
+    .filter_map(|action| HOTKEYS.iter().find(|(_, _, a)| *a == action))
+    .map(|(_, name, action)| HotkeyInfo {
+        id: action_id(*action),
         keys: name.split('+').collect(),
         registered: !failed.contains(name),
     })
@@ -159,6 +187,7 @@ mod tests {
         assert_eq!(
             rows,
             vec![
+                ("capture", vec!["Ctrl", "Shift", "1"]),
                 ("area", vec!["Ctrl", "Shift", "4"]),
                 ("window", vec!["Ctrl", "Shift", "5"]),
                 ("fullscreen", vec!["Ctrl", "Shift", "3"]),
