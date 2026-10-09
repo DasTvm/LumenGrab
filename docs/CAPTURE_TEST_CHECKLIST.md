@@ -108,3 +108,10 @@ LUMENGRAB_DEV_CAPTURE=area LUMENGRAB_DEV_AUTOSUBMIT=1 LUMENGRAB_DEV_SELFTEST=1 c
   not in the capture (`set_content_protected` works). A ratio near **0.55** = the overlay is in the capture (it dims by 45%).
   It also saves `/tmp/lg-selftest-sck-<id>.png` and a `screencapture` reference. Please send me the printed lines.
 - Files land in `Pictures/LumenGrab`; delete the test files afterwards.
+
+## UI screens (built from LumenGrab.pen)
+
+- **Capture overlay:** the toolbar at the bottom switches Area / Window (keys A / W); **Fullscreen** (F) captures the whole display under that overlay; the X cancels. While dragging, hold **Space** to move the selection. The size badge shows output pixels. Check it on both displays.
+- **Settings** (tray menu, "Settings…"): General has Theme (System / Light / Dark; takes effect in all windows) and the save folder with **Open**. Launch at login and sound say _Soon_ and are disabled on purpose. Hotkeys lists the real shortcuts; if another app owns one it is flagged "In use by another app".
+- **Permission window:** appears at startup when Screen Recording is not allowed, and when a capture needs it. "Open System Settings" must add LumenGrab to the list and open the right pane; "Check again" (or coming back to the window) turns it into the green confirmation; "Restart LumenGrab" relaunches the app.
+- The tray menu itself is the native menu (not styled by the design).

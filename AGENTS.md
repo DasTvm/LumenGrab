@@ -107,6 +107,9 @@ The full spec is in `docs/FORMAT.md`. That file is the **source of truth**. Rule
 ## 6. Design and UX rules
 
 - Design source of truth: **Figma** (use the Figma MCP when a link is provided). Implement from the design, do not invent a generic look.
+  The current design lives in the **Pencil** file `LumenGrab.pen` (Pencil MCP: read with `execute`, never open the `.pen` file directly). Tokens in `src/ui/tokens` come from its variables; the dark theme is derived (the design has none yet) and needs a designer's review.
+  Screens built so far: Capture Overlay, Settings (General, Hotkeys), Onboarding Permission. Dev gallery of the components: `?window=design` in `pnpm dev:web`.
+- UI fonts: the design uses **Inter** (UI) and **Outfit** (wordmark), bundled with `@fontsource` (SIL OFL-1.1, listed in `THIRD_PARTY_LICENSES`). This deliberately deviates from "system fonts" below; system fonts stay the fallback.
 - Use design tokens (colors, radius, spacing, type) from one place (`src/ui/tokens`). No hard-coded colors in components.
 - Light and dark mode from day one. Respect system setting.
 - Native feel: correct window behavior per OS, system fonts for UI chrome, proper keyboard shortcuts (Cmd on macOS, Ctrl on Windows), accessible focus states.
