@@ -42,8 +42,6 @@ pub struct Session {
     pub id: String,
     /// When the hotkey was handled; used to log hotkey-to-overlay latency.
     pub started: Instant,
-    /// The mode the capture started in.
-    pub mode: CaptureMode,
     /// The mode the overlays are in right now: the capture bar switches it for all displays at once.
     live_mode: Mutex<CaptureMode>,
     /// Whether the capture bar (mode switcher) is shown. Quick shortcuts start without it.
@@ -69,7 +67,6 @@ impl Session {
         Self {
             id,
             started,
-            mode,
             live_mode: Mutex::new(mode),
             toolbar,
             home_display,
@@ -273,7 +270,6 @@ mod tests {
         assert_eq!(s.live_mode(), CaptureMode::Area);
         s.set_live_mode(CaptureMode::Window);
         assert_eq!(s.live_mode(), CaptureMode::Window);
-        assert_eq!(s.mode, CaptureMode::Area, "the start mode is kept");
     }
 
     #[test]

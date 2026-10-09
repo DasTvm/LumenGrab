@@ -68,7 +68,7 @@ pub fn autosubmit(app: &AppHandle, session: &Session, display: &DisplayInfo) {
         app.clone(),
         session.id.clone(),
         display.clone(),
-        session.mode,
+        session.live_mode(),
     );
     let first_window = geometry::windows_on_display(&display, &session.windows)
         .first()
