@@ -88,7 +88,9 @@ fn show_settings(app: &AppHandle) {
         WebviewUrl::App("index.html?window=settings".into()),
     )
     .title("LumenGrab Settings")
-    .inner_size(560.0, 420.0)
+    .inner_size(1100.0, 720.0)
+    .min_inner_size(860.0, 560.0)
+    .center()
     .build();
     if let Err(err) = result {
         eprintln!("failed to open settings window: {err}");

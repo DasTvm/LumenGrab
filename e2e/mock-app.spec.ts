@@ -259,11 +259,6 @@ test.describe("capture overlay: error and empty states", () => {
   });
 });
 
-test("settings placeholder window renders", async ({ page }) => {
-  await page.goto("/?window=settings");
-  await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-});
-
 test("overlay at the design size (1280x800) for visual comparison with LumenGrab.pen", async ({
   page,
 }) => {

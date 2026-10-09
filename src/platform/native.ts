@@ -1,11 +1,13 @@
 import { getName, getVersion } from "@tauri-apps/api/app";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
+import { currentOs } from "./os";
 import {
   PlatformError,
   type AppInfo,
   type CaptureMode,
   type OverlaySession,
   type PixelRect,
+  type SettingsInfo,
   type Platform,
 } from "./types";
 
@@ -28,7 +30,7 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 export const nativePlatform: Platform = {
   async getAppInfo(): Promise<AppInfo> {
     const [name, version] = await Promise.all([getName(), getVersion()]);
-    return { name, version, runtime: "native" };
+    return { name, version, runtime: "native", os: currentOs() };
   },
 
   async startCapture(mode: CaptureMode): Promise<void> {
@@ -68,5 +70,13 @@ export const nativePlatform: Platform = {
 
   async cancelCapture(sessionId: string): Promise<void> {
     await call("capture_cancel", { session: sessionId });
+  },
+
+  getSettingsInfo(): Promise<SettingsInfo> {
+    return call<SettingsInfo>("settings_info");
+  },
+
+  async openScreenshotsFolder(): Promise<void> {
+    await call("open_screenshots_folder");
   },
 };

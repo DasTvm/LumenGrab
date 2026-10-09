@@ -36,10 +36,27 @@ export interface OverlaySession {
   windows: OverlayWindowInfo[];
 }
 
+export type Os = "macos" | "windows" | "other";
+
 export interface AppInfo {
   name: string;
   version: string;
   runtime: "native" | "browser-mock";
+  os: Os;
+}
+
+export interface HotkeyInfo {
+  id: "area" | "window" | "fullscreen";
+  /** Key names such as `Ctrl`, `Shift`, `4`; render them with `formatKey`. */
+  keys: string[];
+  /** False when another app already owns the shortcut. */
+  registered: boolean;
+}
+
+export interface SettingsInfo {
+  /** Absolute folder screenshots are saved to. */
+  saveDir: string;
+  hotkeys: HotkeyInfo[];
 }
 
 export interface Platform {
@@ -52,6 +69,8 @@ export interface Platform {
   submitArea(sessionId: string, displayId: number, rect: PixelRect): Promise<void>;
   submitWindow(sessionId: string, windowId: number): Promise<void>;
   cancelCapture(sessionId: string): Promise<void>;
+  getSettingsInfo(): Promise<SettingsInfo>;
+  openScreenshotsFolder(): Promise<void>;
 }
 
 export class PlatformError extends Error {

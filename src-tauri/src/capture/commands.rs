@@ -159,3 +159,25 @@ pub fn serve_frame(app: &AppHandle, path: &str) -> Option<Vec<u8>> {
     let png = s.display(display)?.png()?;
     Some(png.as_ref().clone())
 }
+
+/// Everything the settings window shows that only the native side knows.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SettingsInfo {
+    save_dir: String,
+    hotkeys: Vec<crate::hotkeys::HotkeyInfo>,
+}
+
+#[tauri::command]
+pub fn settings_info(app: AppHandle) -> Result<SettingsInfo, String> {
+    let failures = app.state::<crate::hotkeys::HotkeyFailures>();
+    Ok(SettingsInfo {
+        save_dir: super::output::screenshot_dir(&app)?.display().to_string(),
+        hotkeys: crate::hotkeys::list(&failures.0),
+    })
+}
+
+#[tauri::command]
+pub fn open_screenshots_folder(app: AppHandle) {
+    super::output::open_screenshot_folder(&app);
+}

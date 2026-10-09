@@ -5,7 +5,7 @@ export function Keycap({ children, className }: { children: string; className?: 
   return (
     <kbd
       className={cn(
-        "inline-flex size-7 items-center justify-center rounded-sm border border-border bg-muted font-sans text-xs font-semibold text-foreground",
+        "inline-flex h-7 min-w-7 items-center justify-center px-1.5 rounded-sm border border-border bg-muted font-sans text-xs font-semibold text-foreground",
         className,
       )}
     >

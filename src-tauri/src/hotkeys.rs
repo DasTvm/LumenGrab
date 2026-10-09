@@ -3,6 +3,7 @@
 
 use std::sync::mpsc::{channel, Sender};
 
+use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
@@ -10,6 +11,7 @@ use crate::capture::{flow, output, CaptureMode};
 
 const MODIFIERS: Modifiers = Modifiers::CONTROL.union(Modifiers::SHIFT);
 
+/// Fixed for now. `(key, display text, mode)`; the display text is also what the settings page shows.
 const HOTKEYS: [(Code, &str, CaptureMode); 3] = [
     (Code::Digit3, "Ctrl+Shift+3", CaptureMode::Fullscreen),
     (Code::Digit4, "Ctrl+Shift+4", CaptureMode::Area),
@@ -82,9 +84,50 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
         .build()
 }
 
+/// What the settings page shows for one hotkey.
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct HotkeyInfo {
+    /// `area`, `window` or `fullscreen`.
+    pub id: &'static str,
+    /// Key names, e.g. `["Ctrl", "Shift", "4"]`. The frontend renders them per OS.
+    pub keys: Vec<&'static str>,
+    /// False if another app already owns the shortcut.
+    pub registered: bool,
+}
+
+/// Shortcuts that could not be registered (taken by another app), kept for the settings page.
+pub struct HotkeyFailures(pub Vec<&'static str>);
+
+fn mode_id(mode: CaptureMode) -> &'static str {
+    match mode {
+        CaptureMode::Area => "area",
+        CaptureMode::Window => "window",
+        CaptureMode::Fullscreen => "fullscreen",
+    }
+}
+
+/// Area, window, fullscreen: the order the settings page lists them in.
+pub fn list(failed: &[&'static str]) -> Vec<HotkeyInfo> {
+    [
+        CaptureMode::Area,
+        CaptureMode::Window,
+        CaptureMode::Fullscreen,
+    ]
+    .into_iter()
+    .filter_map(|mode| HOTKEYS.iter().find(|(_, _, m)| *m == mode))
+    .map(|(_, name, mode)| HotkeyInfo {
+        id: mode_id(*mode),
+        keys: name.split('+').collect(),
+        registered: !failed.contains(name),
+    })
+    .collect()
+}
+
 /// Registers the hotkeys. A key another app already owns is reported once; the tray menu still works.
-pub fn register(app: &AppHandle) {
-    let failed: Vec<&str> = HOTKEYS
+/// Returns the names of the shortcuts that failed.
+pub fn register(app: &AppHandle) -> Vec<&'static str> {
+    let failed: Vec<&'static str> = HOTKEYS
         .iter()
         .filter(|(code, _, _)| {
             app.global_shortcut()
@@ -101,5 +144,34 @@ pub fn register(app: &AppHandle) {
                 failed.join(", ")
             ),
         );
+    }
+    failed
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn list_matches_the_agreed_shortcuts_in_page_order() {
+        let l = list(&[]);
+        let rows: Vec<(&str, Vec<&str>)> = l.iter().map(|h| (h.id, h.keys.clone())).collect();
+        assert_eq!(
+            rows,
+            vec![
+                ("area", vec!["Ctrl", "Shift", "4"]),
+                ("window", vec!["Ctrl", "Shift", "5"]),
+                ("fullscreen", vec!["Ctrl", "Shift", "3"]),
+            ]
+        );
+        assert!(l.iter().all(|h| h.registered));
+    }
+
+    #[test]
+    fn a_taken_shortcut_is_reported_as_not_registered() {
+        let l = list(&["Ctrl+Shift+5"]);
+        let window = l.iter().find(|h| h.id == "window").unwrap();
+        assert!(!window.registered);
+        assert!(l.iter().filter(|h| h.id != "window").all(|h| h.registered));
     }
 }

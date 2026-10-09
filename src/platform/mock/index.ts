@@ -5,7 +5,9 @@ import type {
   OverlayWindowInfo,
   PixelRect,
   Platform,
+  SettingsInfo,
 } from "../types";
+import { currentOs } from "../os";
 import sampleCaptureUrl from "./sample-capture.png?url";
 
 /** Size of the bundled sample image: the "frozen frame" in mock mode. */
@@ -28,7 +30,7 @@ const MOCK_WINDOWS: OverlayWindowInfo[] = [
 
 /** Everything the mock was asked to do, so browser tests can assert on it. */
 export interface MockSubmission {
-  kind: "area" | "window" | "cancel" | "start";
+  kind: "area" | "window" | "cancel" | "start" | "openFolder";
   sessionId?: string;
   displayId?: number;
   rect?: PixelRect;
@@ -52,7 +54,12 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 /** Browser implementation: no native calls, uses a bundled sample image as the frozen frame. */
 export const mockPlatform: Platform = {
   getAppInfo(): Promise<AppInfo> {
-    return Promise.resolve({ name: "LumenGrab", version: "0.1.0-mock", runtime: "browser-mock" });
+    return Promise.resolve({
+      name: "LumenGrab",
+      version: "0.1.0-mock",
+      runtime: "browser-mock",
+      os: currentOs(),
+    });
   },
 
   async startCapture(mode: CaptureMode): Promise<void> {
@@ -98,6 +105,22 @@ export const mockPlatform: Platform = {
 
   cancelCapture(sessionId: string): Promise<void> {
     record({ kind: "cancel", sessionId });
+    return Promise.resolve();
+  },
+
+  getSettingsInfo(): Promise<SettingsInfo> {
+    return Promise.resolve({
+      saveDir: "~/Pictures/LumenGrab",
+      hotkeys: [
+        { id: "area", keys: ["Ctrl", "Shift", "4"], registered: true },
+        { id: "window", keys: ["Ctrl", "Shift", "5"], registered: true },
+        { id: "fullscreen", keys: ["Ctrl", "Shift", "3"], registered: true },
+      ],
+    });
+  },
+
+  openScreenshotsFolder(): Promise<void> {
+    record({ kind: "openFolder" });
     return Promise.resolve();
   },
 };

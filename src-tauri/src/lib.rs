@@ -39,6 +39,8 @@ pub fn run() {
             commands::capture_submit_area,
             commands::capture_submit_window,
             commands::capture_cancel,
+            commands::settings_info,
+            commands::open_screenshots_folder,
         ])
         .on_window_event(|window, event| {
             // An overlay closed by the OS or the user must not leave the capture stuck "busy".
@@ -52,7 +54,8 @@ pub fn run() {
             platform::setup_app(app);
             tray::init(app.handle())?;
             hotkeys::start_escape_worker(app.handle());
-            hotkeys::register(app.handle());
+            let failed = hotkeys::register(app.handle());
+            app.manage(hotkeys::HotkeyFailures(failed));
             #[cfg(any(debug_assertions, feature = "dev-hooks"))]
             dev::autostart(app.handle());
             Ok(())
