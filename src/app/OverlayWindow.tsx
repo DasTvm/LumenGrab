@@ -99,6 +99,21 @@ export function OverlayWindow() {
     );
   }, [params]);
 
+  // With several displays only one overlay sees the pointer. When it moves on to another display (or
+  // another overlay becomes the key window), the highlight here must not stay behind as if a window
+  // were still about to be captured.
+  useEffect(() => {
+    const clear = () => {
+      setHovered(undefined);
+    };
+    window.addEventListener("blur", clear);
+    document.documentElement.addEventListener("pointerleave", clear);
+    return () => {
+      window.removeEventListener("blur", clear);
+      document.documentElement.removeEventListener("pointerleave", clear);
+    };
+  }, []);
+
   // The capture bar lives on one display only: a mode switched there applies to all displays.
   useEffect(() => {
     if (!params) return;

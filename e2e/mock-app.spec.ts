@@ -284,6 +284,23 @@ test.describe("capture overlay: quick picks and several displays (browser mock)"
     });
   });
 
+  test("the window highlight goes away when the pointer or the focus moves to another display", async ({
+    page,
+  }) => {
+    await openOverlay(page, "window", { home: false });
+    await page.mouse.move(400, 300);
+    await expect(page.getByTestId("selection")).toBeVisible();
+    // The pointer leaves this display for another one.
+    await page.mouse.move(-10, 300);
+    await expect(page.getByTestId("selection")).toHaveCount(0);
+
+    // Same when the other overlay takes the keyboard focus.
+    await page.mouse.move(400, 300);
+    await expect(page.getByTestId("selection")).toBeVisible();
+    await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+    await expect(page.getByTestId("selection")).toHaveCount(0);
+  });
+
   test("a second display shows neither the capture bar nor the hint", async ({ page }) => {
     await openOverlay(page, "area", { home: false });
     await expect(page.getByRole("toolbar")).toHaveCount(0);
