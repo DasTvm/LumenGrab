@@ -2,7 +2,12 @@
 //! the clipboard (unless switched off in the settings), in parallel. Errors become a native dialog; success is silent until the
 //! quick-access overlay (M2) gives feedback.
 
-use std::{fs, io::Write, path::Path};
+use std::{
+    fs,
+    io::Write,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use chrono::{Datelike, Local, Timelike};
 use tauri::{image::Image, AppHandle, Manager};
@@ -40,10 +45,16 @@ pub fn open_screenshot_folder(app: &AppHandle) {
 }
 
 pub fn deliver(app: &AppHandle, frame: Frame, source: CaptureMode) {
-    let dir = match screenshot_dir(app) {
+    deliver_to(app, frame, source, None);
+}
+
+/// Saves the capture (into `dir`, or the screenshots folder), copies it to the clipboard if the
+/// settings say so, and shows the Quick Access card. Problems become notice cards.
+pub fn deliver_to(app: &AppHandle, frame: Frame, source: CaptureMode, dir: Option<PathBuf>) {
+    let dir = match dir.map_or_else(|| screenshot_dir(app), Ok) {
         Ok(dir) => dir,
         Err(e) => {
-            error_dialog(app, &e);
+            notify_save_failed(app, "Pictures", &e, frame, source);
             return;
         }
     };
@@ -62,27 +73,45 @@ pub fn deliver(app: &AppHandle, frame: Frame, source: CaptureMode) {
                 .unwrap_or_else(|_| Err("copying crashed".into())),
         )
     });
-    if let Ok(path) = &saved {
-        if !show_quick_access(app, path, &frame, source) {
-            announce_saved(app, path);
+    #[cfg_attr(not(any(debug_assertions, feature = "dev-hooks")), allow(unused_mut))]
+    let mut problems: Vec<String> = Vec::new();
+    match saved {
+        Ok(path) => {
+            if !show_quick_access(app, &path, &frame, source) {
+                announce_saved(app, &path);
+            }
+            if let Err(e) = copied {
+                problems.push(format!("clipboard: {e}"));
+                quick_access::notify(app, quick_access::notice::clipboard_failed(&e, path));
+            }
         }
-    }
-    let problems: Vec<String> = [
-        saved
-            .err()
-            .map(|e| format!("The screenshot could not be saved: {e}")),
-        copied
-            .err()
-            .map(|e| format!("The screenshot could not be copied to the clipboard: {e}")),
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
-    if !problems.is_empty() {
-        error_dialog(app, &problems.join("\n\n"));
+        Err(e) => {
+            problems.push(format!("save: {e}"));
+            notify_save_failed(
+                app,
+                &quick_access::short_folder(&dir.join("x.png")),
+                &e,
+                frame,
+                source,
+            );
+        }
     }
     #[cfg(any(debug_assertions, feature = "dev-hooks"))]
     crate::dev::after_deliver(app, &problems);
+}
+
+/// The picture could not be written: it stays in memory so Retry and "Choose folder…" can save it.
+fn notify_save_failed(
+    app: &AppHandle,
+    folder: &str,
+    error: &str,
+    frame: Frame,
+    source: CaptureMode,
+) {
+    let notice = quick_access::notice::save_failed(folder, error, Arc::new(frame), source);
+    if !quick_access::notify(app, notice) {
+        error_dialog(app, &format!("The screenshot could not be saved: {error}"));
+    }
 }
 
 /// The card in the screen corner. `false` if Quick Access is off or could not be shown.
@@ -104,8 +133,8 @@ fn show_quick_access(app: &AppHandle, path: &Path, frame: &Frame, source: Captur
     )
 }
 
-/// Minimal feedback when Quick Access is off the quick-access overlay (M2): the tray tooltip names the file, and on
-/// macOS the menu bar icon shows "Saved" next to it for two seconds.
+/// Minimal feedback when Quick Access is switched off: the tray tooltip names the file, and on macOS
+/// the menu bar icon shows "Saved" next to it for two seconds.
 fn announce_saved(app: &AppHandle, path: &Path) {
     let Some(tray) = app.tray_by_id("main") else {
         return;
@@ -163,9 +192,4 @@ pub fn error_dialog(app: &AppHandle, message: &str) {
         .title("LumenGrab")
         .kind(MessageDialogKind::Error)
         .show(|_| {});
-}
-
-/// Shows the permission window (design: Onboarding Permission).
-pub fn permission_help(app: &AppHandle) {
-    crate::permission::show(app);
 }

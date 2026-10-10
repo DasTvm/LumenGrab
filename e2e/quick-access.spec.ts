@@ -72,6 +72,92 @@ test.describe("quick access large style (design states)", () => {
   });
 });
 
+test.describe("notice cards (browser mock)", () => {
+  test.use({ viewport: { width: 560, height: 260 } });
+
+  test("gallery: the four notices of the design", async ({ page }) => {
+    await page.setViewportSize({ width: 1040, height: 2000 });
+    await page.goto("/?window=quick-access-states");
+    for (const title of [
+      "Could not save the screenshot",
+      "Could not copy to the clipboard",
+      "Ctrl+Shift+5 is already in use",
+      "The capture did not work",
+    ]) {
+      await expect(page.getByRole("region", { name: title })).toBeVisible();
+    }
+    await page.screenshot({
+      path: "test-results/quick-access-notices-light.png",
+      animations: "disabled",
+      fullPage: true,
+    });
+  });
+
+  test("a save error offers Retry and Choose folder…, and each button reports its index", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=notice-save");
+    await expect(page.getByRole("alert")).toContainText("Could not save the screenshot");
+    await expect(page.getByRole("alert")).toContainText("Pictures/LumenGrab is not writable");
+    await page.getByRole("button", { name: "Retry" }).click();
+    await page.getByRole("button", { name: "Choose folder…" }).click();
+    expect((await submissions(page)).filter((s) => s.kind === "qaNotice")).toEqual([
+      { kind: "qaNotice", id: "demo", index: 0 },
+      { kind: "qaNotice", id: "demo", index: 1 },
+    ]);
+  });
+
+  test("an action that fails says why on the card and keeps it open", async ({ page }) => {
+    await page.goto("/?window=quick&card=notice-save&notice=fail");
+    await page.getByRole("button", { name: "Retry" }).click();
+    await expect(page.getByRole("alert")).toContainText("The folder is still not writable.");
+    expect((await submissions(page)).filter((s) => s.kind === "qaClose")).toHaveLength(0);
+  });
+
+  test("the warning notice looks like a warning and Close and Esc dismiss it", async ({ page }) => {
+    await page.goto("/?window=quick&card=notice-shortcut");
+    await expect(page.getByRole("alert")).toContainText("Ctrl+Shift+5 is already in use");
+    await page.getByRole("button", { name: "Close" }).click();
+    await page.keyboard.press("Escape");
+    expect((await submissions(page)).filter((s) => s.kind === "qaClose")).toHaveLength(2);
+  });
+
+  test("the notice reports its height so the window fits it, and nothing auto-closes it", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=notice-capture");
+    await expect
+      .poll(async () => (await submissions(page)).some((s) => s.kind === "qaSize"))
+      .toBe(true);
+    const size = (await submissions(page)).find((s) => s.kind === "qaSize");
+    expect(size?.height).toBeGreaterThan(100);
+    await page.waitForTimeout(600);
+    expect((await submissions(page)).filter((s) => s.kind === "qaClose")).toHaveLength(0);
+  });
+});
+
+test.describe("permission lost dialog", () => {
+  test.use({ viewport: { width: 560, height: 330 } });
+
+  test("explains what happened and offers Quit and Open System Settings", async ({ page }) => {
+    await page.goto("/?window=dialog&kind=permission-lost");
+    await expect(
+      page.getByRole("heading", { name: "Screen Recording is turned off" }),
+    ).toBeVisible();
+    await expect(page.getByText("Your captures are safe.")).toBeVisible();
+    await page.screenshot({
+      path: "test-results/permission-lost-dialog-light.png",
+      animations: "disabled",
+    });
+    await page.getByRole("button", { name: "Open System Settings" }).click();
+    await page.getByRole("button", { name: "Quit LumenGrab" }).click();
+    expect((await submissions(page)).map((s) => s.kind)).toEqual([
+      "openPermissionSettings",
+      "quit",
+    ]);
+  });
+});
+
 test.describe("quick access large card (browser mock)", () => {
   test.use({ viewport: { width: 440, height: 420 } });
 

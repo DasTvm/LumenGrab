@@ -52,6 +52,23 @@ export interface CardPad {
   left: number;
 }
 
+/** A button on a notice card. `icon` is a name the page maps to an icon. */
+export interface NoticeAction {
+  label: string;
+  icon: string;
+  primary: boolean;
+}
+
+/** An error or warning shown as a card in the Quick Access corner (design: "Feedback and Errors"). */
+export interface QuickAccessNotice {
+  tone: "error" | "warning";
+  /** A name the page maps to an icon: `triangle-alert`, `clipboard-x`, `keyboard`, `scan-line`, `trash`. */
+  icon: string;
+  title: string;
+  body: string;
+  actions: NoticeAction[];
+}
+
 /** One Quick Access card: the screenshot that was just taken. Mirrors `CardPayload` in src-tauri/src/quick_access. */
 export interface QuickAccessCard {
   id: string;
@@ -73,6 +90,8 @@ export interface QuickAccessCard {
   pad: CardPad;
   /** `bottom`: the stack is in a bottom corner, so hints go above the card instead of below it. */
   edge: "top" | "bottom";
+  /** Present on notice cards: they show this instead of a screenshot. */
+  notice?: QuickAccessNotice;
 }
 
 /** Where "Save as…" put the copy. */
@@ -169,6 +188,8 @@ export interface Platform {
   /** "Delete": the screenshot goes to the Trash when the card closes, unless `quickAccessUndoDelete` comes first. */
   quickAccessDelete(id: string): Promise<void>;
   quickAccessUndoDelete(id: string): Promise<void>;
+  /** A button of a notice card was pressed. Rejects with a readable message if the action failed. */
+  quickAccessNoticeAction(id: string, index: number): Promise<void>;
   /** Starts dragging the screenshot file out of the card (into a chat, a folder, a web page). */
   quickAccessDrag(id: string): Promise<void>;
   /** Calls `listener(true)` when a drag started from this card's window and `listener(false)` when it ended. */
@@ -186,6 +207,7 @@ export interface Platform {
   /** Asks the OS once and opens System Settings at Screen Recording. */
   openPermissionSettings(): Promise<void>;
   closePermissionWindow(): Promise<void>;
+  quitApp(): Promise<void>;
   /** Quits and starts LumenGrab again (macOS applies a new permission only to new processes). */
   restartApp(): Promise<void>;
 }

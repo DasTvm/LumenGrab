@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import sampleCapture from "@/platform/mock/sample-capture.png?url";
 import type { QuickAccessCard } from "@/platform";
+import { NOTICES } from "@/platform/mock/notices";
+import { NoticeCardView } from "./quick-access/NoticeCard";
 import { QuickAccessCardView, type QuickAccessCardViewProps } from "./quick-access/QuickAccessCard";
 
 const CARD: QuickAccessCard = {
@@ -111,6 +113,22 @@ export function QuickAccessGallery() {
       {LARGE_STATES.map(({ name, note, props }) => (
         <Frame key={name} name={name} note={note}>
           <QuickAccessCardView card={LARGE} {...props} />
+        </Frame>
+      ))}
+      {Object.entries(NOTICES).map(([key, notice], i) => (
+        <Frame
+          key={key}
+          name={`N${String(i + 1)} ${notice.title}`}
+          note={`Notice card, ${notice.tone}.`}
+        >
+          <NoticeCardView
+            card={{
+              ...CARD,
+              width: 480,
+              notice,
+              pad: { top: 8, right: 24, bottom: 24, left: 24 },
+            }}
+          />
         </Frame>
       ))}
       <Frame

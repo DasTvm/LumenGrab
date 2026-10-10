@@ -165,6 +165,10 @@ export const nativePlatform: Platform = {
     await call("quick_access_close", { id });
   },
 
+  async quickAccessNoticeAction(id, index) {
+    await call("quick_access_notice_action", { id, index });
+  },
+
   async quickAccessDrag(id) {
     await call("quick_access_drag", { id });
   },
@@ -213,6 +217,10 @@ export const nativePlatform: Platform = {
 
   async closePermissionWindow(): Promise<void> {
     await call("permission_close");
+  },
+
+  async quitApp(): Promise<void> {
+    await call("quit_app");
   },
 
   async restartApp(): Promise<void> {

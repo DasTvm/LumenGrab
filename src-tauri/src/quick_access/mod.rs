@@ -12,6 +12,7 @@
 
 pub mod commands;
 pub mod layout;
+pub mod notice;
 
 use std::{
     path::PathBuf,
@@ -24,7 +25,10 @@ use tauri::{
     WebviewWindowBuilder,
 };
 
-use self::layout::{CardBox, Pad, Placed, WorkArea};
+use self::{
+    layout::{CardBox, Pad, Placed, WorkArea},
+    notice::{Handler, Notice, NoticePayload},
+};
 use crate::{
     capture::CaptureMode,
     platform,
@@ -36,6 +40,8 @@ const MAX_CARDS: usize = 3;
 const LABELS: [&str; MAX_CARDS] = ["qa-1", "qa-2", "qa-3"];
 const COMPACT_WIDTH: f64 = 340.0;
 const LARGE_WIDTH: f64 = 380.0;
+/// Notice cards (design: "Toast").
+const NOTICE_WIDTH: f64 = 480.0;
 /// Heights used until the page reports its real one.
 const COMPACT_HEIGHT: f64 = 74.0;
 const LARGE_HEIGHT: f64 = 315.0;
@@ -70,10 +76,16 @@ struct Card {
     shown: bool,
     /// "Delete" was pressed: the file goes to the Trash when the card closes, unless Undo came first.
     pending_delete: bool,
+    /// A notice card (an error or warning with buttons) instead of a screenshot; the screenshot
+    /// fields are empty then.
+    notice: Option<Notice>,
 }
 
 impl Card {
     fn css_width(&self) -> f64 {
+        if self.notice.is_some() {
+            return NOTICE_WIDTH;
+        }
         match self.style {
             QuickAccessStyle::Compact => COMPACT_WIDTH,
             QuickAccessStyle::Large => LARGE_WIDTH,
@@ -161,6 +173,9 @@ pub struct CardPayload {
     source: &'static str,
     bytes: u64,
     pad: Pad,
+    /// Present on notice cards: what to say and which buttons to draw.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    notice: Option<NoticePayload>,
     /// `bottom` if the stack sits in a bottom corner: there is no room below a card, so hints that
     /// belong "beside" the card go above it.
     edge: &'static str,
@@ -205,7 +220,11 @@ fn payload(card: &Card, index: usize, placed: &Placed, corner: Corner) -> CardPa
             QuickAccessStyle::Compact
         },
         width: card.css_width(),
-        auto_close_secs: card.auto_close_secs,
+        auto_close_secs: if card.notice.is_some() {
+            0 // notices wait until they are dealt with
+        } else {
+            card.auto_close_secs
+        },
         thumb_key: format!("qa-{}", card.id),
         pixel_width: card.width,
         pixel_height: card.height,
@@ -218,6 +237,7 @@ fn payload(card: &Card, index: usize, placed: &Placed, corner: Corner) -> CardPa
         source: source_name(card.source),
         bytes: card.bytes,
         pad: placed.pad,
+        notice: card.notice.as_ref().map(Notice::payload),
         edge: if matches!(corner, Corner::BottomLeft | Corner::BottomRight) {
             "bottom"
         } else {
@@ -336,13 +356,13 @@ fn hide(app: &AppHandle, label: &str) {
     }
 }
 
-/// Shows a card for a freshly saved capture. Returns `false` if Quick Access is switched off or the
-/// window could not be made (the caller then falls back to the plain "Saved" hint).
-pub fn show(app: &AppHandle, new: NewCard) -> bool {
-    let settings = app.state::<SettingsStore>().get().quick_access;
-    if !settings.enabled {
-        return false;
-    }
+/// Puts a new card into the stack (and its window into place). `make` builds the card from its
+/// window label and id. Returns `false` if the window could not be made.
+fn add_card(
+    app: &AppHandle,
+    corner: Corner,
+    make: impl FnOnce(&'static str, String) -> Card,
+) -> bool {
     let qa = app.state::<QuickAccess>();
     let _serial = qa.show_lock.lock().expect("quick access show lock");
 
@@ -378,32 +398,82 @@ pub fn show(app: &AppHandle, new: NewCard) -> bool {
             inner.area = Some(Area {
                 work,
                 scale,
-                corner: settings.corner,
+                corner,
             });
         }
-        inner.push(Card {
-            id,
-            label,
-            path: new.path,
-            width: new.width,
-            height: new.height,
-            source: new.source,
-            bytes: new.bytes,
-            thumb: Arc::new(new.thumb),
-            style: settings.style,
-            auto_close_secs: settings.auto_close_secs,
-            css_height: match settings.style {
-                QuickAccessStyle::Compact => COMPACT_HEIGHT,
-                QuickAccessStyle::Large => LARGE_HEIGHT,
-            },
-            extra_top: 0.0,
-            extra_bottom: 0.0,
-            shown: false,
-            pending_delete: false,
-        });
+        inner.push(make(label, id));
     }
     relayout(app);
     true
+}
+
+/// Shows a card for a freshly saved capture. Returns `false` if Quick Access is switched off or the
+/// window could not be made (the caller then falls back to the plain "Saved" hint).
+pub fn show(app: &AppHandle, new: NewCard) -> bool {
+    let settings = app.state::<SettingsStore>().get().quick_access;
+    if !settings.enabled {
+        return false;
+    }
+    add_card(app, settings.corner, |label, id| Card {
+        id,
+        label,
+        path: new.path,
+        width: new.width,
+        height: new.height,
+        source: new.source,
+        bytes: new.bytes,
+        thumb: Arc::new(new.thumb),
+        style: settings.style,
+        auto_close_secs: settings.auto_close_secs,
+        css_height: match settings.style {
+            QuickAccessStyle::Compact => COMPACT_HEIGHT,
+            QuickAccessStyle::Large => LARGE_HEIGHT,
+        },
+        extra_top: 0.0,
+        extra_bottom: 0.0,
+        shown: false,
+        pending_delete: false,
+        notice: None,
+    })
+}
+
+/// Shows an error or warning card in the same corner (also when Quick Access is switched off: a
+/// problem must not go unnoticed). Call from a worker thread, never from the main thread.
+pub fn notify(app: &AppHandle, notice: Notice) -> bool {
+    let corner = app.state::<SettingsStore>().get().quick_access.corner;
+    add_card(app, corner, |label, id| Card {
+        id,
+        label,
+        path: PathBuf::new(),
+        width: 0,
+        height: 0,
+        source: CaptureMode::Area,
+        bytes: 0,
+        thumb: Arc::new(Vec::new()),
+        style: QuickAccessStyle::Compact,
+        auto_close_secs: 0,
+        css_height: 150.0,
+        extra_top: 0.0,
+        extra_bottom: 0.0,
+        shown: false,
+        pending_delete: false,
+        notice: Some(notice),
+    })
+}
+
+/// What button `index` of a notice card does.
+pub fn notice_handler(app: &AppHandle, id: &str, index: usize) -> Option<Handler> {
+    let qa = app.state::<QuickAccess>();
+    let inner = qa.inner.lock().expect("quick access state");
+    inner
+        .cards
+        .iter()
+        .find(|c| c.id == id)?
+        .notice
+        .as_ref()?
+        .actions
+        .get(index)
+        .map(|a| a.handler.clone())
 }
 
 /// The page measured itself: apply its height (and tooltip room), restack, and show the window the
@@ -466,13 +536,7 @@ fn trash_if_deleted(app: &AppHandle, card: &Card) {
     let (app, path) = (app.clone(), card.path.clone());
     std::thread::spawn(move || {
         if let Err(e) = trash::delete(&path) {
-            crate::capture::output::error_dialog(
-                &app,
-                &format!(
-                    "The screenshot could not be moved to the Trash: {e}\n\n{}",
-                    path.display()
-                ),
-            );
+            notify(&app, notice::trash_failed(&e.to_string(), path));
         }
     });
 }
@@ -481,7 +545,11 @@ fn trash_if_deleted(app: &AppHandle, card: &Card) {
 pub fn set_pending_delete(app: &AppHandle, id: &str, pending: bool) -> bool {
     let qa = app.state::<QuickAccess>();
     let mut inner = qa.inner.lock().expect("quick access state");
-    match inner.cards.iter_mut().find(|c| c.id == id) {
+    match inner
+        .cards
+        .iter_mut()
+        .find(|c| c.id == id && c.notice.is_none())
+    {
         Some(card) => {
             card.pending_delete = pending;
             true
@@ -528,7 +596,7 @@ pub fn file_of(app: &AppHandle, id: &str) -> Option<PathBuf> {
     inner
         .cards
         .iter()
-        .find(|c| c.id == id)
+        .find(|c| c.id == id && c.notice.is_none())
         .map(|c| c.path.clone())
 }
 
@@ -553,6 +621,7 @@ mod tests {
             extra_bottom: 0.0,
             shown: false,
             pending_delete: false,
+            notice: None,
         }
     }
 

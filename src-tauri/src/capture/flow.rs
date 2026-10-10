@@ -15,7 +15,7 @@ use super::{
     store::{CaptureStore, Session, SessionDisplay},
     CaptureError, CaptureMode, CaptureResult, Capturer, Frame, PxRect,
 };
-use crate::{hotkeys, platform, settings::SettingsStore};
+use crate::{hotkeys, permission, platform, settings::SettingsStore};
 
 fn capturer(app: &AppHandle) -> Arc<dyn Capturer> {
     app.state::<Arc<dyn Capturer>>().inner().clone()
@@ -48,14 +48,29 @@ pub fn start(app: &AppHandle, mode: CaptureMode, toolbar: bool) {
             }
             Err(CaptureError::PermissionDenied) => {
                 store.finish(None);
-                output::permission_help(&app);
+                permission::help(&app);
             }
             Err(e) => {
                 store.finish(None);
-                output::error_dialog(&app, &e.to_string());
+                report(&app, &e, mode, toolbar);
             }
         }
     });
+}
+
+/// Tells the user a capture failed, with a button to try again and one to copy the details.
+fn report(app: &AppHandle, error: &CaptureError, mode: CaptureMode, toolbar: bool) {
+    let details = format!(
+        "LumenGrab {} on {}: {error}",
+        env!("CARGO_PKG_VERSION"),
+        std::env::consts::OS
+    );
+    if !crate::quick_access::notify(
+        app,
+        crate::quick_access::notice::capture_failed(details, mode, toolbar),
+    ) {
+        output::error_dialog(app, &error.to_string());
+    }
 }
 
 enum Started {
@@ -75,6 +90,7 @@ fn run(app: &AppHandle, mode: CaptureMode, toolbar: bool) -> CaptureResult<Start
     if !capturer.permission_granted() && !capturer.request_permission() {
         return Err(CaptureError::PermissionDenied);
     }
+    permission::remember_granted();
     stage("permission checked");
     let displays = capturer.displays()?;
     stage("displays listed");
@@ -239,7 +255,7 @@ pub fn submit_window(app: &AppHandle, session_id: &str, window_id: u32) -> Captu
     let app = app.clone();
     std::thread::spawn(move || match capturer(&app).capture_window(window_id) {
         Ok(frame) => output::deliver(&app, frame, CaptureMode::Window),
-        Err(e) => output::error_dialog(&app, &e.to_string()),
+        Err(e) => report(&app, &e, CaptureMode::Window, false),
     });
     Ok(())
 }

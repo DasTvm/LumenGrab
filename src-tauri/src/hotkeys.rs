@@ -9,7 +9,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
-use crate::capture::{flow, output, CaptureMode};
+use crate::capture::{flow, CaptureMode};
 
 const MODIFIERS: Modifiers = Modifiers::CONTROL.union(Modifiers::SHIFT);
 
@@ -125,6 +125,15 @@ pub struct HotkeyInfo {
 /// Shortcuts that could not be registered (taken by another app), kept for the settings page.
 pub struct HotkeyFailures(pub Vec<&'static str>);
 
+fn action_title(action: Action) -> &'static str {
+    match action {
+        Action::Bar => "Capture",
+        Action::Quick(CaptureMode::Area) => "Capture Area",
+        Action::Quick(CaptureMode::Window) => "Capture Window",
+        Action::Quick(CaptureMode::Fullscreen) => "Capture Fullscreen",
+    }
+}
+
 fn action_id(action: Action) -> &'static str {
     match action {
         Action::Bar => "capture",
@@ -165,13 +174,21 @@ pub fn register(app: &AppHandle) -> Vec<&'static str> {
         .map(|(_, name, _)| *name)
         .collect();
     if !failed.is_empty() {
-        output::error_dialog(
-            app,
-            &format!(
-                "These shortcuts are already used by another app and do not work in LumenGrab: {}.\n\nYou can still capture from the LumenGrab menu bar icon.",
-                failed.join(", ")
-            ),
-        );
+        // A notice card needs a window, which only a worker thread may wait for (this runs in setup).
+        let (app, failed) = (app.clone(), failed.clone());
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(1500));
+            for name in failed {
+                let what = HOTKEYS
+                    .iter()
+                    .find(|(_, n, _)| *n == name)
+                    .map_or("this shortcut", |(_, _, action)| action_title(*action));
+                crate::quick_access::notify(
+                    &app,
+                    crate::quick_access::notice::shortcut_in_use(name, what),
+                );
+            }
+        });
     }
     failed
 }

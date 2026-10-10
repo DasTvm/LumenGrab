@@ -14,6 +14,7 @@ import type {
 } from "../types";
 import { DEFAULT_SETTINGS } from "../defaults";
 import { currentOs } from "../os";
+import { NOTICES } from "./notices";
 import sampleCaptureUrl from "./sample-capture.png?url";
 
 /** Size of the bundled sample image: the "frozen frame" in mock mode. */
@@ -46,6 +47,8 @@ export interface MockSubmission {
     | "qaCopy"
     | "qaDelete"
     | "qaDrag"
+    | "qaNotice"
+    | "quit"
     | "qaUndoDelete"
     | "qaSaveAs"
     | "qaReveal"
@@ -63,6 +66,7 @@ export interface MockSubmission {
   settings?: Settings;
   id?: string;
   height?: number;
+  index?: number;
   extraTop?: number;
   extraBottom?: number;
 }
@@ -206,6 +210,25 @@ export const mockPlatform: Platform = {
     const q = new URLSearchParams(window.location.search);
     if (q.get("window") !== "quick" || q.get("card") === "none") return Promise.resolve(null);
     const large = q.get("card") === "large";
+    const notice = NOTICES[q.get("card") ?? ""];
+    if (notice) {
+      return Promise.resolve({
+        id: "demo",
+        style: "compact",
+        width: 480,
+        autoCloseSecs: 0,
+        thumbUrl: "",
+        pixelWidth: 0,
+        pixelHeight: 0,
+        fileName: "",
+        folder: "",
+        source: "Area",
+        bytes: 0,
+        pad: { top: 8, right: 24, bottom: 24, left: 24 },
+        edge: "bottom",
+        notice,
+      });
+    }
     return Promise.resolve({
       id: "demo",
       style: large ? "large" : "compact",
@@ -240,6 +263,14 @@ export const mockPlatform: Platform = {
   quickAccessClose(id: string): Promise<void> {
     record({ kind: "qaClose", id });
     return Promise.resolve();
+  },
+
+  /** `?notice=fail` makes the action fail, to show the error on the card. */
+  quickAccessNoticeAction(id: string, index: number): Promise<void> {
+    record({ kind: "qaNotice", id, index });
+    return new URLSearchParams(window.location.search).get("notice") === "fail"
+      ? Promise.reject(new PlatformError("The folder is still not writable."))
+      : Promise.resolve();
   },
 
   quickAccessDrag(id: string): Promise<void> {
@@ -313,6 +344,11 @@ export const mockPlatform: Platform = {
 
   closePermissionWindow(): Promise<void> {
     record({ kind: "closePermission" });
+    return Promise.resolve();
+  },
+
+  quitApp(): Promise<void> {
+    record({ kind: "quit" });
     return Promise.resolve();
   },
 

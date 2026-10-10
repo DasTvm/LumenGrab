@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { platform, type QuickAccessCard } from "@/platform";
+import { NoticeCardView } from "./quick-access/NoticeCard";
 import {
   QuickAccessCardView,
   type StatusRow,
@@ -57,7 +58,83 @@ export function QuickAccessWindow() {
   }, [slot]);
 
   // A new card gets fresh state: the key is the card, not the window.
-  return card ? <QuickAccessController key={card.id} card={card} slot={slot} /> : null;
+  if (!card) return null;
+  return card.notice ? (
+    <NoticeController key={card.id} card={{ ...card, notice: card.notice }} />
+  ) : (
+    <QuickAccessController key={card.id} card={card} slot={slot} />
+  );
+}
+
+/** A notice card: it stays until the user deals with it (a button, Close or Esc). */
+function NoticeController({
+  card,
+}: {
+  card: QuickAccessCard & { notice: NonNullable<QuickAccessCard["notice"]> };
+}) {
+  const { id } = card;
+  const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
+  const [busy, setBusy] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const close = useCallback(() => {
+    void platform.quickAccessClose(id);
+  }, [id]);
+
+  const act = useCallback(
+    (index: number) => {
+      setBusy(index);
+      setError(null);
+      platform
+        .quickAccessNoticeAction(id, index)
+        .catch((e: unknown) => {
+          setError(message(e, "That did not work."));
+        })
+        .finally(() => {
+          setBusy(null);
+        });
+    },
+    [id],
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [close]);
+
+  // The first report shows the window.
+  useEffect(() => {
+    if (!cardEl) return;
+    let last = 0;
+    const report = () => {
+      const height = cardEl.offsetHeight;
+      if (height < 1 || height === last) return;
+      last = height;
+      void platform.quickAccessSize(id, height, 0, 0);
+    };
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(cardEl);
+    return () => {
+      observer.disconnect();
+    };
+  }, [id, cardEl, error]);
+
+  return (
+    <NoticeCardView
+      card={card}
+      busy={busy}
+      error={error}
+      onAction={act}
+      onClose={close}
+      onCardElement={setCardEl}
+    />
+  );
 }
 
 function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: string }) {

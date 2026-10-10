@@ -49,6 +49,7 @@ pub fn run() {
             quick_access::commands::quick_access_size,
             quick_access::commands::quick_access_close,
             quick_access::commands::quick_access_delete,
+            quick_access::commands::quick_access_notice_action,
             quick_access::commands::quick_access_drag,
             quick_access::commands::quick_access_undo_delete,
             quick_access::commands::quick_access_copy,
@@ -62,6 +63,7 @@ pub fn run() {
             permission::permission_open_settings,
             permission::permission_close,
             permission::restart_app,
+            permission::quit_app,
         ])
         .on_window_event(|window, event| {
             // An overlay closed by the OS or the user must not leave the capture stuck "busy".
@@ -77,6 +79,9 @@ pub fn run() {
             #[cfg(not(any(debug_assertions, feature = "dev-hooks")))]
             if !app.state::<Arc<dyn Capturer>>().permission_granted() {
                 permission::show(app.handle());
+            }
+            if app.state::<Arc<dyn Capturer>>().permission_granted() {
+                permission::remember_granted();
             }
             overlay::warm_up(app.handle());
             quick_access::warm_up(app.handle());

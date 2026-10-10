@@ -5,6 +5,7 @@
   "windows": [
     "settings",
     "permission",
+    "permission-lost",
     "overlay-*",
     "qa-*"
   ],

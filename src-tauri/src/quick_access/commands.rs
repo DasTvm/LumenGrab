@@ -2,12 +2,17 @@
 //! The ones that wait for the OS (clipboard, file dialog) are `async`, so they run on a worker
 //! thread and never block the main thread.
 
+use std::{path::Path, sync::Arc};
+
 use serde::Serialize;
 use tauri::{AppHandle, Emitter};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
-use super::{card_for_label, close, drag_image, file_of, resize, set_pending_delete, CardPayload};
+use super::{
+    card_for_label, close, drag_image, file_of, notice_handler, resize, set_pending_delete,
+    CardPayload,
+};
 use crate::{capture::encode, platform};
 
 /// The card a (freshly loaded) card window should show, if one is assigned to it.
@@ -92,16 +97,21 @@ pub fn quick_access_drag(
     Ok(())
 }
 
-/// Copies the saved screenshot to the clipboard again.
-#[tauri::command]
-pub async fn quick_access_copy(app: AppHandle, id: String) -> Result<(), String> {
-    let path = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
-    let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+/// Reads a saved screenshot and puts it on the clipboard.
+fn copy_file_to_clipboard(app: &AppHandle, path: &Path) -> Result<(), String> {
+    let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let frame = encode::decode_png(&bytes).map_err(|e| e.to_string())?;
     let image = tauri::image::Image::new(&frame.rgba, frame.width, frame.height);
     app.clipboard()
         .write_image(&image)
         .map_err(|e| e.to_string())
+}
+
+/// Copies the saved screenshot to the clipboard again.
+#[tauri::command]
+pub async fn quick_access_copy(app: AppHandle, id: String) -> Result<(), String> {
+    let path = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
+    copy_file_to_clipboard(&app, &path)
 }
 
 /// Shows the file in Finder / Explorer.
@@ -121,9 +131,8 @@ pub struct SavedCopy {
 }
 
 /// "Save as…": asks where, then copies the screenshot there. `None` if the user cancelled.
-#[tauri::command]
-pub async fn quick_access_save_as(app: AppHandle, id: String) -> Result<Option<SavedCopy>, String> {
-    let source = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
+/// Blocks on the dialog: call from a worker thread (an `async` command).
+fn save_copy(app: &AppHandle, source: &Path) -> Result<Option<SavedCopy>, String> {
     let name = source
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -141,7 +150,7 @@ pub async fn quick_access_save_as(app: AppHandle, id: String) -> Result<Option<S
     };
     let target = chosen.into_path().map_err(|e| e.to_string())?;
     if target != source {
-        std::fs::copy(&source, &target).map_err(|e| format!("{}: {e}", target.display()))?;
+        std::fs::copy(source, &target).map_err(|e| format!("{}: {e}", target.display()))?;
     }
     Ok(Some(SavedCopy {
         folder: super::short_folder(&target),
@@ -150,4 +159,67 @@ pub async fn quick_access_save_as(app: AppHandle, id: String) -> Result<Option<S
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default(),
     }))
+}
+
+#[tauri::command]
+pub async fn quick_access_save_as(app: AppHandle, id: String) -> Result<Option<SavedCopy>, String> {
+    let source = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
+    save_copy(&app, &source)
+}
+
+/// A button of a notice card was pressed. On success the card closes (unless the user cancelled a
+/// dialog); on failure the error comes back so the card can say so and stay.
+#[tauri::command]
+pub async fn quick_access_notice_action(
+    app: AppHandle,
+    id: String,
+    index: usize,
+) -> Result<(), String> {
+    use super::notice::Handler;
+    let handler = notice_handler(&app, &id, index).ok_or("This message is no longer available.")?;
+    match handler {
+        Handler::Dismiss => close(&app, &id),
+        Handler::OpenSettings => {
+            crate::tray::show_settings(&app);
+            close(&app, &id);
+        }
+        Handler::CopyText(text) => {
+            app.clipboard()
+                .write_text(text)
+                .map_err(|e| e.to_string())?;
+            close(&app, &id);
+        }
+        Handler::CaptureAgain { mode, toolbar } => {
+            close(&app, &id);
+            crate::capture::flow::start(&app, mode, toolbar);
+        }
+        Handler::CopyAgain(path) => {
+            copy_file_to_clipboard(&app, &path)?;
+            close(&app, &id);
+        }
+        Handler::SaveAs(path) => {
+            if save_copy(&app, &path)?.is_some() {
+                close(&app, &id);
+            }
+        }
+        Handler::Reveal(path) => {
+            platform::reveal_file(&path);
+            close(&app, &id);
+        }
+        Handler::RetrySave { frame, source } => {
+            close(&app, &id);
+            let frame = Arc::try_unwrap(frame).unwrap_or_else(|shared| (*shared).clone());
+            crate::capture::output::deliver(&app, frame, source);
+        }
+        Handler::ChooseFolder { frame, source } => {
+            let Some(folder) = app.dialog().file().blocking_pick_folder() else {
+                return Ok(()); // cancelled: the card stays
+            };
+            let folder = folder.into_path().map_err(|e| e.to_string())?;
+            close(&app, &id);
+            let frame = Arc::try_unwrap(frame).unwrap_or_else(|shared| (*shared).clone());
+            crate::capture::output::deliver_to(&app, frame, source, Some(folder));
+        }
+    }
+    Ok(())
 }

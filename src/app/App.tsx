@@ -1,4 +1,5 @@
 import { DesignSystemWindow } from "./DesignSystemWindow";
+import { DialogWindow } from "./DialogWindow";
 import { HomeWindow } from "./HomeWindow";
 import { OverlayWindow } from "./OverlayWindow";
 import { PermissionWindow } from "./PermissionWindow";
@@ -18,6 +19,8 @@ export function App() {
       return import.meta.env.DEV ? <QuickAccessGallery /> : <HomeWindow />;
     case "overlay":
       return <OverlayWindow />;
+    case "dialog":
+      return <DialogWindow />;
     case "quick":
       return <QuickAccessWindow />;
     case "permission":
