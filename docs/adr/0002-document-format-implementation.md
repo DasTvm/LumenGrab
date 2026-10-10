@@ -10,12 +10,12 @@ implementation decisions that are not obvious from the code.
   moves bytes: it opens files, shows dialogs, creates the viewer windows and guards which paths a page may touch (`document.rs`, `fsutil.rs`).
   No Rust zip crate: it would duplicate the logic.
 - **Libraries:** `zod` 4 (MIT) for validation, `fflate` (MIT, small) for ZIP. Both are pure JavaScript.
-- **Reading counts real bytes.** `container.ts` uses fflate's *streaming* `Unzip` and adds up what actually comes out of the inflater, so a
+- **Reading counts real bytes.** `container.ts` uses fflate's _streaming_ `Unzip` and adds up what actually comes out of the inflater, so a
   decompression bomb cannot hide behind small declared sizes (tested with a header that lies and with a 3 MB zero entry against a 1 MB limit).
   Entry names are checked before any data is read; the ZIP end record must exist and list exactly the entries that are in the file (a file that is
   cut off, or whose directory disagrees with its contents, is rejected).
 - **Nothing is dropped.** Every Zod object is a `looseObject`; unknown ZIP entries are kept in `extraEntries`; a layer `type` this version does not
-  know becomes an opaque layer (kept, not drawn). A *known* type with broken fields is an error that names the field (`layers.2.width`), it is never
+  know becomes an opaque layer (kept, not drawn). A _known_ type with broken fields is an error that names the field (`layers.2.width`), it is never
   downgraded to opaque.
 - **Read-only is decided by the manifest.** `minReaderVersion` above the app's version means view-only from `preview.png` and the manifest; the
   project of such a file is not used (it may not fit the schema, and its pixels could include what a newer redaction was meant to hide). A newer
