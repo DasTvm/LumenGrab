@@ -1,5 +1,5 @@
-//! What happens with a finished capture: save as PNG into Pictures/LumenGrab and copy to the
-//! clipboard (both, always, in parallel). Errors become a native dialog; success is silent until the
+//! What happens with a finished capture: save as PNG into Pictures/LumenGrab (always) and copy to
+//! the clipboard (unless switched off in the settings), in parallel. Errors become a native dialog; success is silent until the
 //! quick-access overlay (M2) gives feedback.
 
 use std::{fs, io::Write, path::Path};
@@ -10,7 +10,7 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
 use super::{encode, geometry, Frame};
-use crate::platform;
+use crate::{platform, settings::SettingsStore};
 
 const FOLDER: &str = "LumenGrab";
 
@@ -43,7 +43,13 @@ pub fn deliver(app: &AppHandle, frame: Frame) {
     };
     let (saved, copied) = std::thread::scope(|s| {
         let save = s.spawn(|| save_png(&dir, &frame));
-        let copy = s.spawn(|| copy_to_clipboard(app, &frame));
+        let copy = s.spawn(|| {
+            if app.state::<SettingsStore>().get().copy_to_clipboard {
+                copy_to_clipboard(app, &frame)
+            } else {
+                Ok(())
+            }
+        });
         (
             save.join().unwrap_or_else(|_| Err("saving crashed".into())),
             copy.join()

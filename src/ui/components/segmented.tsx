@@ -8,6 +8,7 @@ interface SegmentedProps<T extends string> {
   tone?: "brand" | "neutral";
   label: string;
   className?: string;
+  disabled?: boolean;
 }
 
 /** Design system: Tabs / Segmented. A radio group: arrow keys move, the selected option is tabbable. */
@@ -18,12 +19,18 @@ export function Segmented<T extends string>({
   tone = "brand",
   label,
   className,
+  disabled,
 }: SegmentedProps<T>) {
   return (
     <div
       role="radiogroup"
       aria-label={label}
-      className={cn("inline-flex gap-1 rounded-md bg-muted p-1", className)}
+      aria-disabled={disabled}
+      className={cn(
+        "inline-flex gap-1 rounded-md bg-muted p-1",
+        disabled && "pointer-events-none opacity-50",
+        className,
+      )}
     >
       {options.map((o) => {
         const selected = o.value === value;
@@ -33,6 +40,7 @@ export function Segmented<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
+            disabled={disabled}
             tabIndex={selected ? 0 : -1}
             onClick={() => {
               onValueChange(o.value);

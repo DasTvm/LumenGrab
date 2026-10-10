@@ -2,14 +2,19 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Folder, Keyboard, SlidersHorizontal } from "lucide-react";
 import { formatKey, spokenShortcut } from "@/platform/keys";
 import {
+  DEFAULT_SETTINGS,
   platform,
   type AppInfo,
+  type AutoCloseSecs,
   type HotkeyInfo,
   type OverlayMode,
+  type QuickAccessStyle,
+  type Settings,
   type SettingsInfo,
 } from "@/platform";
 import { Badge } from "@/ui/components/badge";
 import { Button } from "@/ui/components/button";
+import { CornerPicker } from "@/ui/components/corner-picker";
 import { Keycap } from "@/ui/components/keycap";
 import { NavItem } from "@/ui/components/nav-item";
 import { Segmented } from "@/ui/components/segmented";
@@ -37,6 +42,17 @@ const DEFAULT_MODE_OPTIONS = [
   { value: "window", label: "Window" },
 ] as const satisfies readonly { value: OverlayMode; label: string }[];
 
+const STYLE_OPTIONS = [
+  { value: "compact", label: "Compact" },
+  { value: "large", label: "Large preview" },
+] as const satisfies readonly { value: QuickAccessStyle; label: string }[];
+
+const AUTO_CLOSE_OPTIONS = [
+  { value: "0", label: "Off" },
+  { value: "5", label: "5 s" },
+  { value: "10", label: "10 s" },
+] as const satisfies readonly { value: string; label: string }[];
+
 const THEME_OPTIONS = [
   { value: "system", label: "System" },
   { value: "light", label: "Light" },
@@ -48,16 +64,33 @@ export function SettingsWindow() {
   const [page, setPage] = useState<Page>("general");
   const [app, setApp] = useState<AppInfo | null>(null);
   const [info, setInfo] = useState<SettingsInfo | null>(null);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     platform.getAppInfo().then(setApp, () => {
       setApp(null);
     });
-    platform.getSettingsInfo().then(setInfo, (e: unknown) => {
-      setError(e instanceof Error ? e.message : "The settings could not be loaded.");
-    });
+    platform.getSettingsInfo().then(
+      (loaded) => {
+        setInfo(loaded);
+        setSettings(loaded.settings);
+      },
+      (e: unknown) => {
+        setError(e instanceof Error ? e.message : "The settings could not be loaded.");
+      },
+    );
   }, []);
+
+  /** Shows the change at once and saves it; if saving fails the page says so (the old file is kept). */
+  const change = (next: Settings) => {
+    setSettings(next);
+    setSaveError(null);
+    platform.saveSettings(next).catch((e: unknown) => {
+      setSaveError(e instanceof Error ? e.message : "The settings could not be saved.");
+    });
+  };
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -91,7 +124,7 @@ export function SettingsWindow() {
             {error}
           </p>
         ) : page === "general" ? (
-          <GeneralPage info={info} />
+          <GeneralPage info={info} settings={settings} onChange={change} saveError={saveError} />
         ) : (
           <HotkeysPage info={info} app={app} />
         )}
@@ -133,15 +166,34 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 const Divider = () => <hr className="border-border" />;
 
-function GeneralPage({ info }: { info: SettingsInfo | null }) {
+function GeneralPage({
+  info,
+  settings,
+  onChange,
+  saveError,
+}: {
+  info: SettingsInfo | null;
+  settings: Settings | null;
+  onChange: (next: Settings) => void;
+  saveError: string | null;
+}) {
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
-  // What the user picked this session; until then the saved value from the native side.
-  const [picked, setPicked] = useState<OverlayMode | null>(null);
-  const defaultMode = picked ?? info?.defaultMode ?? "area";
+  // Until the real settings arrive the page shows the defaults, with the controls switched off.
+  const loaded = settings !== null;
+  const current = settings ?? DEFAULT_SETTINGS;
+  const quick = current.quickAccess;
+  const setQuick = (patch: Partial<Settings["quickAccess"]>) => {
+    onChange({ ...current, quickAccess: { ...quick, ...patch } });
+  };
 
   return (
     <div className="flex max-w-[836px] flex-col gap-7">
       <h1 className="text-xl font-semibold">General</h1>
+      {saveError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {saveError}
+        </p>
+      ) : null}
 
       <Section title="Startup">
         <Row title="Launch at login" description="Start LumenGrab automatically when you sign in.">
@@ -168,18 +220,15 @@ function GeneralPage({ info }: { info: SettingsInfo | null }) {
       <Divider />
 
       <Section title="Capture">
-        <Row
-          title="Default capture mode"
-          description="What the main shortcut starts in. You can still switch in the capture bar."
-        >
+        <Row title="Default capture mode" description="Which mode the Capture shortcut starts in.">
           <Segmented
             tone="neutral"
             label="Default capture mode"
-            value={defaultMode}
+            disabled={!loaded}
+            value={current.defaultMode}
             options={DEFAULT_MODE_OPTIONS}
             onValueChange={(next) => {
-              setPicked(next);
-              void platform.setDefaultMode(next);
+              onChange({ ...current, defaultMode: next });
             }}
           />
         </Row>
@@ -200,12 +249,79 @@ function GeneralPage({ info }: { info: SettingsInfo | null }) {
             Open
           </Button>
         </Row>
-        <Row title="Copy to clipboard automatically" description="Always on for now.">
-          <Switch checked disabled aria-label="Copy to clipboard automatically" />
+        <Row
+          title="Copy to clipboard automatically"
+          description="Every new screenshot is also copied. It is always saved as a file."
+        >
+          <Switch
+            checked={current.copyToClipboard}
+            disabled={!loaded}
+            aria-label="Copy to clipboard automatically"
+            onCheckedChange={(on) => {
+              onChange({ ...current, copyToClipboard: on });
+            }}
+          />
         </Row>
         <Row title="Play sound on capture">
           <Badge variant="secondary">Soon</Badge>
           <Switch checked={false} disabled aria-label="Play sound on capture" />
+        </Row>
+      </Section>
+      <Divider />
+
+      <Section title="After capture">
+        <Row
+          title="Show Quick Access"
+          description="A small overlay with actions right after you capture."
+        >
+          <Switch
+            checked={quick.enabled}
+            disabled={!loaded}
+            aria-label="Show Quick Access"
+            onCheckedChange={(on) => {
+              setQuick({ enabled: on });
+            }}
+          />
+        </Row>
+        <Row
+          title="Quick Access style"
+          description="Large shows a bigger preview so you can check the shot, with a delete button."
+        >
+          <Segmented
+            tone="neutral"
+            label="Quick Access style"
+            disabled={!loaded || !quick.enabled}
+            value={quick.style}
+            options={STYLE_OPTIONS}
+            onValueChange={(style) => {
+              setQuick({ style });
+            }}
+          />
+        </Row>
+        <Row
+          title="Close automatically after"
+          description="The overlay closes by itself. Hovering pauses the timer."
+        >
+          <Segmented
+            tone="neutral"
+            label="Close automatically after"
+            disabled={!loaded || !quick.enabled}
+            value={String(quick.autoCloseSecs)}
+            options={AUTO_CLOSE_OPTIONS}
+            onValueChange={(secs) => {
+              setQuick({ autoCloseSecs: Number(secs) as AutoCloseSecs });
+            }}
+          />
+        </Row>
+        <Row title="Corner" description="Where the overlay appears on your screen.">
+          <CornerPicker
+            label="Corner"
+            disabled={!loaded || !quick.enabled}
+            value={quick.corner}
+            onValueChange={(corner) => {
+              setQuick({ corner });
+            }}
+          />
         </Row>
       </Section>
     </div>

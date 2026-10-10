@@ -6,8 +6,10 @@ import type {
   OverlayWindowInfo,
   PixelRect,
   Platform,
+  Settings,
   SettingsInfo,
 } from "../types";
+import { DEFAULT_SETTINGS } from "../defaults";
 import { currentOs } from "../os";
 import sampleCaptureUrl from "./sample-capture.png?url";
 
@@ -37,7 +39,7 @@ export interface MockSubmission {
     | "cancel"
     | "start"
     | "mode"
-    | "defaultMode"
+    | "settings"
     | "openFolder"
     | "openPermissionSettings"
     | "closePermission"
@@ -47,6 +49,7 @@ export interface MockSubmission {
   rect?: PixelRect;
   windowId?: number;
   mode?: CaptureMode;
+  settings?: Settings;
 }
 
 declare global {
@@ -60,13 +63,19 @@ function record(entry: MockSubmission): void {
   log.submissions.push(entry);
 }
 
-const DEFAULT_MODE_KEY = "lumengrab.mock.defaultMode";
+const SETTINGS_KEY = "lumengrab.mock.settings";
 
-function storedDefaultMode(): OverlayMode {
+function storedSettings(): Settings {
   try {
-    return window.localStorage.getItem(DEFAULT_MODE_KEY) === "window" ? "window" : "area";
+    const raw = window.localStorage.getItem(SETTINGS_KEY);
+    const saved = raw ? (JSON.parse(raw) as Partial<Settings>) : {};
+    return {
+      ...DEFAULT_SETTINGS,
+      ...saved,
+      quickAccess: { ...DEFAULT_SETTINGS.quickAccess, ...saved.quickAccess },
+    };
   } catch {
-    return "area";
+    return DEFAULT_SETTINGS;
   }
 }
 
@@ -167,10 +176,10 @@ export const mockPlatform: Platform = {
     });
   },
 
-  setDefaultMode(mode: OverlayMode): Promise<void> {
-    record({ kind: "defaultMode", mode });
+  saveSettings(settings: Settings): Promise<void> {
+    record({ kind: "settings", settings });
     try {
-      window.localStorage.setItem(DEFAULT_MODE_KEY, mode);
+      window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch {
       // storage unavailable: the choice just does not persist
     }
@@ -180,7 +189,7 @@ export const mockPlatform: Platform = {
   getSettingsInfo(): Promise<SettingsInfo> {
     return Promise.resolve({
       saveDir: "~/Pictures/LumenGrab",
-      defaultMode: storedDefaultMode(),
+      settings: storedSettings(),
       hotkeys: [
         { id: "capture", keys: ["Ctrl", "Shift", "1"], registered: true },
         { id: "area", keys: ["Ctrl", "Shift", "4"], registered: true },

@@ -183,8 +183,7 @@ pub fn serve_frame(app: &AppHandle, path: &str) -> Option<Vec<u8>> {
 #[serde(rename_all = "camelCase")]
 pub struct SettingsInfo {
     save_dir: String,
-    /// What the main shortcut starts in: `area` or `window`.
-    default_mode: crate::settings::DefaultMode,
+    settings: crate::settings::Settings,
     hotkeys: Vec<crate::hotkeys::HotkeyInfo>,
 }
 
@@ -193,10 +192,7 @@ pub fn settings_info(app: AppHandle) -> Result<SettingsInfo, String> {
     let failures = app.state::<crate::hotkeys::HotkeyFailures>();
     Ok(SettingsInfo {
         save_dir: super::output::screenshot_dir(&app)?.display().to_string(),
-        default_mode: app
-            .state::<crate::settings::SettingsStore>()
-            .get()
-            .default_mode,
+        settings: app.state::<crate::settings::SettingsStore>().get(),
         hotkeys: crate::hotkeys::list(&failures.0),
     })
 }

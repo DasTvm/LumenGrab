@@ -9,6 +9,7 @@ import {
   type OverlayMode,
   type OverlaySession,
   type PixelRect,
+  type Settings,
   type SettingsInfo,
   type Platform,
 } from "./types";
@@ -128,8 +129,8 @@ export const nativePlatform: Platform = {
     });
   },
 
-  async setDefaultMode(mode: OverlayMode): Promise<void> {
-    await call("settings_set_default_mode", { mode });
+  async saveSettings(settings: Settings): Promise<void> {
+    await call("settings_save", { settings });
   },
 
   getSettingsInfo(): Promise<SettingsInfo> {

@@ -61,11 +61,31 @@ export interface HotkeyInfo {
   registered: boolean;
 }
 
+export type QuickAccessStyle = "compact" | "large";
+export type Corner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
+/** Seconds until the Quick Access card closes by itself; 0 = never. */
+export type AutoCloseSecs = 0 | 5 | 10;
+
+/** What the user can change. Mirrors `Settings` in src-tauri/src/settings.rs. */
+export interface Settings {
+  /** What the main shortcut starts in. */
+  defaultMode: OverlayMode;
+  /** Copy every new screenshot to the clipboard (it is always saved as a file). */
+  copyToClipboard: boolean;
+  quickAccess: {
+    enabled: boolean;
+    style: QuickAccessStyle;
+    autoCloseSecs: AutoCloseSecs;
+    corner: Corner;
+  };
+  /** The Windows first-start hint was shown. */
+  seenIntro: boolean;
+}
+
 export interface SettingsInfo {
   /** Absolute folder screenshots are saved to. */
   saveDir: string;
-  /** What the main shortcut starts in. */
-  defaultMode: OverlayMode;
+  settings: Settings;
   hotkeys: HotkeyInfo[];
 }
 
@@ -94,7 +114,8 @@ export interface Platform {
   setCaptureMode(sessionId: string, mode: OverlayMode): Promise<void>;
   /** Calls `listener` when the mode was switched on any display. Resolves to the unsubscribe function. */
   onCaptureMode(sessionId: string, listener: (mode: OverlayMode) => void): Promise<() => void>;
-  setDefaultMode(mode: OverlayMode): Promise<void>;
+  /** Saves all settings. Rejects with a readable message if they could not be written. */
+  saveSettings(settings: Settings): Promise<void>;
   getSettingsInfo(): Promise<SettingsInfo>;
   openScreenshotsFolder(): Promise<void>;
   /** Whether the OS currently lets LumenGrab record the screen (always true on Windows). */

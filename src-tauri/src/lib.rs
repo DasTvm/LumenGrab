@@ -44,7 +44,7 @@ pub fn run() {
             commands::capture_submit_window,
             commands::capture_cancel,
             commands::capture_set_mode,
-            settings::settings_set_default_mode,
+            settings::settings_save,
             commands::settings_info,
             commands::open_screenshots_folder,
             permission::permission_status,
