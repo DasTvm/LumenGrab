@@ -18,6 +18,7 @@
 //!
 //!   LUMENGRAB_DEV_QA=n                             deliver n synthetic captures (1.2 s apart) to test the Quick Access
 //!                                                  cards without a real capture; the app stays open
+//!   LUMENGRAB_DEV_SAVE_TARGET=/path/file.ext       "Save as…" writes there without asking (any format by extension)
 //!   LUMENGRAB_DEV_OPEN=/path/file.lumengrab        open that document in the viewer window at startup
 //!   LUMENGRAB_DEV_INTRO=1                          show the first-start hint (normally Windows only, once)
 //!   LUMENGRAB_DEV_SAVE_DIR=/path                   save screenshots there instead of Pictures/LumenGrab

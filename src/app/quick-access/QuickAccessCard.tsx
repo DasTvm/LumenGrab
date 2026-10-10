@@ -11,7 +11,7 @@ export type TipTarget = "copy" | "save" | "close" | "delete";
 
 /** The row under the actions: where "Save as…" put a copy, or what went wrong. */
 export type StatusRow =
-  | { kind: "saved"; folder: string; fileName: string }
+  | { kind: "saved"; folder: string; fileName: string; token?: string }
   | { kind: "error"; title: string; detail: string; retry: "copy" | "save" };
 
 export interface QuickAccessCardViewProps {

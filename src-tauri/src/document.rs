@@ -40,6 +40,8 @@ struct Registry {
     windows: HashMap<String, PathBuf>,
     /// Save token -> the place the user picked in a dialog. Kept in order, oldest first.
     grants: Vec<(u64, PathBuf)>,
+    /// Save token -> a file that was written to that place, so the page can ask to show it.
+    written: Vec<(u64, PathBuf)>,
 }
 
 impl Registry {
@@ -77,9 +79,22 @@ impl Registry {
             .map(|(_, p)| p.as_path())
     }
 
-    /// Uses up a grant after the file was written.
+    /// Uses up a grant after the file was written, and remembers the file for "Show".
     fn consume(&mut self, token: u64) {
-        self.grants.retain(|(t, _)| *t != token);
+        if let Some(at) = self.grants.iter().position(|(t, _)| *t == token) {
+            let (token, path) = self.grants.remove(at);
+            self.written.push((token, path));
+            if self.written.len() > MAX_GRANTS {
+                self.written.remove(0);
+            }
+        }
+    }
+
+    fn written_path(&self, token: u64) -> Option<&Path> {
+        self.written
+            .iter()
+            .find(|(t, _)| *t == token)
+            .map(|(_, p)| p.as_path())
     }
 }
 
@@ -330,10 +345,22 @@ pub async fn pick_save_target(
             dialog = dialog.add_filter(name, &[ext]);
         }
     }
-    let Some(chosen) = dialog.blocking_save_file() else {
-        return Ok(None);
+    // Dev builds can skip the dialog (it cannot be driven from a script): the path comes from the environment.
+    #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+    let dev_target = std::env::var("LUMENGRAB_DEV_SAVE_TARGET")
+        .ok()
+        .map(PathBuf::from);
+    #[cfg(not(any(debug_assertions, feature = "dev-hooks")))]
+    let dev_target: Option<PathBuf> = None;
+    let chosen = match dev_target {
+        Some(path) => path,
+        None => {
+            let Some(chosen) = dialog.blocking_save_file() else {
+                return Ok(None);
+            };
+            chosen.into_path().map_err(|e| e.to_string())?
+        }
     };
-    let chosen = chosen.into_path().map_err(|e| e.to_string())?;
     let (path, format) = with_format_extension(chosen, &formats);
     if path.is_dir() {
         return Err("That name is a folder.".into());
@@ -376,6 +403,20 @@ pub async fn write_granted_file(app: AppHandle, request: Request<'_>) -> Result<
         .ok_or("The save place is no longer valid. Choose it again.")?;
     fsutil::write_atomic(&path, bytes).map_err(|e| format!("{}: {e}", path.display()))?;
     docs.registry().consume(token);
+    Ok(())
+}
+
+/// Shows a file that `write_granted_file` wrote (by its save token) in Finder / Explorer.
+#[tauri::command]
+pub fn reveal_written_file(app: AppHandle, token: String) -> Result<(), String> {
+    let token: u64 = token.parse().map_err(|_| "The saved file is unknown.")?;
+    let path = app
+        .state::<Documents>()
+        .registry()
+        .written_path(token)
+        .map(Path::to_path_buf)
+        .ok_or("The saved file is unknown.")?;
+    platform::reveal_file(&path);
     Ok(())
 }
 
@@ -433,6 +474,14 @@ mod tests {
         assert_eq!(r.grant_path(2), None, "a guessed token gets nothing");
         r.consume(1);
         assert_eq!(r.grant_path(1), None, "used up");
+        assert_eq!(
+            r.written_path(1),
+            Some(Path::new("/save/here.png")),
+            "remembered for Show"
+        );
+        assert_eq!(r.written_path(2), None);
+        r.consume(1); // using it up twice does nothing
+        assert_eq!(r.written.len(), 1);
     }
 
     #[test]

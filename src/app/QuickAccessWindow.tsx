@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { platform, type QuickAccessCard } from "@/platform";
 import { NoticeCardView } from "./quick-access/NoticeCard";
+import { saveScreenshotAs } from "./quick-access/save-as";
 import {
   QuickAccessCardView,
   type StatusRow,
@@ -149,7 +150,7 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
   const tipTimer = useRef<number | undefined>(undefined);
   const copiedTimer = useRef<number | undefined>(undefined);
-  const { id } = card;
+  const { id, fileName } = card;
 
   const close = useCallback(() => {
     void platform.quickAccessClose(id);
@@ -179,8 +180,7 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
   const saveAs = useCallback(() => {
     setBusy(true);
     setStatus(null);
-    platform
-      .quickAccessSaveAs(id)
+    saveScreenshotAs({ id, fileName })
       .then(
         (saved) => {
           if (saved) setStatus({ kind: "saved", ...saved });
@@ -197,7 +197,7 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
       .finally(() => {
         setBusy(false);
       });
-  }, [id]);
+  }, [id, fileName]);
 
   const remove = useCallback(() => {
     setStatus(null);
@@ -359,7 +359,9 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
         onSave={saveAs}
         onClose={close}
         onReveal={() => {
-          void platform.quickAccessReveal(id);
+          // After "Save as…" show the file that was just written, not the original screenshot.
+          if (status?.kind === "saved" && status.token) void platform.revealSavedFile(status.token);
+          else void platform.quickAccessReveal(id);
         }}
         onRetry={() => {
           if (status?.kind === "error" && status.retry === "save") saveAs();

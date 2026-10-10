@@ -5,7 +5,7 @@
 use std::{path::Path, sync::Arc};
 
 use serde::Serialize;
-use tauri::{AppHandle, Emitter};
+use tauri::{ipc::Response, AppHandle, Emitter};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
@@ -175,10 +175,12 @@ fn save_copy(app: &AppHandle, source: &Path) -> Result<Option<SavedCopy>, String
     }))
 }
 
+/// The bytes of the screenshot file of a card, as raw binary. "Save as…" builds its `.lumengrab` from them.
 #[tauri::command]
-pub async fn quick_access_save_as(app: AppHandle, id: String) -> Result<Option<SavedCopy>, String> {
-    let source = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
-    save_copy(&app, &source)
+pub async fn quick_access_file_bytes(app: AppHandle, id: String) -> Result<Response, String> {
+    let path = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
+    let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok(Response::new(bytes))
 }
 
 /// A button of a notice card was pressed. On success the card closes (unless the user cancelled a

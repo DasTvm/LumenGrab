@@ -96,12 +96,6 @@ export interface QuickAccessCard {
   notice?: QuickAccessNotice;
 }
 
-/** Where "Save as…" put the copy. */
-export interface SavedCopy {
-  folder: string;
-  fileName: string;
-}
-
 /** What the native side knows about a document window's file. */
 export interface DocumentInfo {
   fileName: string;
@@ -215,8 +209,10 @@ export interface Platform {
   onQuickAccessDrag(slot: string, listener: (active: boolean) => void): Promise<() => void>;
   /** Copies the saved screenshot to the clipboard. */
   quickAccessCopy(id: string): Promise<void>;
-  /** "Save as…": resolves to where the copy went, or `null` if the user cancelled. */
-  quickAccessSaveAs(id: string): Promise<SavedCopy | null>;
+  /** The bytes of the card's screenshot file (the PNG as saved). "Save as…" builds its file from them. */
+  quickAccessFileBytes(id: string): Promise<Uint8Array>;
+  /** Shows a file that `writeGrantedFile` wrote (by its save token) in Finder / Explorer. */
+  revealSavedFile(token: string): Promise<void>;
   /** Shows the file in Finder / Explorer. */
   quickAccessReveal(id: string): Promise<void>;
   /** The file of this document window. A page never names a path: the native side knows it by window. */

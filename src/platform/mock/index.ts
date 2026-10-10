@@ -8,7 +8,6 @@ import type {
   OverlayWindowInfo,
   PixelRect,
   QuickAccessCard,
-  SavedCopy,
   Platform,
   Settings,
   SaveFormat,
@@ -59,7 +58,8 @@ export interface MockSubmission {
     | "openUrl"
     | "quit"
     | "qaUndoDelete"
-    | "qaSaveAs"
+    | "qaFileBytes"
+    | "revealSaved"
     | "qaReveal"
     | "mode"
     | "settings"
@@ -313,14 +313,15 @@ export const mockPlatform: Platform = {
       : Promise.resolve();
   },
 
-  /** `?saveas=cancel` makes the dialog "cancelled". */
-  quickAccessSaveAs(id: string): Promise<SavedCopy | null> {
-    record({ kind: "qaSaveAs", id });
-    return Promise.resolve(
-      new URLSearchParams(window.location.search).get("saveas") === "cancel"
-        ? null
-        : { folder: "Documents/Reports", fileName: "Q3 numbers.png" },
-    );
+  /** The demo card's screenshot: the bundled sample picture. */
+  async quickAccessFileBytes(id: string): Promise<Uint8Array> {
+    record({ kind: "qaFileBytes", id });
+    return new Uint8Array(await (await fetch(sampleCaptureUrl)).arrayBuffer());
+  },
+
+  revealSavedFile(token: string): Promise<void> {
+    record({ kind: "revealSaved", id: token });
+    return Promise.resolve();
   },
 
   quickAccessReveal(id: string): Promise<void> {

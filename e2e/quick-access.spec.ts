@@ -1,4 +1,9 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
+import { openDocument } from "../src/document/read";
+
+const SAMPLE = join(import.meta.dirname, "..", "src", "platform", "mock", "sample-capture.png");
 
 const submissions = (page: Page) => page.evaluate(() => window.__lumengrabMock?.submissions ?? []);
 
@@ -248,22 +253,72 @@ test.describe("quick access card (browser mock)", () => {
     expect((await submissions(page)).filter((s) => s.kind === "qaCopy")).toHaveLength(2);
   });
 
-  test("Save as shows where the copy went, and Show reveals the file", async ({ page }) => {
+  test("Save as offers PNG and .lumengrab, shows where the file went, and Show reveals that file", async ({
+    page,
+  }) => {
     await page.goto("/?window=quick&card=compact&secs=0");
     await page.getByRole("button", { name: "Save as…" }).click();
     const status = page.getByRole("status");
     await expect(status).toContainText("Saved to Documents/Reports");
-    await expect(status).toContainText("Q3 numbers.png");
+    await expect(status).toContainText("Screenshot 2026-10-09 at 14.02.png");
+    const log = await submissions(page);
+    expect(log.find((s) => s.kind === "pickSave")).toMatchObject({
+      name: "Screenshot 2026-10-09 at 14.02.png",
+      formats: ["png", "lumengrab"],
+    });
+    // A PNG is written as the screenshot's own bytes.
+    const written = await page.evaluate(() =>
+      Array.from(window.__lumengrabMock?.written?.["t1"] ?? []),
+    );
+    expect(Buffer.from(written).equals(readFileSync(SAMPLE))).toBe(true);
     await page.getByRole("button", { name: "Show" }).click();
-    expect((await submissions(page)).filter((s) => s.kind === "qaReveal")).toEqual([
-      { kind: "qaReveal", id: "demo" },
+    // It shows the file just written, not the original screenshot.
+    expect((await submissions(page)).filter((s) => s.kind === "revealSaved")).toEqual([
+      { kind: "revealSaved", id: "t1" },
     ]);
+    expect((await submissions(page)).filter((s) => s.kind === "qaReveal")).toHaveLength(0);
   });
 
-  test("cancelling the Save as dialog changes nothing", async ({ page }) => {
-    await page.goto("/?window=quick&card=compact&secs=0&saveas=cancel");
+  test("choosing .lumengrab writes a real document that opens again, with the original picture untouched", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=compact&secs=0&saveformat=lumengrab");
+    await page.getByRole("button", { name: "Save as…" }).click();
+    await expect(page.getByRole("status")).toContainText(
+      "Screenshot 2026-10-09 at 14.02.lumengrab",
+    );
+    const written = await page.evaluate(() =>
+      Array.from(window.__lumengrabMock?.written?.["t1"] ?? []),
+    );
+    const opened = await openDocument(new Uint8Array(written));
+    expect(opened.warnings).toEqual([]);
+    expect(opened.readOnly).toBeNull();
+    expect(opened.doc.project?.layers).toEqual([]);
+    expect(opened.doc.manifest.source).toMatchObject({
+      width: 1440,
+      height: 900,
+      file: "source.png",
+    });
+    expect(opened.doc.manifest.createdBy).toMatch(/^LumenGrab /);
+    expect(opened.doc.preview).not.toBeNull();
+    // The screenshot inside is the saved PNG, bit for bit.
+    expect(Buffer.from(opened.doc.source).equals(readFileSync(SAMPLE))).toBe(true);
+  });
+
+  test("cancelling the Save as dialog changes nothing and writes nothing", async ({ page }) => {
+    await page.goto("/?window=quick&card=compact&secs=0&cancel=1");
     await page.getByRole("button", { name: "Save as…" }).click();
     await expect(page.getByRole("status")).toHaveCount(0);
+    expect((await submissions(page)).filter((s) => s.kind === "writeFile")).toHaveLength(0);
+  });
+
+  test("a failed write says so and offers Retry", async ({ page }) => {
+    await page.goto("/?window=quick&card=compact&secs=0&writefail=1");
+    await page.getByRole("button", { name: "Save as…" }).click();
+    await expect(page.getByRole("status")).toContainText("Could not save the screenshot");
+    await expect(page.getByRole("status")).toContainText("The folder is not writable.");
+    await page.getByRole("button", { name: "Retry" }).click();
+    expect((await submissions(page)).filter((s) => s.kind === "pickSave")).toHaveLength(2);
   });
 
   test("pressing the picture and moving the pointer starts a drag of the file, a plain click does not", async ({

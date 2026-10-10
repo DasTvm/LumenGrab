@@ -13,7 +13,6 @@ import {
   type QuickAccessCard,
   type SaveFormat,
   type SaveTarget,
-  type SavedCopy,
   type Settings,
   type SettingsInfo,
   type Platform,
@@ -194,8 +193,16 @@ export const nativePlatform: Platform = {
     await call("quick_access_copy", { id });
   },
 
-  quickAccessSaveAs(id): Promise<SavedCopy | null> {
-    return call<SavedCopy | null>("quick_access_save_as", { id });
+  async quickAccessFileBytes(id: string): Promise<Uint8Array> {
+    try {
+      return new Uint8Array(await invoke<ArrayBuffer>("quick_access_file_bytes", { id }));
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The screenshot could not be read.");
+    }
+  },
+
+  async revealSavedFile(token: string): Promise<void> {
+    await call("reveal_written_file", { token });
   },
 
   async quickAccessReveal(id) {
