@@ -1492,6 +1492,7 @@ Used by:
 - core-foundation-sys 0.8.7 (https://github.com/servo/core-foundation-rs)
 - core-foundation 0.10.1 (https://github.com/servo/core-foundation-rs)
 - core-graphics-types 0.2.0 (https://github.com/servo/core-foundation-rs)
+- core-graphics 0.24.0 (https://github.com/servo/core-foundation-rs)
 - core-graphics 0.25.0 (https://github.com/servo/core-foundation-rs)
 - string_cache 0.9.0 (https://github.com/servo/string-cache)
 
@@ -3004,6 +3005,29 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 === MIT License (MIT) ===
 
 Used by:
+- trash 5.2.9 (https://github.com/ArturKovacs/trash)
+
+Copyright 2019 Artúr Barnabás Kovács
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+associated documentation files (the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge, publish, distribute,
+sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+=== MIT License (MIT) ===
+
+Used by:
 - softbuffer 0.4.8 (https://github.com/rust-windowing/softbuffer)
 
 Copyright 2022 Kirill Chibisov
@@ -3794,6 +3818,7 @@ Used by:
 - chrono 0.4.45 (https://github.com/chronotope/chrono)
 - dispatch2 0.3.1 (https://github.com/madsmtm/objc2)
 - dpi 0.1.2 (https://github.com/rust-windowing/winit)
+- drag 2.1.1
 - objc2-app-kit 0.3.2 (https://github.com/madsmtm/objc2)
 - objc2-av-foundation 0.3.2 (https://github.com/madsmtm/objc2)
 - objc2-avf-audio 0.3.2 (https://github.com/madsmtm/objc2)
@@ -3824,13 +3849,21 @@ Used by:
 - webview2-com-sys 0.39.1 (https://github.com/wravery/webview2-rs)
 - webview2-com 0.39.1 (https://github.com/wravery/webview2-rs)
 - windows-collections 0.3.2 (https://github.com/microsoft/windows-rs)
+- windows-core 0.52.0 (https://github.com/microsoft/windows-rs)
+- windows-core 0.58.0 (https://github.com/microsoft/windows-rs)
 - windows-core 0.62.2 (https://github.com/microsoft/windows-rs)
 - windows-future 0.3.2 (https://github.com/microsoft/windows-rs)
+- windows-implement 0.52.0 (https://github.com/microsoft/windows-rs)
+- windows-implement 0.58.0 (https://github.com/microsoft/windows-rs)
 - windows-implement 0.60.2 (https://github.com/microsoft/windows-rs)
+- windows-interface 0.52.0 (https://github.com/microsoft/windows-rs)
+- windows-interface 0.58.0 (https://github.com/microsoft/windows-rs)
 - windows-interface 0.59.3 (https://github.com/microsoft/windows-rs)
 - windows-link 0.2.1 (https://github.com/microsoft/windows-rs)
 - windows-numerics 0.3.1 (https://github.com/microsoft/windows-rs)
+- windows-result 0.2.0 (https://github.com/microsoft/windows-rs)
 - windows-result 0.4.1 (https://github.com/microsoft/windows-rs)
+- windows-strings 0.1.0 (https://github.com/microsoft/windows-rs)
 - windows-strings 0.5.1 (https://github.com/microsoft/windows-rs)
 - windows-sys 0.59.0 (https://github.com/microsoft/windows-rs)
 - windows-sys 0.60.2 (https://github.com/microsoft/windows-rs)
@@ -3839,6 +3872,7 @@ Used by:
 - windows-targets 0.53.5 (https://github.com/microsoft/windows-rs)
 - windows-threading 0.2.1 (https://github.com/microsoft/windows-rs)
 - windows-version 0.1.7 (https://github.com/microsoft/windows-rs)
+- windows 0.52.0 (https://github.com/microsoft/windows-rs)
 - windows 0.62.2 (https://github.com/microsoft/windows-rs)
 - windows_x86_64_msvc 0.52.6 (https://github.com/microsoft/windows-rs)
 - windows_x86_64_msvc 0.53.1 (https://github.com/microsoft/windows-rs)

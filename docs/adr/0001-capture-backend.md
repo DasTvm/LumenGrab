@@ -170,3 +170,24 @@ Release build, dev Mac (two 2x displays, 3840x2486 and 5120x2880), `cargo build 
 - The `Capturer` trait and the thin `platform/{macos,windows}` split from the M1 plan are unchanged; only the macOS implementation behind the trait is ScreenCaptureKit instead of xcap.
 - Phase B adds the rpath line to `src-tauri/build.rs`, a Swift toolchain note to README/CI, and `minimumSystemVersion`.
 - `tools/capture-spike` stays as a diagnostic until the Windows decision is final, then can be deleted or kept.
+
+## Quick Access (M2): decisions and findings
+
+- **Windows, not one big overlay.** Every card (and every notice) is its own transparent window (`qa-1` .. `qa-3`, created once, reused). Rust only places them
+  (`quick_access/layout.rs`, pure and unit tested, in the monitor's **work area**: no menu bar, Dock or taskbar); the page reports its own height
+  (`quick_access_size`), including room for a tooltip above or a hint beside the card. Neighbouring windows never overlap (half the 8 px gap each), because on Windows a
+  transparent window still swallows clicks.
+- **Transparency needs the private macOS API.** Tauri only makes a window see-through on macOS with the `macos-private-api` feature and `"macOSPrivateApi": true`.
+  It rules out the Mac App Store, which is irrelevant for GitHub releases. Shadows and corners are drawn in CSS inside the window.
+- **Never take the focus.** `focused(false)` + `accept_first_mouse(true)` (+ `focusable(false)` on Windows) and the overlay window level/collection behaviour from
+  `platform::configure_overlay`. Measured on macOS 27: the frontmost app stays the same when cards appear, and also after clicking a card's buttons.
+- **Delete is deferred.** "Delete" only marks the card; the file goes to the Trash (`trash` crate) when the card closes or the undo line runs out. The crate cannot restore
+  on macOS, and this way Undo is trivial and a quit in between leaves the file where it was.
+- **Drag-out** uses the `drag` crate (Apache-2.0 OR MIT). Verified natively: a real drag starts from the thumbnail, the drop target (a chat input) accepts it, Esc cancels it
+  without side effects. The hint goes above the card in a bottom corner (no room below).
+- **Pitfall: events are not filtered per window.** A JS `listen()` also hears events that Rust sent with `emit_to(label)` to other windows. The first version showed the card of
+  window 1 in window 2. Payloads now carry the window label and each page keeps its own.
+- **Notices replace the native error dialogs.** Save failed (Retry / Choose folder…), clipboard failed, shortcut in use, capture failed, Trash failed and the Windows first-start
+  hint are cards in the same stack, with buttons handled in Rust (`quick_access/notice.rs`: the page only says which button number was pressed). "Screen Recording is turned
+  off while running" is a small dialog window; the first-run explanation stays the Onboarding Permission window. The design says "Change shortcut" on the shortcut notice;
+  shortcuts are not configurable yet, so the button says "Open Settings".

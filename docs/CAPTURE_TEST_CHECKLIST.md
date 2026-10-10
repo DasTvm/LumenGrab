@@ -89,6 +89,21 @@ it twice: default and `--features wgc`).
 - Switch Space / virtual desktop, or use a fullscreen app, then capture: the overlay appears on the current desktop, not on the one where it was created.
 - Idle: no CPU use while the app sits in the tray.
 
+## 6c. Quick Access and notices
+
+- After each capture a card appears in the chosen corner (Settings > General > After capture) on the monitor under the cursor, 16 px from the edge, above the Dock / taskbar and below the menu bar.
+  Check all four corners, and with the Dock / taskbar on a different edge.
+- The app you were working in keeps the keyboard focus when a card appears and when you click its buttons (type something right after a capture).
+- Copy puts the image on the clipboard (paste into Paint / Preview / Slack). Save as… asks where; Show opens the folder with the file selected. Close, Esc (after a click on the card), and the auto-close line
+  (pauses while the pointer is on the card or a dialog is open).
+- Several captures in a row: at most 3 cards stacked, newest in the corner, a 4th closes the oldest; with the large style only the newest is large. Cards never overlap and never leave the screen.
+- Large style: size chip, file name, "Area · 1.2 MB". Delete shows "moved to Trash" with Undo; Undo brings the card back and the file stays; letting the line run out or closing moves the file to the Trash / Recycle Bin.
+- Drag the picture to a chat, a browser upload field, a folder: the file arrives, a hint appears while dragging, Esc cancels.
+- **Windows only:** transparent window edges (24 px around a card) swallow clicks, which is accepted; check that the buttons of stacked cards are all clickable. WebView2 shows the transparent card without a white or black box.
+- **Mixed DPI:** a card on a 150 % monitor next to a 100 % one is placed in the right corner of the right monitor and has the right size.
+- Notices: make a folder read-only (or set an impossible one) to see "Could not save", then Retry and Choose folder…; hold the shortcut in another app to see "already in use";
+  turn Screen Recording off while the app runs (macOS) to see the dialog. The first-start hint appears once on Windows after the first launch and not again.
+
 ## 7. Display changes
 
 - Plug/unplug a monitor, change resolution or scale, rearrange monitors, sleep/wake, lock screen: the next capture uses the new layout, no stale or offset overlays, no crash.

@@ -108,7 +108,7 @@ The full spec is in `docs/FORMAT.md`. That file is the **source of truth**. Rule
 
 - Design source of truth: **Figma** (use the Figma MCP when a link is provided). Implement from the design, do not invent a generic look.
   The current design lives in the **Pencil** file `LumenGrab.pen` (Pencil MCP: read with `execute`, never open the `.pen` file directly). Tokens in `src/ui/tokens` come from its variables; the dark theme is derived (the design has none yet) and needs a designer's review.
-  Screens built so far: Capture Overlay, Settings (General, Hotkeys), Onboarding Permission. Dev gallery of the components: `?window=design` in `pnpm dev:web`.
+  Screens built so far: Capture Overlay (with bar, quick pick, second display), Settings (General incl. After capture, Hotkeys), Onboarding Permission, Quick Access (compact, large, notices, first-start hint), "Screen Recording is turned off" dialog. Dev galleries: `?window=design` (components) and `?window=quick-access-states` (Quick Access states) in `pnpm dev:web`.
 - UI fonts: the design uses **Inter** (UI) and **Outfit** (wordmark), bundled with `@fontsource` (SIL OFL-1.1, listed in `THIRD_PARTY_LICENSES`). This deliberately deviates from "system fonts" below; system fonts stay the fallback.
 - Use design tokens (colors, radius, spacing, type) from one place (`src/ui/tokens`). No hard-coded colors in components.
 - Light and dark mode from day one. Respect system setting.
@@ -176,4 +176,5 @@ Notes:
 - Local macOS test builds: ad-hoc signed builds are identified by their binary hash, so macOS forgets the Screen Recording
   permission after every rebuild. Run `scripts/create-dev-signing-cert.sh` once (self-signed "LumenGrab Local Dev" identity in the
   login keychain, nothing is committed), then build with `APPLE_SIGNING_IDENTITY="LumenGrab Local Dev" pnpm tauri build`. Release builds in CI stay unsigned.
+- A JavaScript `listen()` hears events that Rust addressed to *any* window (`emit_to(label)` does not filter on the JS side): put the window label in the payload and filter in the page (see `onQuickAccessCard`). Sync Tauri commands run on the main thread: never wait for a window, a dialog or a lock that a window-creating thread holds inside one (use `async` commands).
 - Never call `register`/`unregister` of the global-shortcut plugin from a shortcut handler, a command or an event callback (deadlock, see `docs/adr/0001-capture-backend.md`).
