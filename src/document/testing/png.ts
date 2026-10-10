@@ -1,4 +1,6 @@
 import { deflateSync, inflateSync } from "node:zlib";
+import type { ImageCodec } from "../render/flatten";
+import type { RgbaImage } from "../render/pixels";
 
 /** Tests only: a minimal PNG writer and reader (RGBA8) so the format tests need no image library or display. */
 
@@ -122,4 +124,22 @@ export function stripes(width: number, height: number): Rgba {
     }
   }
   return { width, height, data };
+}
+
+/** An `ImageCodec` for tests, built on the helpers above. */
+export const nodeCodec: ImageCodec = {
+  decode(png) {
+    const { width, height, data } = decodePng(png);
+    return Promise.resolve({ width, height, data: new Uint8ClampedArray(data) });
+  },
+  encode(image) {
+    return Promise.resolve(
+      encodePng({ width: image.width, height: image.height, data: new Uint8Array(image.data) }),
+    );
+  },
+};
+
+/** A picture as `RgbaImage` (tests). */
+export function asImage({ width, height, data }: Rgba): RgbaImage {
+  return { width, height, data: new Uint8ClampedArray(data) };
 }
