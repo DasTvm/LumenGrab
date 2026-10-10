@@ -9,12 +9,22 @@ import {
   type OverlayMode,
   type OverlaySession,
   type PixelRect,
+  type QuickAccessCard,
+  type SavedCopy,
   type Settings,
   type SettingsInfo,
   type Platform,
 } from "./types";
 
 /** What the Rust command `capture_overlay_session` returns (see src-tauri/src/capture/commands.rs). */
+type RawQuickAccessCard = Omit<QuickAccessCard, "thumbUrl"> & { thumbKey: string };
+
+const toCard = ({ thumbKey, ...card }: RawQuickAccessCard): QuickAccessCard => ({
+  ...card,
+  // Served from memory by the Rust `lgcapture` URI scheme.
+  thumbUrl: convertFileSrc(thumbKey, "lgcapture"),
+});
+
 type RawOverlaySession = Omit<OverlaySession, "frameUrl"> & { frameKey: string };
 
 const SESSION_TIMEOUT_MS = 8000;
@@ -131,6 +141,38 @@ export const nativePlatform: Platform = {
 
   async saveSettings(settings: Settings): Promise<void> {
     await call("settings_save", { settings });
+  },
+
+  async getQuickAccessCard(slot: string): Promise<QuickAccessCard | null> {
+    const raw = await call<RawQuickAccessCard | null>("quick_access_card", { label: slot });
+    return raw ? toCard(raw) : null;
+  },
+
+  async onQuickAccessCard(_slot, listener) {
+    // Sent by Rust to the window of a card whenever its card is added, restacked or removed.
+    return listen<{ card: RawQuickAccessCard | null }>("quick-access", (event) => {
+      listener(event.payload.card ? toCard(event.payload.card) : null);
+    });
+  },
+
+  async quickAccessSize(id, height, extraTop, extraBottom) {
+    await call("quick_access_size", { id, height, extraTop, extraBottom });
+  },
+
+  async quickAccessClose(id) {
+    await call("quick_access_close", { id });
+  },
+
+  async quickAccessCopy(id) {
+    await call("quick_access_copy", { id });
+  },
+
+  quickAccessSaveAs(id): Promise<SavedCopy | null> {
+    return call<SavedCopy | null>("quick_access_save_as", { id });
+  },
+
+  async quickAccessReveal(id) {
+    await call("quick_access_reveal", { id });
   },
 
   getSettingsInfo(): Promise<SettingsInfo> {

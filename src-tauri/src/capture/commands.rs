@@ -170,6 +170,9 @@ pub fn capture_set_mode(app: AppHandle, session: String, mode: CaptureMode) -> R
 /// (`http://lgcapture.localhost/...` on Windows). In memory, no disk, no base64 over IPC.
 pub fn serve_frame(app: &AppHandle, path: &str) -> Option<Vec<u8>> {
     let key = path.trim_start_matches('/');
+    if let Some(card) = key.strip_prefix("qa-") {
+        return crate::quick_access::thumb(app, card).map(|png| png.as_ref().clone());
+    }
     let (session, display) = key.rsplit_once('-')?;
     let display: u32 = display.parse().ok()?;
     let store = app.state::<CaptureStore>();

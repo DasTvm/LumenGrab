@@ -44,6 +44,41 @@ export interface OverlaySession {
   windows: OverlayWindowInfo[];
 }
 
+/** Room around a Quick Access card inside its (transparent, larger) window, in CSS pixels. */
+export interface CardPad {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+/** One Quick Access card: the screenshot that was just taken. Mirrors `CardPayload` in src-tauri/src/quick_access. */
+export interface QuickAccessCard {
+  id: string;
+  /** The style this card is drawn in right now (older cards of a large stack are compact). */
+  style: QuickAccessStyle;
+  /** Card width in CSS pixels (340 compact stack, 380 large stack). */
+  width: number;
+  /** 0 = never close by itself. */
+  autoCloseSecs: number;
+  /** URL of the thumbnail for an <img>. */
+  thumbUrl: string;
+  pixelWidth: number;
+  pixelHeight: number;
+  fileName: string;
+  /** Folder as shown to the user, e.g. `Pictures/LumenGrab`. */
+  folder: string;
+  source: "Area" | "Window" | "Fullscreen";
+  bytes: number;
+  pad: CardPad;
+}
+
+/** Where "Save as…" put the copy. */
+export interface SavedCopy {
+  folder: string;
+  fileName: string;
+}
+
 export type Os = "macos" | "windows" | "other";
 
 export interface AppInfo {
@@ -116,6 +151,25 @@ export interface Platform {
   onCaptureMode(sessionId: string, listener: (mode: OverlayMode) => void): Promise<() => void>;
   /** Saves all settings. Rejects with a readable message if they could not be written. */
   saveSettings(settings: Settings): Promise<void>;
+  /** The card this Quick Access window (`qa-1` ... `qa-3`) should show, if one is assigned to it. */
+  getQuickAccessCard(slot: string): Promise<QuickAccessCard | null>;
+  /** Calls `listener` whenever the card of this window changes (`null`: the window is free again). */
+  onQuickAccessCard(
+    slot: string,
+    listener: (card: QuickAccessCard | null) => void,
+  ): Promise<() => void>;
+  /**
+   * The card measured itself. `extraTop` / `extraBottom` ask for room around it for a tooltip or a
+   * hint; the first call also shows the window.
+   */
+  quickAccessSize(id: string, height: number, extraTop: number, extraBottom: number): Promise<void>;
+  quickAccessClose(id: string): Promise<void>;
+  /** Copies the saved screenshot to the clipboard. */
+  quickAccessCopy(id: string): Promise<void>;
+  /** "Save as…": resolves to where the copy went, or `null` if the user cancelled. */
+  quickAccessSaveAs(id: string): Promise<SavedCopy | null>;
+  /** Shows the file in Finder / Explorer. */
+  quickAccessReveal(id: string): Promise<void>;
   getSettingsInfo(): Promise<SettingsInfo>;
   openScreenshotsFolder(): Promise<void>;
   /** Whether the OS currently lets LumenGrab record the screen (always true on Windows). */

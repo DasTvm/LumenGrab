@@ -9,13 +9,19 @@ use tauri::{image::Image, AppHandle, Manager};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
-use super::{encode, geometry, Frame};
-use crate::{platform, settings::SettingsStore};
+use super::{encode, geometry, pixels, CaptureMode, Frame};
+use crate::{platform, quick_access, settings::SettingsStore};
 
 const FOLDER: &str = "LumenGrab";
+/// Twice the 364 px preview of the large card, so it is sharp on a 2x display.
+const THUMB_WIDTH: u32 = 728;
 
 /// `Pictures/LumenGrab`.
 pub fn screenshot_dir(app: &AppHandle) -> Result<std::path::PathBuf, String> {
+    #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+    if let Ok(dir) = std::env::var("LUMENGRAB_DEV_SAVE_DIR") {
+        return Ok(dir.into());
+    }
     app.path()
         .picture_dir()
         .map(|p| p.join(FOLDER))
@@ -33,7 +39,7 @@ pub fn open_screenshot_folder(app: &AppHandle) {
     }
 }
 
-pub fn deliver(app: &AppHandle, frame: Frame) {
+pub fn deliver(app: &AppHandle, frame: Frame, source: CaptureMode) {
     let dir = match screenshot_dir(app) {
         Ok(dir) => dir,
         Err(e) => {
@@ -57,7 +63,9 @@ pub fn deliver(app: &AppHandle, frame: Frame) {
         )
     });
     if let Ok(path) = &saved {
-        announce_saved(app, path);
+        if !show_quick_access(app, path, &frame, source) {
+            announce_saved(app, path);
+        }
     }
     let problems: Vec<String> = [
         saved
@@ -77,7 +85,26 @@ pub fn deliver(app: &AppHandle, frame: Frame) {
     crate::dev::after_deliver(app, &problems);
 }
 
-/// Minimal feedback until the quick-access overlay (M2): the tray tooltip names the file, and on
+/// The card in the screen corner. `false` if Quick Access is off or could not be shown.
+fn show_quick_access(app: &AppHandle, path: &Path, frame: &Frame, source: CaptureMode) -> bool {
+    let thumb = pixels::downscale(frame, THUMB_WIDTH);
+    let Ok(thumb) = encode::encode_png(&thumb, encode::Profile::Fast) else {
+        return false;
+    };
+    quick_access::show(
+        app,
+        quick_access::NewCard {
+            path: path.to_path_buf(),
+            width: frame.width,
+            height: frame.height,
+            source,
+            bytes: fs::metadata(path).map(|m| m.len()).unwrap_or(0),
+            thumb,
+        },
+    )
+}
+
+/// Minimal feedback when Quick Access is off the quick-access overlay (M2): the tray tooltip names the file, and on
 /// macOS the menu bar icon shows "Saved" next to it for two seconds.
 fn announce_saved(app: &AppHandle, path: &Path) {
     let Some(tray) = app.tray_by_id("main") else {

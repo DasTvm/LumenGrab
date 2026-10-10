@@ -89,7 +89,7 @@ fn run(app: &AppHandle, mode: CaptureMode, toolbar: bool) -> CaptureResult<Start
     if mode == CaptureMode::Fullscreen {
         let display = under_cursor;
         let frame = capturer.capture_display(display.id)?;
-        output::deliver(app, frame);
+        output::deliver(app, frame, CaptureMode::Fullscreen);
         return Ok(Started::Done);
     }
 
@@ -238,7 +238,7 @@ pub fn submit_window(app: &AppHandle, session_id: &str, window_id: u32) -> Captu
     finish(app, session_id);
     let app = app.clone();
     std::thread::spawn(move || match capturer(&app).capture_window(window_id) {
-        Ok(frame) => output::deliver(&app, frame),
+        Ok(frame) => output::deliver(&app, frame, CaptureMode::Window),
         Err(e) => output::error_dialog(&app, &e.to_string()),
     });
     Ok(())
@@ -246,5 +246,5 @@ pub fn submit_window(app: &AppHandle, session_id: &str, window_id: u32) -> Captu
 
 fn spawn_deliver(app: &AppHandle, frame: Frame) {
     let app = app.clone();
-    std::thread::spawn(move || output::deliver(&app, frame));
+    std::thread::spawn(move || output::deliver(&app, frame, CaptureMode::Area));
 }

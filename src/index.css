@@ -9,3 +9,13 @@
     @apply bg-background text-foreground font-sans antialiased;
   }
 }
+
+/* Quick Access: the auto-close line shrinks to the left (design: Quick Access States, 06). */
+@keyframes lg-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

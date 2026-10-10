@@ -16,6 +16,12 @@
 //!   LUMENGRAB_DEV_REPEAT=n                         run the capture n times in a row in one process (re-uses the
 //!                                                  warm overlay windows), then quit
 //!
+//!   LUMENGRAB_DEV_QA=n                             deliver n synthetic captures (1.2 s apart) to test the Quick Access
+//!                                                  cards without a real capture; the app stays open
+//!   LUMENGRAB_DEV_SAVE_DIR=/path                   save screenshots there instead of Pictures/LumenGrab
+//!   LUMENGRAB_DEV_CONFIG_DIR=/path                 read and write settings.json there (try settings without
+//!                                                  touching the real file)
+//!
 //! When `LUMENGRAB_DEV_CAPTURE` is set the app quits after the capture was delivered.
 
 use std::time::Duration;
@@ -39,7 +45,60 @@ fn requested_mode() -> Option<CaptureMode> {
     }
 }
 
+/// `LUMENGRAB_DEV_QA=n`: n synthetic screenshots go through the normal delivery (save, clipboard,
+/// Quick Access card), one every 1.2 s.
+fn quick_access_demo(app: &AppHandle) {
+    let Some(count) = std::env::var("LUMENGRAB_DEV_QA")
+        .ok()
+        .and_then(|n| n.parse::<u32>().ok())
+    else {
+        return;
+    };
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(2500));
+        for i in 0..count {
+            let (w, h) = [(1200u32, 800u32), (640, 360), (900, 900)][(i % 3) as usize];
+            let mut rgba = Vec::with_capacity((w * h * 4) as usize);
+            for y in 0..h {
+                for x in 0..w {
+                    let bar = (y / 40) % 2 == 0 && x > 60 && x < w - 60;
+                    rgba.extend_from_slice(&if bar {
+                        [30, 30, 40, 255]
+                    } else {
+                        [
+                            (x * 255 / w) as u8,
+                            (y * 255 / h) as u8,
+                            (60 + i * 50) as u8,
+                            255,
+                        ]
+                    });
+                }
+            }
+            eprintln!(
+                "[lumengrab:dev] demo capture {} of {count} ({w}x{h})",
+                i + 1
+            );
+            crate::capture::output::deliver(
+                &app,
+                crate::capture::Frame {
+                    width: w,
+                    height: h,
+                    rgba,
+                },
+                [
+                    CaptureMode::Area,
+                    CaptureMode::Window,
+                    CaptureMode::Fullscreen,
+                ][(i % 3) as usize],
+            );
+            std::thread::sleep(Duration::from_millis(1200));
+        }
+    });
+}
+
 pub fn autostart(app: &AppHandle) {
+    quick_access_demo(app);
     if let Ok(which) = std::env::var("LUMENGRAB_DEV_WINDOW") {
         let app = app.clone();
         std::thread::spawn(move || {

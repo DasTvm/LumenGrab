@@ -6,6 +6,7 @@ mod dev;
 mod hotkeys;
 mod permission;
 mod platform;
+mod quick_access;
 mod settings;
 mod tray;
 
@@ -22,6 +23,7 @@ pub fn run() {
         .plugin(hotkeys::plugin())
         .manage(CaptureStore::default())
         .manage(overlay::Pool::default())
+        .manage(quick_access::QuickAccess::default())
         .manage::<Arc<dyn Capturer>>(backend::default_capturer())
         // Frozen frames for the overlay windows, served from memory.
         .register_uri_scheme_protocol("lgcapture", |ctx, request| {
@@ -43,6 +45,12 @@ pub fn run() {
             commands::capture_submit_area,
             commands::capture_submit_window,
             commands::capture_cancel,
+            quick_access::commands::quick_access_card,
+            quick_access::commands::quick_access_size,
+            quick_access::commands::quick_access_close,
+            quick_access::commands::quick_access_copy,
+            quick_access::commands::quick_access_reveal,
+            quick_access::commands::quick_access_save_as,
             commands::capture_set_mode,
             settings::settings_save,
             commands::settings_info,
@@ -68,6 +76,7 @@ pub fn run() {
                 permission::show(app.handle());
             }
             overlay::warm_up(app.handle());
+            quick_access::warm_up(app.handle());
             hotkeys::start_escape_worker(app.handle());
             let failed = hotkeys::register(app.handle());
             app.manage(hotkeys::HotkeyFailures(failed));

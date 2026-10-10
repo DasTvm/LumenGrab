@@ -5,7 +5,8 @@
   "windows": [
     "settings",
     "permission",
-    "overlay-*"
+    "overlay-*",
+    "qa-*"
   ],
   "permissions": [
     "core:default"

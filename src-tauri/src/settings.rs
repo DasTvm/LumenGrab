@@ -171,7 +171,10 @@ fn write_atomic(path: &Path, settings: &Settings) -> Result<(), String> {
 }
 
 pub fn init(app: &AppHandle) -> tauri::Result<()> {
-    let path = app.path().app_config_dir()?.join("settings.json");
+    let dir = app.path().app_config_dir()?;
+    #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+    let dir = std::env::var("LUMENGRAB_DEV_CONFIG_DIR").map_or(dir, std::path::PathBuf::from);
+    let path = dir.join("settings.json");
     app.manage(SettingsStore::load(path));
     Ok(())
 }

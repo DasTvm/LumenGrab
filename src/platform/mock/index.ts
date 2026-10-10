@@ -1,3 +1,4 @@
+import { PlatformError } from "../types";
 import type {
   AppInfo,
   CaptureMode,
@@ -5,6 +6,8 @@ import type {
   OverlaySession,
   OverlayWindowInfo,
   PixelRect,
+  QuickAccessCard,
+  SavedCopy,
   Platform,
   Settings,
   SettingsInfo,
@@ -38,6 +41,11 @@ export interface MockSubmission {
     | "window"
     | "cancel"
     | "start"
+    | "qaSize"
+    | "qaClose"
+    | "qaCopy"
+    | "qaSaveAs"
+    | "qaReveal"
     | "mode"
     | "settings"
     | "openFolder"
@@ -50,6 +58,10 @@ export interface MockSubmission {
   windowId?: number;
   mode?: CaptureMode;
   settings?: Settings;
+  id?: string;
+  height?: number;
+  extraTop?: number;
+  extraBottom?: number;
 }
 
 declare global {
@@ -183,6 +195,68 @@ export const mockPlatform: Platform = {
     } catch {
       // storage unavailable: the choice just does not persist
     }
+    return Promise.resolve();
+  },
+
+  /** `?card=large&secs=1&bytes=1234567`: a demo card for browser tests and the dev gallery. */
+  getQuickAccessCard(): Promise<QuickAccessCard | null> {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("window") !== "quick" || q.get("card") === "none") return Promise.resolve(null);
+    const large = q.get("card") === "large";
+    return Promise.resolve({
+      id: "demo",
+      style: large ? "large" : "compact",
+      width: large ? 380 : 340,
+      autoCloseSecs: Number(q.get("secs") ?? 5),
+      thumbUrl: sampleCaptureUrl,
+      pixelWidth: 1920,
+      pixelHeight: 1080,
+      fileName: "Screenshot 2026-10-09 at 14.02.png",
+      folder: "Pictures/LumenGrab",
+      source: "Area",
+      bytes: Number(q.get("bytes") ?? 1_234_567),
+      pad: { top: 8, right: 24, bottom: 24, left: 24 },
+    });
+  },
+
+  onQuickAccessCard(): Promise<() => void> {
+    return Promise.resolve(() => undefined);
+  },
+
+  quickAccessSize(
+    id: string,
+    height: number,
+    extraTop: number,
+    extraBottom: number,
+  ): Promise<void> {
+    record({ kind: "qaSize", id, height, extraTop, extraBottom });
+    return Promise.resolve();
+  },
+
+  quickAccessClose(id: string): Promise<void> {
+    record({ kind: "qaClose", id });
+    return Promise.resolve();
+  },
+
+  quickAccessCopy(id: string): Promise<void> {
+    record({ kind: "qaCopy", id });
+    return new URLSearchParams(window.location.search).get("copy") === "fail"
+      ? Promise.reject(new PlatformError("Another app is blocking the clipboard."))
+      : Promise.resolve();
+  },
+
+  /** `?saveas=cancel` makes the dialog "cancelled". */
+  quickAccessSaveAs(id: string): Promise<SavedCopy | null> {
+    record({ kind: "qaSaveAs", id });
+    return Promise.resolve(
+      new URLSearchParams(window.location.search).get("saveas") === "cancel"
+        ? null
+        : { folder: "Documents/Reports", fileName: "Q3 numbers.png" },
+    );
+  },
+
+  quickAccessReveal(id: string): Promise<void> {
+    record({ kind: "qaReveal", id });
     return Promise.resolve();
   },
 

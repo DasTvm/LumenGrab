@@ -35,6 +35,11 @@ pub fn open_screen_recording_settings() {
         .spawn();
 }
 
+/// Selects a file in Finder.
+pub fn reveal_file(path: &std::path::Path) {
+    let _ = Command::new("open").arg("-R").arg(path).spawn();
+}
+
 /// Shows a folder in Finder.
 pub fn open_folder(path: &std::path::Path) {
     let _ = Command::new("open").arg(path).spawn();

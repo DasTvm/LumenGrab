@@ -39,6 +39,13 @@ pub fn finish_overlay_placement(window: &WebviewWindow, native: &crate::capture:
 /// Windows has no screen recording permission; kept so shared code compiles on both OSes.
 pub fn open_screen_recording_settings() {}
 
+/// Selects a file in Explorer.
+pub fn reveal_file(path: &std::path::Path) {
+    let mut arg = std::ffi::OsString::from("/select,");
+    arg.push(path);
+    let _ = std::process::Command::new("explorer").arg(arg).spawn();
+}
+
 /// Shows a folder in Explorer.
 pub fn open_folder(path: &std::path::Path) {
     let _ = std::process::Command::new("explorer").arg(path).spawn();

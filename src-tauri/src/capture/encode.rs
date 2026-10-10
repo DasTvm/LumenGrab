@@ -11,6 +11,49 @@ pub enum Profile {
     Best,
 }
 
+/// Reads a PNG back into a frame (RGBA8). Used to copy a saved screenshot to the clipboard again.
+pub fn decode_png(bytes: &[u8]) -> CaptureResult<Frame> {
+    let mut decoder = png::Decoder::new(std::io::Cursor::new(bytes));
+    decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::ALPHA);
+    let mut reader = decoder
+        .read_info()
+        .map_err(|e| CaptureError::Backend(e.to_string()))?;
+    let mut buf = vec![
+        0;
+        reader
+            .output_buffer_size()
+            .ok_or_else(|| CaptureError::Backend("image too large".into()))?
+    ];
+    let info = reader
+        .next_frame(&mut buf)
+        .map_err(|e| CaptureError::Backend(e.to_string()))?;
+    buf.truncate(info.buffer_size());
+    let rgba = match info.color_type {
+        png::ColorType::Rgba => buf,
+        png::ColorType::Rgb => buf
+            .as_chunks::<3>()
+            .0
+            .iter()
+            .flat_map(|p| [p[0], p[1], p[2], 255])
+            .collect(),
+        png::ColorType::GrayscaleAlpha => buf
+            .as_chunks::<2>()
+            .0
+            .iter()
+            .flat_map(|p| [p[0], p[0], p[0], p[1]])
+            .collect(),
+        png::ColorType::Grayscale => buf.iter().flat_map(|g| [*g, *g, *g, 255]).collect(),
+        png::ColorType::Indexed => {
+            return Err(CaptureError::Backend("unexpected palette image".into()))
+        }
+    };
+    Ok(Frame {
+        width: info.width,
+        height: info.height,
+        rgba,
+    })
+}
+
 pub fn encode_png(frame: &Frame, profile: Profile) -> CaptureResult<Vec<u8>> {
     let expected = frame.width as usize * frame.height as usize * 4;
     if frame.width == 0 || frame.height == 0 || frame.rgba.len() != expected {
@@ -45,6 +88,17 @@ pub fn encode_png(frame: &Frame, profile: Profile) -> CaptureResult<Vec<u8>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_saved_png_decodes_to_the_same_pixels() {
+        let f = gradient(37, 23);
+        for profile in [Profile::Fast, Profile::Best] {
+            let back = decode_png(&encode_png(&f, profile).unwrap()).unwrap();
+            assert_eq!((back.width, back.height), (37, 23));
+            assert_eq!(back.rgba, f.rgba, "{profile:?}");
+        }
+        assert!(decode_png(b"not a png").is_err());
+    }
 
     fn gradient(w: u32, h: u32) -> Frame {
         let mut rgba = Vec::new();
