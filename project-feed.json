@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-10T22:37:04.964Z",
+  "generatedAt": "2026-10-10T22:38:32.091Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -387,6 +387,13 @@
       "category": "internal",
       "title": "Publish live website changelog and roadmap data (#1)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/762d61c035b016c69489b7cd5cb14c6d79391642"
+    },
+    {
+      "id": "35b2c162dcd46a1607d4ce89bd34c9b88bc6f8e4",
+      "date": "2026-10-10T22:38:15Z",
+      "category": "new",
+      "title": "viewer window with the dialogs of the design, platform wrappers and mock scenarios",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/35b2c162dcd46a1607d4ce89bd34c9b88bc6f8e4"
     }
   ],
   "releases": [],
@@ -445,7 +452,8 @@
     "29435b44e78a3c9e2ce21a2592bc06411370bba6",
     "cffcd6a4bad91cf943159ab13ea62c953046519b",
     "d6878a66288251901f80ccfc0507f7fc52f5c4de",
-    "762d61c035b016c69489b7cd5cb14c6d79391642"
+    "762d61c035b016c69489b7cd5cb14c6d79391642",
+    "35b2c162dcd46a1607d4ce89bd34c9b88bc6f8e4"
   ],
   "roadmap": {
     "schemaVersion": 1,
