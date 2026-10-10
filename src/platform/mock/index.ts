@@ -45,6 +45,7 @@ export interface MockSubmission {
     | "qaClose"
     | "qaCopy"
     | "qaDelete"
+    | "qaDrag"
     | "qaUndoDelete"
     | "qaSaveAs"
     | "qaReveal"
@@ -218,6 +219,7 @@ export const mockPlatform: Platform = {
       source: "Area",
       bytes: Number(q.get("bytes") ?? 1_234_567),
       pad: { top: 8, right: 24, bottom: 24, left: 24 },
+      edge: "bottom",
     });
   },
 
@@ -238,6 +240,15 @@ export const mockPlatform: Platform = {
   quickAccessClose(id: string): Promise<void> {
     record({ kind: "qaClose", id });
     return Promise.resolve();
+  },
+
+  quickAccessDrag(id: string): Promise<void> {
+    record({ kind: "qaDrag", id });
+    return Promise.resolve();
+  },
+
+  onQuickAccessDrag(): Promise<() => void> {
+    return Promise.resolve(() => undefined);
   },
 
   quickAccessDelete(id: string): Promise<void> {

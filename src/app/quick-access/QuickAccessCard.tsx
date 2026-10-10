@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Check, CircleCheck, Copy, Download, Trash2, TriangleAlert, X } from "lucide-react";
+import { Check, CircleCheck, Copy, Download, Grip, Trash2, TriangleAlert, X } from "lucide-react";
 import type { QuickAccessCard as Card } from "@/platform";
 import { currentOs } from "@/platform/os";
 import { Button } from "@/ui/components/button";
@@ -19,6 +19,8 @@ export interface QuickAccessCardViewProps {
   /** The Copy button shows its "done" state. */
   copied?: boolean;
   status?: StatusRow | null;
+  /** A drag out of the card is running: the thumbnail is outlined and a hint says where to drop. */
+  dragging?: boolean;
   /** "Delete" was pressed: the card turns into "moved to the Trash" with an Undo button. */
   deleted?: boolean;
   /** The tooltip (or, on the compact card, the "Copied" pill) to show above the buttons. */
@@ -37,6 +39,8 @@ export interface QuickAccessCardViewProps {
   onReveal?: () => void;
   onRetry?: () => void;
   onDelete?: () => void;
+  /** The pointer was pressed on the picture and moved: start dragging the file. */
+  onDragStart?: () => void;
   onUndo?: () => void;
   onTip?: (tip: TipTarget | null) => void;
   /** Called when the line has run out. */
@@ -55,6 +59,42 @@ const TIP_TEXT: Record<TipTarget, { label: string; key?: string }> = {
 
 const CARD_CLASS =
   "relative overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-[0_10px_28px_rgb(0_0_0/0.15)]";
+
+/** The picture of the card: pressing it and moving the pointer starts a drag of the file. */
+function DragSource({
+  onDragStart,
+  className,
+  children,
+}: {
+  onDragStart?: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
+  const origin = useRef<{ x: number; y: number } | null>(null);
+  return (
+    <div
+      className={className}
+      onPointerDown={(e) => {
+        if (e.button === 0) origin.current = { x: e.clientX, y: e.clientY };
+      }}
+      onPointerMove={(e) => {
+        const from = origin.current;
+        if (from && Math.hypot(e.clientX - from.x, e.clientY - from.y) > 4) {
+          origin.current = null;
+          onDragStart?.();
+        }
+      }}
+      onPointerUp={() => {
+        origin.current = null;
+      }}
+      onPointerCancel={() => {
+        origin.current = null;
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 /** Design: "Quick Access" (compact), "Quick Access Large" and "Quick Access Deleted". Pure: all state comes in through props. */
 export function QuickAccessCardView(props: QuickAccessCardViewProps) {
@@ -135,6 +175,29 @@ export function QuickAccessCardView(props: QuickAccessCardViewProps) {
         ) : null}
       </div>
 
+      {props.dragging ? (
+        <div
+          data-testid="drag-hint"
+          className={cn(
+            "pointer-events-none inline-flex items-center gap-2 rounded-full bg-overlay-surface px-3 py-[7px] whitespace-nowrap shadow-[0_6px_16px_rgb(0_0_0/0.25)]",
+            card.edge === "top" && "mt-2 ml-4",
+          )}
+          style={
+            card.edge === "bottom"
+              ? {
+                  position: "absolute",
+                  left: card.pad.left + 16,
+                  top: card.pad.top - 8,
+                  transform: "translateY(-100%)",
+                }
+              : undefined
+          }
+        >
+          <Grip aria-hidden className="size-3.5 text-brand" />
+          <span className="text-xs font-medium text-white">Drag to a chat or folder</span>
+        </div>
+      ) : null}
+
       {tip !== null && card.pad.top >= 44 ? (
         <Tip left={tipLeft} top={card.pad.top - 8}>
           {tip === "copied" ? (
@@ -163,6 +226,8 @@ function CompactBody({
   card,
   copied,
   status,
+  dragging,
+  onDragStart,
   onCopy,
   onSave,
   onClose,
@@ -180,14 +245,19 @@ function CompactBody({
   return (
     <>
       <div className="flex items-center gap-1.5 p-2">
-        <img
-          src={card.thumbUrl}
-          alt=""
-          draggable={false}
-          onLoad={onThumbLoaded}
-          onError={onThumbLoaded}
-          className="size-14 shrink-0 rounded-md border border-border bg-muted object-cover"
-        />
+        <DragSource onDragStart={onDragStart} className="shrink-0 cursor-grab">
+          <img
+            src={card.thumbUrl}
+            alt=""
+            draggable={false}
+            onLoad={onThumbLoaded}
+            onError={onThumbLoaded}
+            className={cn(
+              "size-14 rounded-md border bg-muted object-cover",
+              dragging ? "border-[3px] border-brand" : "border-border",
+            )}
+          />
+        </DragSource>
         <span aria-hidden className="h-10 w-px shrink-0 bg-border" />
         <div
           role="group"
@@ -237,6 +307,8 @@ function LargeBody({
   card,
   copied,
   status,
+  dragging,
+  onDragStart,
   onCopy,
   onSave,
   onClose,
@@ -249,7 +321,13 @@ function LargeBody({
 }: BodyProps) {
   return (
     <div className="flex flex-col gap-2.5 p-2">
-      <div className="relative h-[228px] w-full overflow-hidden rounded-md border border-border bg-muted">
+      <DragSource
+        onDragStart={onDragStart}
+        className={cn(
+          "relative h-[228px] w-full cursor-grab overflow-hidden rounded-md border bg-muted",
+          dragging ? "border-[3px] border-brand" : "border-border",
+        )}
+      >
         <img
           src={card.thumbUrl}
           alt=""
@@ -269,7 +347,7 @@ function LargeBody({
         >
           <X aria-hidden className="size-3.5" />
         </button>
-      </div>
+      </DragSource>
 
       <div className="flex items-center justify-between gap-3 px-0.5 text-xs">
         <span className="truncate font-medium">{card.fileName}</span>

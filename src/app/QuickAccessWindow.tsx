@@ -12,6 +12,8 @@ const COPIED_MS = 1800;
 const TIP_DELAY_MS = 350;
 /** Room above the card for a tooltip: its height plus the gap to the card. */
 const TIP_ROOM = 44;
+/** Room below the card for the "Drag to a chat or folder" hint. */
+const HINT_ROOM = 44;
 /** How long Undo is offered after Delete. The file only goes to the Trash when this has run out. */
 const UNDO_SECS = 6;
 
@@ -55,13 +57,14 @@ export function QuickAccessWindow() {
   }, [slot]);
 
   // A new card gets fresh state: the key is the card, not the window.
-  return card ? <QuickAccessController key={card.id} card={card} /> : null;
+  return card ? <QuickAccessController key={card.id} card={card} slot={slot} /> : null;
 }
 
-function QuickAccessController({ card }: { card: QuickAccessCard }) {
+function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: string }) {
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<StatusRow | null>(null);
   const [deleted, setDeleted] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [tip, setTip] = useState<TipTarget | null>(null);
@@ -148,6 +151,31 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
     );
   }, [id, close]);
 
+  // The native side tells when the drag out of this window starts and ends.
+  useEffect(() => {
+    let off: (() => void) | undefined;
+    let disposed = false;
+    void platform.onQuickAccessDrag(slot, setDragging).then((unlisten) => {
+      if (disposed) unlisten();
+      else off = unlisten;
+    });
+    return () => {
+      disposed = true;
+      off?.();
+    };
+  }, [slot]);
+
+  const startDrag = useCallback(() => {
+    platform.quickAccessDrag(id).catch((e: unknown) => {
+      setStatus({
+        kind: "error",
+        title: "Could not start the drag",
+        detail: message(e, "Use Save as… instead."),
+        retry: "save",
+      });
+    });
+  }, [id]);
+
   // Keys work once the card has been clicked (it only takes the keyboard focus when clicked).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -188,18 +216,20 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
 
   // Tell the native side how tall the card is (and how much room a tooltip needs). The window is
   // shown by the first report, once the thumbnail is there, so it never flashes empty.
-  const extraTop = shownTip ? TIP_ROOM : 0;
+  const hintAbove = dragging && card.edge === "bottom";
+  const extraTop = shownTip || hintAbove ? TIP_ROOM : 0;
+  const extraBottom = dragging && !hintAbove ? HINT_ROOM : 0;
   useEffect(() => {
     const el = cardEl;
     if (!el || !thumbReady) return;
     let last = "";
     const report = () => {
       const height = el.offsetHeight;
-      const key = `${String(height)}/${String(extraTop)}`;
+      const key = `${String(height)}/${String(extraTop)}/${String(extraBottom)}`;
       // A hidden page measures 0, and the same size twice is not news.
       if (height < 1 || key === last) return;
       last = key;
-      void platform.quickAccessSize(id, height, extraTop, 0);
+      void platform.quickAccessSize(id, height, extraTop, extraBottom);
     };
     report();
     const observer = new ResizeObserver(report);
@@ -207,7 +237,7 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
     return () => {
       observer.disconnect();
     };
-  }, [id, cardEl, thumbReady, extraTop, status, deleted, card.style]);
+  }, [id, cardEl, thumbReady, extraTop, extraBottom, status, deleted, card.style]);
 
   // Hovering means being over the card itself, not over the transparent room around it.
   useEffect(() => {
@@ -237,7 +267,9 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
         tip={deleted ? null : shownTip}
         timer="running"
         timerSecs={deleted ? UNDO_SECS : card.autoCloseSecs}
-        paused={hovered || busy}
+        paused={hovered || busy || dragging}
+        dragging={dragging}
+        onDragStart={startDrag}
         onCardElement={setCardEl}
         onDelete={remove}
         onUndo={undo}

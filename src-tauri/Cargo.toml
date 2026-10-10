@@ -34,6 +34,7 @@ serde_json = "1"
 png = "0.18"
 trash = "5"
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
+drag = "2"
 
 # macOS: ScreenCaptureKit (macOS 14+) for capture; objc2 for window level and window z-order.
 [target.'cfg(target_os = "macos")'.dependencies]

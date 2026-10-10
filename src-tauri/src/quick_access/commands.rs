@@ -3,11 +3,11 @@
 //! thread and never block the main thread.
 
 use serde::Serialize;
-use tauri::AppHandle;
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
-use super::{card_for_label, close, file_of, resize, set_pending_delete, CardPayload};
+use super::{card_for_label, close, drag_image, file_of, resize, set_pending_delete, CardPayload};
 use crate::{capture::encode, platform};
 
 /// The card a (freshly loaded) card window should show, if one is assigned to it.
@@ -46,6 +46,50 @@ pub fn quick_access_undo_delete(app: AppHandle, id: String) -> Result<(), String
     set_pending_delete(&app, &id, false)
         .then_some(())
         .ok_or_else(|| "This screenshot is no longer available.".to_string())
+}
+
+#[derive(Clone, Serialize)]
+struct DragState {
+    label: String,
+    active: bool,
+}
+
+/// Starts a drag of the screenshot file out of the card (into a chat, a folder, a web page...).
+/// A sync command on purpose: starting a drag has to happen on the main thread.
+#[tauri::command]
+pub fn quick_access_drag(
+    app: AppHandle,
+    window: tauri::WebviewWindow,
+    id: String,
+) -> Result<(), String> {
+    let path = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
+    let image = drag_image(&app, &id).ok_or("This screenshot is no longer available.")?;
+    let label = window.label().to_string();
+    let (done_app, done_label) = (app.clone(), label.clone());
+    drag::start_drag(
+        &window,
+        drag::DragItem::Files(vec![path]),
+        drag::Image::Raw(image),
+        move |_result, _cursor| {
+            let _ = done_app.emit(
+                "quick-access-drag",
+                DragState {
+                    label: done_label.clone(),
+                    active: false,
+                },
+            );
+        },
+        drag::Options::default(),
+    )
+    .map_err(|e| e.to_string())?;
+    let _ = app.emit(
+        "quick-access-drag",
+        DragState {
+            label,
+            active: true,
+        },
+    );
+    Ok(())
 }
 
 /// Copies the saved screenshot to the clipboard again.

@@ -161,6 +161,9 @@ pub struct CardPayload {
     source: &'static str,
     bytes: u64,
     pad: Pad,
+    /// `bottom` if the stack sits in a bottom corner: there is no room below a card, so hints that
+    /// belong "beside" the card go above it.
+    edge: &'static str,
 }
 
 /// `label` names the window the update is for: a JS listener hears events addressed to any
@@ -193,7 +196,7 @@ pub(crate) fn short_folder(path: &std::path::Path) -> String {
     parts[parts.len().saturating_sub(2)..].join("/")
 }
 
-fn payload(card: &Card, index: usize, placed: &Placed) -> CardPayload {
+fn payload(card: &Card, index: usize, placed: &Placed, corner: Corner) -> CardPayload {
     CardPayload {
         id: card.id.clone(),
         style: if index == 0 {
@@ -215,6 +218,11 @@ fn payload(card: &Card, index: usize, placed: &Placed) -> CardPayload {
         source: source_name(card.source),
         bytes: card.bytes,
         pad: placed.pad,
+        edge: if matches!(corner, Corner::BottomLeft | Corner::BottomRight) {
+            "bottom"
+        } else {
+            "top"
+        },
     }
 }
 
@@ -295,7 +303,7 @@ fn relayout(app: &AppHandle) {
             .iter()
             .zip(&placed)
             .enumerate()
-            .map(|(i, (card, p))| (card.label, *p, payload(card, i, p), card.shown))
+            .map(|(i, (card, p))| (card.label, *p, payload(card, i, p, area.corner), card.shown))
             .collect()
     };
     for (label, placed, payload, _) in updates {
@@ -493,7 +501,7 @@ pub fn card_for_label(app: &AppHandle, label: &str) -> Option<CardPayload> {
         .zip(&placed)
         .enumerate()
         .find(|(_, (c, _))| c.label == label)
-        .map(|(i, (c, p))| payload(c, i, p))
+        .map(|(i, (c, p))| payload(c, i, p, area.corner))
 }
 
 pub fn thumb(app: &AppHandle, id: &str) -> Option<Arc<Vec<u8>>> {
@@ -504,6 +512,14 @@ pub fn thumb(app: &AppHandle, id: &str) -> Option<Arc<Vec<u8>>> {
         .iter()
         .find(|c| c.id == id)
         .map(|c| c.thumb.clone())
+}
+
+/// The small picture that follows the pointer during a drag: the thumbnail scaled down to 132 px.
+pub fn drag_image(app: &AppHandle, id: &str) -> Option<Vec<u8>> {
+    let thumb = thumb(app, id)?;
+    let frame = crate::capture::encode::decode_png(&thumb).ok()?;
+    let small = crate::capture::pixels::downscale(&frame, 132);
+    crate::capture::encode::encode_png(&small, crate::capture::encode::Profile::Fast).ok()
 }
 
 pub fn file_of(app: &AppHandle, id: &str) -> Option<PathBuf> {

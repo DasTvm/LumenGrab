@@ -16,6 +16,7 @@ test.describe("quick access gallery (design states)", () => {
         "04 Saved",
         "05 Save failed",
         "06 Auto-close timer",
+        "07 Drag out",
       ]) {
         await expect(page.getByRole("region", { name })).toBeVisible();
       }
@@ -28,6 +29,9 @@ test.describe("quick access gallery (design states)", () => {
       await expect(
         page.getByRole("region", { name: "04 Saved" }).getByRole("status"),
       ).toContainText("Saved to Pictures/LumenGrab");
+      await expect(
+        page.getByRole("region", { name: "07 Drag out" }).getByTestId("drag-hint"),
+      ).toContainText("Drag to a chat or folder");
       await expect(
         page.getByRole("region", { name: "05 Save failed" }).getByRole("status"),
       ).toContainText("Could not save: folder not writable");
@@ -157,6 +161,29 @@ test.describe("quick access card (browser mock)", () => {
     await page.goto("/?window=quick&card=compact&secs=0&saveas=cancel");
     await page.getByRole("button", { name: "Save as…" }).click();
     await expect(page.getByRole("status")).toHaveCount(0);
+  });
+
+  test("pressing the picture and moving the pointer starts a drag of the file, a plain click does not", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=compact&secs=0");
+    const thumb = page.getByTestId("quick-access-card").locator("img");
+    const box = await thumb.boundingBox();
+    if (!box) throw new Error("thumbnail not visible");
+    const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.up();
+    expect((await submissions(page)).filter((s) => s.kind === "qaDrag")).toHaveLength(0);
+
+    await page.mouse.down();
+    await page.mouse.move(x + 3, y);
+    expect((await submissions(page)).filter((s) => s.kind === "qaDrag")).toHaveLength(0);
+    await page.mouse.move(x + 20, y + 5, { steps: 4 });
+    await page.mouse.up();
+    expect((await submissions(page)).filter((s) => s.kind === "qaDrag")).toEqual([
+      { kind: "qaDrag", id: "demo" },
+    ]);
   });
 
   test("Close and Esc close the card", async ({ page }) => {

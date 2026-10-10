@@ -165,6 +165,16 @@ export const nativePlatform: Platform = {
     await call("quick_access_close", { id });
   },
 
+  async quickAccessDrag(id) {
+    await call("quick_access_drag", { id });
+  },
+
+  async onQuickAccessDrag(slot, listener) {
+    return listen<{ label: string; active: boolean }>("quick-access-drag", (event) => {
+      if (event.payload.label === slot) listener(event.payload.active);
+    });
+  },
+
   async quickAccessDelete(id) {
     await call("quick_access_delete", { id });
   },

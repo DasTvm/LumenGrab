@@ -71,6 +71,8 @@ export interface QuickAccessCard {
   source: "Area" | "Window" | "Fullscreen";
   bytes: number;
   pad: CardPad;
+  /** `bottom`: the stack is in a bottom corner, so hints go above the card instead of below it. */
+  edge: "top" | "bottom";
 }
 
 /** Where "Save as…" put the copy. */
@@ -167,6 +169,10 @@ export interface Platform {
   /** "Delete": the screenshot goes to the Trash when the card closes, unless `quickAccessUndoDelete` comes first. */
   quickAccessDelete(id: string): Promise<void>;
   quickAccessUndoDelete(id: string): Promise<void>;
+  /** Starts dragging the screenshot file out of the card (into a chat, a folder, a web page). */
+  quickAccessDrag(id: string): Promise<void>;
+  /** Calls `listener(true)` when a drag started from this card's window and `listener(false)` when it ended. */
+  onQuickAccessDrag(slot: string, listener: (active: boolean) => void): Promise<() => void>;
   /** Copies the saved screenshot to the clipboard. */
   quickAccessCopy(id: string): Promise<void>;
   /** "Save as…": resolves to where the copy went, or `null` if the user cancelled. */

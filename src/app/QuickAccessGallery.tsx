@@ -16,6 +16,7 @@ const CARD: QuickAccessCard = {
   source: "Area",
   bytes: 1_234_567,
   pad: { top: 52, right: 24, bottom: 24, left: 24 },
+  edge: "bottom",
 };
 
 const LARGE: QuickAccessCard = {
@@ -77,6 +78,11 @@ const STATES: { name: string; note: string; props: Partial<QuickAccessCardViewPr
     name: "06 Auto-close timer",
     note: "A thin line shrinks to the left. Hovering pauses it.",
     props: { timer: 0.6 },
+  },
+  {
+    name: "07 Drag out",
+    note: "Drag the picture to a chat or folder: it is outlined and a hint says where to drop.",
+    props: { dragging: true },
   },
 ];
 
