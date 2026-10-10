@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-10T22:46:41.175Z",
+  "generatedAt": "2026-10-10T22:54:00.539Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -408,6 +408,13 @@
       "category": "internal",
       "title": "ADR 0002 (document format implementation), README, checklist, licenses (zod, fflate, single-instance)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/8f6554ab2b343bc7e65c638a0d041e3d7f39da3d"
+    },
+    {
+      "id": "0e8592ef67bd8580c2c0ac999a119fb470bd2c61",
+      "date": "2026-10-10T22:53:49Z",
+      "category": "internal",
+      "title": "format ADR 0002",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/0e8592ef67bd8580c2c0ac999a119fb470bd2c61"
     }
   ],
   "releases": [],
@@ -469,7 +476,8 @@
     "762d61c035b016c69489b7cd5cb14c6d79391642",
     "35b2c162dcd46a1607d4ce89bd34c9b88bc6f8e4",
     "fb0687c0ed808fcd15a62148b199ce5824e0713a",
-    "8f6554ab2b343bc7e65c638a0d041e3d7f39da3d"
+    "8f6554ab2b343bc7e65c638a0d041e3d7f39da3d",
+    "0e8592ef67bd8580c2c0ac999a119fb470bd2c61"
   ],
   "roadmap": {
     "schemaVersion": 1,
