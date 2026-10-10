@@ -1,0 +1,768 @@
+{
+  "schemaVersion": 1,
+  "repository": "DasTvm/LumenGrab",
+  "generatedAt": "2026-10-10T18:51:02.883Z",
+  "changes": [
+    {
+      "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
+      "date": "2026-10-06T19:46:55Z",
+      "category": "internal",
+      "title": "add project guide and format spec",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/c4bda027818fbbfdc15349c0e1a8d62b945f0761"
+    },
+    {
+      "id": "7478a7a4ea387869bd46b1587570165129878773",
+      "date": "2026-10-06T20:05:01Z",
+      "category": "internal",
+      "title": "scaffold tauri 2 with react and strict typescript",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/7478a7a4ea387869bd46b1587570165129878773"
+    },
+    {
+      "id": "0a8413a57d73173ab08bab43a0f6d54d5390204e",
+      "date": "2026-10-06T20:06:21Z",
+      "category": "new",
+      "title": "design tokens with light and dark mode",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/0a8413a57d73173ab08bab43a0f6d54d5390204e"
+    },
+    {
+      "id": "9e0796156463bc6065522e52f946029ce0394566",
+      "date": "2026-10-06T20:06:21Z",
+      "category": "internal",
+      "title": "add tailwind, eslint, prettier and shadcn config",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/9e0796156463bc6065522e52f946029ce0394566"
+    },
+    {
+      "id": "451ef1de1b2fda0a9c4b98b8e6b5c49fe3f1961a",
+      "date": "2026-10-06T20:06:33Z",
+      "category": "internal",
+      "title": "add repository folder structure",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/451ef1de1b2fda0a9c4b98b8e6b5c49fe3f1961a"
+    },
+    {
+      "id": "664ac4ffcfbacb5171f71eb799de1b7f5cee380d",
+      "date": "2026-10-06T20:07:15Z",
+      "category": "new",
+      "title": "typed platform layer with browser mock mode",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/664ac4ffcfbacb5171f71eb799de1b7f5cee380d"
+    },
+    {
+      "id": "8a9f3647e3f90e54227eda0f7c2b90553a8650b6",
+      "date": "2026-10-06T20:08:09Z",
+      "category": "internal",
+      "title": "add vitest unit test and playwright mock-mode screenshots",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/8a9f3647e3f90e54227eda0f7c2b90553a8650b6"
+    },
+    {
+      "id": "5df5b3a235f2212ffebe7ccbf3f3ea09a2c2b9e2",
+      "date": "2026-10-06T20:10:59Z",
+      "category": "new",
+      "title": "tray icon with menu and settings window placeholder",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/5df5b3a235f2212ffebe7ccbf3f3ea09a2c2b9e2"
+    },
+    {
+      "id": "27753f6e5d5f544911f205e40b4d49b435726f40",
+      "date": "2026-10-06T20:12:09Z",
+      "category": "internal",
+      "title": "add checks and release workflows, document updater setup",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/27753f6e5d5f544911f205e40b4d49b435726f40"
+    },
+    {
+      "id": "3a9024bbc683eaee714ca87864438fa56c0bc645",
+      "date": "2026-10-06T20:15:26Z",
+      "category": "internal",
+      "title": "add license, readme, contributing, eula and third-party licenses",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/3a9024bbc683eaee714ca87864438fa56c0bc645"
+    },
+    {
+      "id": "6e313c4950b32e3033d950841eb13f974d2b724d",
+      "date": "2026-10-06T20:15:39Z",
+      "category": "internal",
+      "title": "update commands in AGENTS.md",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/6e313c4950b32e3033d950841eb13f974d2b724d"
+    },
+    {
+      "id": "7c89a805f65e935ae96577e6826c4ad141ff76a5",
+      "date": "2026-10-06T20:45:48Z",
+      "category": "internal",
+      "title": "draft capture backend ADR and manual multi-monitor test checklist",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/7c89a805f65e935ae96577e6826c4ad141ff76a5"
+    },
+    {
+      "id": "80a6f70835c55522b8d4504b01dd31f26bd38fc5",
+      "date": "2026-10-06T20:45:48Z",
+      "category": "internal",
+      "title": "capture backend diagnostics comparing xcap and ScreenCaptureKit",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/80a6f70835c55522b8d4504b01dd31f26bd38fc5"
+    },
+    {
+      "id": "3eb493aa8aedbde92c56f044545a346ff14bc691",
+      "date": "2026-10-06T20:49:10Z",
+      "category": "internal",
+      "title": "record measured macOS results and decide ScreenCaptureKit in capture ADR",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/3eb493aa8aedbde92c56f044545a346ff14bc691"
+    },
+    {
+      "id": "fea1bc6041d12dee9a3ca696a09ad1a2d2b9e658",
+      "date": "2026-10-06T20:49:10Z",
+      "category": "internal",
+      "title": "add ScreenCaptureKit time split (capture vs pixel readback)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/fea1bc6041d12dee9a3ca696a09ad1a2d2b9e658"
+    },
+    {
+      "id": "6ed2fc5d0beec94561c03ccf479f7fd6bd448422",
+      "date": "2026-10-08T15:08:46Z",
+      "category": "internal",
+      "title": "ignore capture spike reports and screenshots",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/6ed2fc5d0beec94561c03ccf479f7fd6bd448422"
+    },
+    {
+      "id": "ae261ec5ed57f412991bec8eda7afd6b8d36407f",
+      "date": "2026-10-08T15:11:04Z",
+      "category": "internal",
+      "title": "remove draft banner from EULA",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/ae261ec5ed57f412991bec8eda7afd6b8d36407f"
+    },
+    {
+      "id": "5420ac68496259292e961c1a36805d0294e466b7",
+      "date": "2026-10-08T15:21:30Z",
+      "category": "internal",
+      "title": "fix gitleaks install checksum check",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/5420ac68496259292e961c1a36805d0294e466b7"
+    },
+    {
+      "id": "8906811e4b2274b732f8df13782ce22d0814fb20",
+      "date": "2026-10-08T15:21:34Z",
+      "category": "internal",
+      "title": "pin ubuntu runners to 24.04",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/8906811e4b2274b732f8df13782ce22d0814fb20"
+    },
+    {
+      "id": "00a99e426438b2926937beeb1291812f4ad249ef",
+      "date": "2026-10-08T15:43:51Z",
+      "category": "internal",
+      "title": "pin release runners to macos-26 and windows-2025",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/00a99e426438b2926937beeb1291812f4ad249ef"
+    },
+    {
+      "id": "722b36b5aad18b362f8718f02b9eac8c98dbe5fb",
+      "date": "2026-10-08T15:44:10Z",
+      "category": "new",
+      "title": "require macOS 14 as minimum system version",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/722b36b5aad18b362f8718f02b9eac8c98dbe5fb"
+    },
+    {
+      "id": "945888e475ad87cb40ad67c6d58ad4fc8c739150",
+      "date": "2026-10-08T15:44:11Z",
+      "category": "internal",
+      "title": "add rust job on macOS and Windows (fmt, clippy, test)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/945888e475ad87cb40ad67c6d58ad4fc8c739150"
+    },
+    {
+      "id": "48a58ff7c8441b95db52c716fe5e15b20f82f428",
+      "date": "2026-10-08T15:56:39Z",
+      "category": "new",
+      "title": "capturer trait, geometry, frame store and platform backends",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/48a58ff7c8441b95db52c716fe5e15b20f82f428"
+    },
+    {
+      "id": "9d991a933bab15bfa567a6b87e7caad0fc8cdbf5",
+      "date": "2026-10-08T15:59:02Z",
+      "category": "new",
+      "title": "capture flow, overlay windows, frame protocol, hotkeys, save and clipboard",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/9d991a933bab15bfa567a6b87e7caad0fc8cdbf5"
+    },
+    {
+      "id": "b61c51d45fea04b893a29a4a8c177b885c13cf75",
+      "date": "2026-10-08T16:02:07Z",
+      "category": "new",
+      "title": "typed capture wrappers with browser mocks",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/b61c51d45fea04b893a29a4a8c177b885c13cf75"
+    },
+    {
+      "id": "b5c8b28b110e2db3cac9ff9cf83fe2264510f9ee",
+      "date": "2026-10-08T16:02:08Z",
+      "category": "new",
+      "title": "selection geometry with unit tests",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/b5c8b28b110e2db3cac9ff9cf83fe2264510f9ee"
+    },
+    {
+      "id": "dc123189dab23b382fe9ba19783e0cfde5264582",
+      "date": "2026-10-08T16:02:08Z",
+      "category": "new",
+      "title": "capture overlay for area and window selection",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/dc123189dab23b382fe9ba19783e0cfde5264582"
+    },
+    {
+      "id": "d5be3cb4fc940332513af8c060164e571be7a1cb",
+      "date": "2026-10-08T16:03:13Z",
+      "category": "fixed",
+      "title": "satisfy clippy on Windows (dead code, chunked alpha loop)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/d5be3cb4fc940332513af8c060164e571be7a1cb"
+    },
+    {
+      "id": "5fabfec3ec3935b795dba48391577a0898b58d28",
+      "date": "2026-10-08T19:23:14Z",
+      "category": "improved",
+      "title": "overlap overlay creation with freezing, reuse display snapshot",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/5fabfec3ec3935b795dba48391577a0898b58d28"
+    },
+    {
+      "id": "5ef9b8ecda004016c45c9a4f1b9db5d37b61fd7f",
+      "date": "2026-10-08T19:23:37Z",
+      "category": "internal",
+      "title": "record macOS capture measurements and the developer self-test",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/5ef9b8ecda004016c45c9a4f1b9db5d37b61fd7f"
+    },
+    {
+      "id": "20db3c1a4bab56530ce39c2b1bc311b217e138bc",
+      "date": "2026-10-08T20:01:44Z",
+      "category": "fixed",
+      "title": "Escape deadlock, focus follows the cursor, no content protection, watchdog",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/20db3c1a4bab56530ce39c2b1bc311b217e138bc"
+    },
+    {
+      "id": "b7a58c8af7d4592cc3ca7da28c2f30e8535a94f9",
+      "date": "2026-10-08T20:17:57Z",
+      "category": "internal",
+      "title": "local dev signing certificate script keeps the Screen Recording permission across rebuilds",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/b7a58c8af7d4592cc3ca7da28c2f30e8535a94f9"
+    },
+    {
+      "id": "bf2c405185d9bf899c8334457ce4248fe1a2f545",
+      "date": "2026-10-08T20:27:12Z",
+      "category": "new",
+      "title": "design tokens, fonts and components from the LumenGrab design",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/bf2c405185d9bf899c8334457ce4248fe1a2f545"
+    },
+    {
+      "id": "da01c34cdddffc655264220a68f6061df16df74c",
+      "date": "2026-10-08T20:30:22Z",
+      "category": "new",
+      "title": "capture overlay per design with mode toolbar, handles and Space to move",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/da01c34cdddffc655264220a68f6061df16df74c"
+    },
+    {
+      "id": "ae7936c527d0a8b9604b55c0b6e63b0d2f55f4f0",
+      "date": "2026-10-09T19:50:33Z",
+      "category": "new",
+      "title": "settings window per design (General, Hotkeys) with real theme switch",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/ae7936c527d0a8b9604b55c0b6e63b0d2f55f4f0"
+    },
+    {
+      "id": "469f3f92021d0b81d923e776f24d77c0c9924aa1",
+      "date": "2026-10-09T19:54:45Z",
+      "category": "new",
+      "title": "permission window per design replaces the native dialog",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/469f3f92021d0b81d923e776f24d77c0c9924aa1"
+    },
+    {
+      "id": "b6f541490f554db65fd0dffe455cd638551067b7",
+      "date": "2026-10-09T19:55:07Z",
+      "category": "internal",
+      "title": "design source, fonts and the new screens in the test checklist",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/b6f541490f554db65fd0dffe455cd638551067b7"
+    },
+    {
+      "id": "d3292bb0835e173947aa4e27623c3cf0e16dc938",
+      "date": "2026-10-09T20:23:27Z",
+      "category": "new",
+      "title": "main shortcut Ctrl+Shift+1 with capture bar, shared mode across displays",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/d3292bb0835e173947aa4e27623c3cf0e16dc938"
+    },
+    {
+      "id": "1b2599a6c5ec7b62689aab6e2ff76fbf08114a67",
+      "date": "2026-10-09T20:24:09Z",
+      "category": "fixed",
+      "title": "drop the unused start mode from Session (release clippy)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/1b2599a6c5ec7b62689aab6e2ff76fbf08114a67"
+    },
+    {
+      "id": "833b091ccc15c131b6573a24cbd3860ae879898b",
+      "date": "2026-10-09T20:32:48Z",
+      "category": "fixed",
+      "title": "clear the window highlight when the pointer or focus moves to another display",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/833b091ccc15c131b6573a24cbd3860ae879898b"
+    },
+    {
+      "id": "f2d56473cfce2be20a01f5894062e836c2658c3d",
+      "date": "2026-10-09T21:36:47Z",
+      "category": "improved",
+      "title": "keep the overlay windows warm and reuse them for every capture",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/f2d56473cfce2be20a01f5894062e836c2658c3d"
+    },
+    {
+      "id": "fd54b62408c40ce2bd25f1044e56cb56010e323e",
+      "date": "2026-10-09T21:36:47Z",
+      "category": "new",
+      "title": "new logo as app icon and menu bar template, brand assets and favicon",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/fd54b62408c40ce2bd25f1044e56cb56010e323e"
+    },
+    {
+      "id": "951c877d41316455e1f93168dd9c3a613bc384e4",
+      "date": "2026-10-10T03:13:51Z",
+      "category": "new",
+      "title": "after-capture options (Quick Access, auto-close, corner) and a real clipboard switch",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/951c877d41316455e1f93168dd9c3a613bc384e4"
+    },
+    {
+      "id": "c58dd0896778ce72bb272c573eb13d24f2d00ccd",
+      "date": "2026-10-10T03:35:02Z",
+      "category": "new",
+      "title": "compact card in a screen corner after each capture",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/c58dd0896778ce72bb272c573eb13d24f2d00ccd"
+    },
+    {
+      "id": "130949e32491e20b335a71a0ba54cfc5e66010ca",
+      "date": "2026-10-10T03:52:16Z",
+      "category": "new",
+      "title": "large style, delete with undo, per-window card events",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/130949e32491e20b335a71a0ba54cfc5e66010ca"
+    },
+    {
+      "id": "c9ed47d6325a101cc10d7a309ba0892edc43bb75",
+      "date": "2026-10-10T04:06:18Z",
+      "category": "new",
+      "title": "drag the screenshot file out of the card",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/c9ed47d6325a101cc10d7a309ba0892edc43bb75"
+    },
+    {
+      "id": "3609624e9f4359c2df70612e3abfa06a019ac32b",
+      "date": "2026-10-10T04:14:39Z",
+      "category": "new",
+      "title": "notice cards replace the native error dialogs",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/3609624e9f4359c2df70612e3abfa06a019ac32b"
+    },
+    {
+      "id": "26ac641df95f009cd3d0e35e24e8fc855f779c9b",
+      "date": "2026-10-10T04:21:18Z",
+      "category": "new",
+      "title": "first-start hint on Windows",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/26ac641df95f009cd3d0e35e24e8fc855f779c9b"
+    },
+    {
+      "id": "7a78e5d07eb122a8fe13e6b61a371b29ed33958c",
+      "date": "2026-10-10T04:23:14Z",
+      "category": "internal",
+      "title": "Quick Access decisions, test checklist and licenses (trash, drag)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/7a78e5d07eb122a8fe13e6b61a371b29ed33958c"
+    },
+    {
+      "id": "0714250150499a81acbe8dbcad321541dcbfa595",
+      "date": "2026-10-10T17:35:17Z",
+      "category": "fixed",
+      "title": "drag-out on Windows (hint, stuck timer)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/0714250150499a81acbe8dbcad321541dcbfa595"
+    },
+    {
+      "id": "b560ddb5434f131802db604b6f8dc93f6d4cdffc",
+      "date": "2026-10-10T18:10:55Z",
+      "category": "new",
+      "title": ".lumengrab format v1: schema, container, read/write, migrations scaffold, golden fixtures",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/b560ddb5434f131802db604b6f8dc93f6d4cdffc"
+    },
+    {
+      "id": "29435b44e78a3c9e2ce21a2592bc06411370bba6",
+      "date": "2026-10-10T18:11:51Z",
+      "category": "internal",
+      "title": "format the fixture script",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/29435b44e78a3c9e2ce21a2592bc06411370bba6"
+    },
+    {
+      "id": "cffcd6a4bad91cf943159ab13ea62c953046519b",
+      "date": "2026-10-10T18:17:07Z",
+      "category": "new",
+      "title": "flat rendering with redactions baked into previews and exports",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/cffcd6a4bad91cf943159ab13ea62c953046519b"
+    },
+    {
+      "id": "d6878a66288251901f80ccfc0507f7fc52f5c4de",
+      "date": "2026-10-10T18:23:00Z",
+      "category": "new",
+      "title": "native plumbing: file association, viewer windows, guarded file access",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/d6878a66288251901f80ccfc0507f7fc52f5c4de"
+    }
+  ],
+  "releases": [],
+  "unreleasedIds": [
+    "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
+    "7478a7a4ea387869bd46b1587570165129878773",
+    "0a8413a57d73173ab08bab43a0f6d54d5390204e",
+    "9e0796156463bc6065522e52f946029ce0394566",
+    "451ef1de1b2fda0a9c4b98b8e6b5c49fe3f1961a",
+    "664ac4ffcfbacb5171f71eb799de1b7f5cee380d",
+    "8a9f3647e3f90e54227eda0f7c2b90553a8650b6",
+    "5df5b3a235f2212ffebe7ccbf3f3ea09a2c2b9e2",
+    "27753f6e5d5f544911f205e40b4d49b435726f40",
+    "3a9024bbc683eaee714ca87864438fa56c0bc645",
+    "6e313c4950b32e3033d950841eb13f974d2b724d",
+    "7c89a805f65e935ae96577e6826c4ad141ff76a5",
+    "80a6f70835c55522b8d4504b01dd31f26bd38fc5",
+    "3eb493aa8aedbde92c56f044545a346ff14bc691",
+    "fea1bc6041d12dee9a3ca696a09ad1a2d2b9e658",
+    "6ed2fc5d0beec94561c03ccf479f7fd6bd448422",
+    "ae261ec5ed57f412991bec8eda7afd6b8d36407f",
+    "5420ac68496259292e961c1a36805d0294e466b7",
+    "8906811e4b2274b732f8df13782ce22d0814fb20",
+    "00a99e426438b2926937beeb1291812f4ad249ef",
+    "722b36b5aad18b362f8718f02b9eac8c98dbe5fb",
+    "945888e475ad87cb40ad67c6d58ad4fc8c739150",
+    "48a58ff7c8441b95db52c716fe5e15b20f82f428",
+    "9d991a933bab15bfa567a6b87e7caad0fc8cdbf5",
+    "b61c51d45fea04b893a29a4a8c177b885c13cf75",
+    "b5c8b28b110e2db3cac9ff9cf83fe2264510f9ee",
+    "dc123189dab23b382fe9ba19783e0cfde5264582",
+    "d5be3cb4fc940332513af8c060164e571be7a1cb",
+    "5fabfec3ec3935b795dba48391577a0898b58d28",
+    "5ef9b8ecda004016c45c9a4f1b9db5d37b61fd7f",
+    "20db3c1a4bab56530ce39c2b1bc311b217e138bc",
+    "b7a58c8af7d4592cc3ca7da28c2f30e8535a94f9",
+    "bf2c405185d9bf899c8334457ce4248fe1a2f545",
+    "da01c34cdddffc655264220a68f6061df16df74c",
+    "ae7936c527d0a8b9604b55c0b6e63b0d2f55f4f0",
+    "469f3f92021d0b81d923e776f24d77c0c9924aa1",
+    "b6f541490f554db65fd0dffe455cd638551067b7",
+    "d3292bb0835e173947aa4e27623c3cf0e16dc938",
+    "1b2599a6c5ec7b62689aab6e2ff76fbf08114a67",
+    "833b091ccc15c131b6573a24cbd3860ae879898b",
+    "f2d56473cfce2be20a01f5894062e836c2658c3d",
+    "fd54b62408c40ce2bd25f1044e56cb56010e323e",
+    "951c877d41316455e1f93168dd9c3a613bc384e4",
+    "c58dd0896778ce72bb272c573eb13d24f2d00ccd",
+    "130949e32491e20b335a71a0ba54cfc5e66010ca",
+    "c9ed47d6325a101cc10d7a309ba0892edc43bb75",
+    "3609624e9f4359c2df70612e3abfa06a019ac32b",
+    "26ac641df95f009cd3d0e35e24e8fc855f779c9b",
+    "7a78e5d07eb122a8fe13e6b61a371b29ed33958c",
+    "0714250150499a81acbe8dbcad321541dcbfa595",
+    "b560ddb5434f131802db604b6f8dc93f6d4cdffc",
+    "29435b44e78a3c9e2ce21a2592bc06411370bba6",
+    "cffcd6a4bad91cf943159ab13ea62c953046519b",
+    "d6878a66288251901f80ccfc0507f7fc52f5c4de"
+  ],
+  "roadmap": {
+    "schemaVersion": 1,
+    "milestones": [
+      {
+        "id": "M0",
+        "title": "Scaffold",
+        "description": "App shell, tests, CI and the tray icon.",
+        "status": "done",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "App shell and browser mock mode",
+            "done": true
+          },
+          {
+            "id": "task-2",
+            "title": "Design tokens and core UI",
+            "done": true
+          },
+          {
+            "id": "task-3",
+            "title": "Unit and screenshot tests",
+            "done": true
+          },
+          {
+            "id": "task-4",
+            "title": "Checks for macOS and Windows",
+            "done": true
+          },
+          {
+            "id": "task-5",
+            "title": "Tray icon",
+            "done": true
+          }
+        ],
+        "finishedAt": "2026-10-06"
+      },
+      {
+        "id": "M1",
+        "title": "Capture MVP",
+        "description": "Hotkey, area, window and fullscreen, save and clipboard, multi-monitor.",
+        "status": "building",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "Global hotkey and the capture bar",
+            "done": true
+          },
+          {
+            "id": "task-2",
+            "title": "Area and window selection",
+            "done": true
+          },
+          {
+            "id": "task-3",
+            "title": "Fullscreen capture",
+            "done": true
+          },
+          {
+            "id": "task-4",
+            "title": "Save to file and copy to clipboard",
+            "done": true
+          },
+          {
+            "id": "task-5",
+            "title": "Multi-monitor and mixed DPI, tested on real setups",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "M2",
+        "title": "Quick Access overlay",
+        "description": "Copy, save, edit, drag out, auto-close.",
+        "status": "building",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "Card in a screen corner after each capture",
+            "done": true
+          },
+          {
+            "id": "task-2",
+            "title": "Auto-close and corner setting",
+            "done": true
+          },
+          {
+            "id": "task-3",
+            "title": "Drag the screenshot out",
+            "done": true
+          },
+          {
+            "id": "task-4",
+            "title": "Large preview with delete and undo",
+            "done": true
+          },
+          {
+            "id": "task-5",
+            "title": "Edit opens the editor, arrives with M4",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "M3",
+        "title": "Document and .lumengrab format",
+        "description": "Schemas, read and write, migrations, file association.",
+        "status": "next",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "Document schemas and ZIP container",
+            "done": false
+          },
+          {
+            "id": "task-2",
+            "title": "Read and write with validation",
+            "done": false
+          },
+          {
+            "id": "task-3",
+            "title": "Migrations and golden fixtures",
+            "done": false
+          },
+          {
+            "id": "task-4",
+            "title": "Preview rendering",
+            "done": false
+          },
+          {
+            "id": "task-5",
+            "title": "File association",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "M4",
+        "title": "Editor",
+        "description": "Crop, annotations, redactions, undo and export.",
+        "status": "planned",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "Crop and resize",
+            "done": false
+          },
+          {
+            "id": "task-2",
+            "title": "Annotation tools",
+            "done": false
+          },
+          {
+            "id": "task-3",
+            "title": "Permanent redactions in flat exports",
+            "done": false
+          },
+          {
+            "id": "task-4",
+            "title": "Undo and redo",
+            "done": false
+          },
+          {
+            "id": "task-5",
+            "title": "PNG, JPG and WebP export",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "M5",
+        "title": "Presentation",
+        "description": "Backgrounds, padding, shadows and window frames.",
+        "status": "planned",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "Backgrounds and saved presets",
+            "done": false
+          },
+          {
+            "id": "task-2",
+            "title": "Padding, radius and shadows",
+            "done": false
+          },
+          {
+            "id": "task-3",
+            "title": "Aspect presets",
+            "done": false
+          },
+          {
+            "id": "task-4",
+            "title": "Window frames",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "M6",
+        "title": "History, pin and OCR",
+        "description": "History, pinned captures, copy text, QR, all-in-one mode.",
+        "status": "planned",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "Capture history",
+            "done": false
+          },
+          {
+            "id": "task-2",
+            "title": "Pinned captures",
+            "done": false
+          },
+          {
+            "id": "task-3",
+            "title": "Local text and QR recognition",
+            "done": false
+          },
+          {
+            "id": "task-4",
+            "title": "All-in-one capture mode",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "M7",
+        "title": "Screen recording",
+        "description": "MP4 and GIF with audio and click or key overlays.",
+        "status": "planned",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "MP4 and GIF recording",
+            "done": false
+          },
+          {
+            "id": "task-2",
+            "title": "Microphone and system audio",
+            "done": false
+          },
+          {
+            "id": "task-3",
+            "title": "Click and keystroke overlays",
+            "done": false
+          }
+        ]
+      },
+      {
+        "id": "M8",
+        "title": "Scrolling capture",
+        "description": "Capture a whole page or a long chat in one go.",
+        "status": "planned",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "Long-page capture",
+            "done": false
+          },
+          {
+            "id": "task-2",
+            "title": "Long-chat capture",
+            "done": false
+          },
+          {
+            "id": "task-3",
+            "title": "Stitching and export",
+            "done": false
+          }
+        ]
+      }
+    ],
+    "later": [
+      {
+        "id": "video-editor",
+        "title": "Video editor with smart zooms",
+        "icon": "clapperboard"
+      },
+      {
+        "id": "device-mockups",
+        "title": "Device mockups",
+        "icon": "smartphone"
+      },
+      {
+        "id": "3d-tilt",
+        "title": "3D tilt",
+        "icon": "box"
+      },
+      {
+        "id": "auto-redact",
+        "title": "Local auto-redact",
+        "icon": "shield-check"
+      },
+      {
+        "id": "multi-export",
+        "title": "Multi-format export",
+        "icon": "files"
+      },
+      {
+        "id": "upload-targets",
+        "title": "Upload targets you set up",
+        "icon": "cloud-upload"
+      }
+    ],
+    "firstRelease": {
+      "description": "Planned scope, may change. It builds on Milestones M1 and M2.",
+      "changes": [
+        {
+          "category": "new",
+          "title": "Area, window and fullscreen capture with one global hotkey, on every display."
+        },
+        {
+          "category": "new",
+          "title": "Save to file and copy to clipboard."
+        },
+        {
+          "category": "new",
+          "title": "Quick Access overlay: copy, save, edit, drag out."
+        },
+        {
+          "category": "internal",
+          "title": "Unsigned installers for macOS (.dmg) and Windows (.exe), published as GitHub Releases."
+        }
+      ]
+    }
+  }
+}
