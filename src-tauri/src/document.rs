@@ -245,6 +245,16 @@ pub fn document_reveal(app: AppHandle, label: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Closes the window of a document (the "Close" button of the error dialog).
+#[tauri::command]
+pub fn document_close(app: AppHandle, label: String) {
+    if label.starts_with(WINDOW_PREFIX) {
+        if let Some(window) = app.get_webview_window(&label) {
+            let _ = window.destroy();
+        }
+    }
+}
+
 /// "Open…": a dialog, then the viewer window. Returns whether a document was opened.
 #[tauri::command]
 pub async fn document_pick_open(app: AppHandle) -> Result<bool, String> {

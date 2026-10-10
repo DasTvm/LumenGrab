@@ -6,10 +6,13 @@ import {
   PlatformError,
   type AppInfo,
   type CaptureMode,
+  type DocumentInfo,
   type OverlayMode,
   type OverlaySession,
   type PixelRect,
   type QuickAccessCard,
+  type SaveFormat,
+  type SaveTarget,
   type SavedCopy,
   type Settings,
   type SettingsInfo,
@@ -197,6 +200,47 @@ export const nativePlatform: Platform = {
 
   async quickAccessReveal(id) {
     await call("quick_access_reveal", { id });
+  },
+
+  getDocumentInfo(label: string): Promise<DocumentInfo> {
+    return call<DocumentInfo>("document_info", { label });
+  },
+
+  async loadDocument(label: string): Promise<Uint8Array> {
+    // Raw bytes come back as an ArrayBuffer, not JSON.
+    try {
+      return new Uint8Array(await invoke<ArrayBuffer>("document_load", { label }));
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The file could not be read.");
+    }
+  },
+
+  async revealDocument(label: string): Promise<void> {
+    await call("document_reveal", { label });
+  },
+
+  async closeDocument(label: string): Promise<void> {
+    await call("document_close", { label });
+  },
+
+  pickSaveTarget(options: {
+    suggestedName: string;
+    formats: SaveFormat[];
+  }): Promise<SaveTarget | null> {
+    return call<SaveTarget | null>("pick_save_target", { options });
+  },
+
+  async writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {
+    try {
+      // The body is the raw file; the token says which granted place it goes to.
+      await invoke("write_granted_file", bytes, { headers: { token } });
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The file could not be saved.");
+    }
+  },
+
+  async openUrl(url: string): Promise<void> {
+    await call("open_url", { url });
   },
 
   getSettingsInfo(): Promise<SettingsInfo> {

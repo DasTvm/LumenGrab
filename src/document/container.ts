@@ -139,7 +139,12 @@ export function readContainer(bytes: Uint8Array, limits: Limits = LIMITS): Entri
   try {
     unzip.push(bytes, true);
   } catch (e) {
-    fail(new DocumentError("not-a-zip", e instanceof Error ? e.message : "not a ZIP file"));
+    fail(
+      new DocumentError(
+        "not-a-zip",
+        `not a valid ZIP file (${e instanceof Error ? e.message : "unreadable"})`,
+      ),
+    );
   }
   // `failure` is assigned inside the callbacks above, which the compiler cannot follow.
   const problem = failure as DocumentError | null;

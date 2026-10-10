@@ -79,6 +79,7 @@ pub fn run() {
             document::document_info,
             document::document_load,
             document::document_reveal,
+            document::document_close,
             document::document_pick_open,
             document::pick_save_target,
             document::write_granted_file,

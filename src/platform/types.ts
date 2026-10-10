@@ -102,6 +102,23 @@ export interface SavedCopy {
   fileName: string;
 }
 
+/** What the native side knows about a document window's file. */
+export interface DocumentInfo {
+  fileName: string;
+  /** The folder, as shown to the user. */
+  folder: string;
+}
+
+export type SaveFormat = "png" | "lumengrab";
+
+/** A place the user picked in a save dialog, good for one write (`writeGrantedFile`). */
+export interface SaveTarget {
+  token: string;
+  folder: string;
+  fileName: string;
+  format: SaveFormat;
+}
+
 export type Os = "macos" | "windows" | "other";
 
 export interface AppInfo {
@@ -202,6 +219,23 @@ export interface Platform {
   quickAccessSaveAs(id: string): Promise<SavedCopy | null>;
   /** Shows the file in Finder / Explorer. */
   quickAccessReveal(id: string): Promise<void>;
+  /** The file of this document window. A page never names a path: the native side knows it by window. */
+  getDocumentInfo(label: string): Promise<DocumentInfo>;
+  /** The bytes of this document window's file. */
+  loadDocument(label: string): Promise<Uint8Array>;
+  /** Shows the document's file in Finder / Explorer. */
+  revealDocument(label: string): Promise<void>;
+  /** Closes this document window. */
+  closeDocument(label: string): Promise<void>;
+  /** A save dialog. `null` if the user cancelled. */
+  pickSaveTarget(options: {
+    suggestedName: string;
+    formats: SaveFormat[];
+  }): Promise<SaveTarget | null>;
+  /** Writes bytes (atomically) to a place `pickSaveTarget` granted. */
+  writeGrantedFile(token: string, bytes: Uint8Array): Promise<void>;
+  /** Opens the Releases page in the default browser (the only address the native side allows). */
+  openUrl(url: string): Promise<void>;
   getSettingsInfo(): Promise<SettingsInfo>;
   openScreenshotsFolder(): Promise<void>;
   /** Whether the OS currently lets LumenGrab record the screen (always true on Windows). */

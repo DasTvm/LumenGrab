@@ -1,6 +1,7 @@
 import { PlatformError } from "../types";
 import type {
   AppInfo,
+  DocumentInfo,
   CaptureMode,
   OverlayMode,
   OverlaySession,
@@ -10,10 +11,13 @@ import type {
   SavedCopy,
   Platform,
   Settings,
+  SaveFormat,
+  SaveTarget,
   SettingsInfo,
 } from "../types";
 import { DEFAULT_SETTINGS } from "../defaults";
 import { currentOs } from "../os";
+import { buildScenario } from "./documents";
 import { NOTICES } from "./notices";
 import sampleCaptureUrl from "./sample-capture.png?url";
 
@@ -48,6 +52,11 @@ export interface MockSubmission {
     | "qaDelete"
     | "qaDrag"
     | "qaNotice"
+    | "docReveal"
+    | "docClose"
+    | "pickSave"
+    | "writeFile"
+    | "openUrl"
     | "quit"
     | "qaUndoDelete"
     | "qaSaveAs"
@@ -67,13 +76,18 @@ export interface MockSubmission {
   id?: string;
   height?: number;
   index?: number;
+  url?: string;
+  name?: string;
+  formats?: string[];
+  size?: number;
   extraTop?: number;
   extraBottom?: number;
 }
 
 declare global {
   interface Window {
-    __lumengrabMock?: { submissions: MockSubmission[] };
+    /** `written`: the bytes a save wrote, by save token, for browser tests. */
+    __lumengrabMock?: { submissions: MockSubmission[]; written?: Record<string, Uint8Array> };
   }
 }
 
@@ -311,6 +325,61 @@ export const mockPlatform: Platform = {
 
   quickAccessReveal(id: string): Promise<void> {
     record({ kind: "qaReveal", id });
+    return Promise.resolve();
+  },
+
+  getDocumentInfo(): Promise<DocumentInfo> {
+    return Promise.resolve({
+      fileName: "Screenshot 2026-10-09 at 14.02.lumengrab",
+      folder: "Pictures/LumenGrab",
+    });
+  },
+
+  /** `?scenario=ready|redactions|annotated|readonly|corrupt|truncated|warnings` picks the document. */
+  loadDocument(): Promise<Uint8Array> {
+    return buildScenario(new URLSearchParams(window.location.search).get("scenario") ?? "ready");
+  },
+
+  revealDocument(): Promise<void> {
+    record({ kind: "docReveal" });
+    return Promise.resolve();
+  },
+
+  closeDocument(): Promise<void> {
+    record({ kind: "docClose" });
+    return Promise.resolve();
+  },
+
+  /** `?cancel=1` cancels the dialog; `?saveformat=lumengrab` picks that format. */
+  pickSaveTarget(options: {
+    suggestedName: string;
+    formats: SaveFormat[];
+  }): Promise<SaveTarget | null> {
+    record({ kind: "pickSave", name: options.suggestedName, formats: options.formats });
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("cancel") === "1") return Promise.resolve(null);
+    const wanted = q.get("saveformat");
+    const format = options.formats.find((f) => f === wanted) ?? options.formats[0] ?? "png";
+    const base = options.suggestedName.replace(/\.[^.]+$/, "");
+    return Promise.resolve({
+      token: "t1",
+      folder: "Documents/Reports",
+      fileName: `${base}.${format}`,
+      format,
+    });
+  },
+
+  writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {
+    record({ kind: "writeFile", id: token, size: bytes.length });
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    (log.written ??= {})[token] = bytes;
+    return new URLSearchParams(window.location.search).get("writefail") === "1"
+      ? Promise.reject(new PlatformError("The folder is not writable."))
+      : Promise.resolve();
+  },
+
+  openUrl(url: string): Promise<void> {
+    record({ kind: "openUrl", url });
     return Promise.resolve();
   },
 
