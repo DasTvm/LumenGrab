@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-10T22:38:32.091Z",
+  "generatedAt": "2026-10-10T22:44:41.009Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -394,6 +394,13 @@
       "category": "new",
       "title": "viewer window with the dialogs of the design, platform wrappers and mock scenarios",
       "url": "https://github.com/DasTvm/LumenGrab/commit/35b2c162dcd46a1607d4ce89bd34c9b88bc6f8e4"
+    },
+    {
+      "id": "fb0687c0ed808fcd15a62148b199ce5824e0713a",
+      "date": "2026-10-10T22:44:25Z",
+      "category": "new",
+      "title": "Save as… offers .lumengrab next to PNG; Show reveals the saved file",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/fb0687c0ed808fcd15a62148b199ce5824e0713a"
     }
   ],
   "releases": [],
@@ -453,7 +460,8 @@
     "cffcd6a4bad91cf943159ab13ea62c953046519b",
     "d6878a66288251901f80ccfc0507f7fc52f5c4de",
     "762d61c035b016c69489b7cd5cb14c6d79391642",
-    "35b2c162dcd46a1607d4ce89bd34c9b88bc6f8e4"
+    "35b2c162dcd46a1607d4ce89bd34c9b88bc6f8e4",
+    "fb0687c0ed808fcd15a62148b199ce5824e0713a"
   ],
   "roadmap": {
     "schemaVersion": 1,
