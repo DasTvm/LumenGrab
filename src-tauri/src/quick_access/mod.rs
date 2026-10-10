@@ -68,6 +68,8 @@ struct Card {
     extra_top: f64,
     extra_bottom: f64,
     shown: bool,
+    /// "Delete" was pressed: the file goes to the Trash when the card closes, unless Undo came first.
+    pending_delete: bool,
 }
 
 impl Card {
@@ -161,8 +163,11 @@ pub struct CardPayload {
     pad: Pad,
 }
 
+/// `label` names the window the update is for: a JS listener hears events addressed to any
+/// window, so each page has to filter for its own.
 #[derive(Clone, Serialize)]
 struct Update {
+    label: &'static str,
     card: Option<CardPayload>,
 }
 
@@ -307,6 +312,7 @@ fn relayout(app: &AppHandle) {
             label,
             "quick-access",
             Update {
+                label,
                 card: Some(payload),
             },
         );
@@ -317,7 +323,9 @@ fn hide(app: &AppHandle, label: &str) {
     if let Some(window) = card_window(app, label) {
         let _ = window.hide();
     }
-    let _ = app.emit_to(label, "quick-access", Update { card: None });
+    if let Some(label) = LABELS.into_iter().find(|l| *l == label) {
+        let _ = app.emit_to(label, "quick-access", Update { label, card: None });
+    }
 }
 
 /// Shows a card for a freshly saved capture. Returns `false` if Quick Access is switched off or the
@@ -336,10 +344,11 @@ pub fn show(app: &AppHandle, new: NewCard) -> bool {
         let evicted = (inner.cards.len() >= MAX_CARDS).then(|| inner.cards.remove(MAX_CARDS - 1));
         (inner.free_label(), evicted)
     };
-    if let Some(old) = &evicted {
+    if let Some(old) = evicted {
         hide(app, old.label);
+        trash_if_deleted(app, &old);
     }
-    let Some(label) = label.or(evicted.as_ref().map(|c| c.label)) else {
+    let Some(label) = label else {
         return false;
     };
     if let Err(e) = ensure_window(app, label) {
@@ -382,6 +391,7 @@ pub fn show(app: &AppHandle, new: NewCard) -> bool {
             extra_top: 0.0,
             extra_bottom: 0.0,
             shown: false,
+            pending_delete: false,
         });
     }
     relayout(app);
@@ -435,6 +445,40 @@ pub fn close(app: &AppHandle, id: &str) {
     if let Some(card) = removed {
         hide(app, card.label);
         relayout(app);
+        trash_if_deleted(app, &card);
+    }
+}
+
+/// The file of a card that was deleted (and not undone) goes to the Trash / Recycle Bin. Off the
+/// calling thread: the OS call can take a moment and the caller may be the main thread.
+fn trash_if_deleted(app: &AppHandle, card: &Card) {
+    if !card.pending_delete {
+        return;
+    }
+    let (app, path) = (app.clone(), card.path.clone());
+    std::thread::spawn(move || {
+        if let Err(e) = trash::delete(&path) {
+            crate::capture::output::error_dialog(
+                &app,
+                &format!(
+                    "The screenshot could not be moved to the Trash: {e}\n\n{}",
+                    path.display()
+                ),
+            );
+        }
+    });
+}
+
+/// "Delete" (`true`) or "Undo" (`false`). Nothing is deleted yet: that happens when the card closes.
+pub fn set_pending_delete(app: &AppHandle, id: &str, pending: bool) -> bool {
+    let qa = app.state::<QuickAccess>();
+    let mut inner = qa.inner.lock().expect("quick access state");
+    match inner.cards.iter_mut().find(|c| c.id == id) {
+        Some(card) => {
+            card.pending_delete = pending;
+            true
+        }
+        None => false,
     }
 }
 
@@ -492,6 +536,7 @@ mod tests {
             extra_top: 0.0,
             extra_bottom: 0.0,
             shown: false,
+            pending_delete: false,
         }
     }
 

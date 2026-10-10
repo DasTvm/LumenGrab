@@ -18,6 +18,36 @@ const CARD: QuickAccessCard = {
   pad: { top: 52, right: 24, bottom: 24, left: 24 },
 };
 
+const LARGE: QuickAccessCard = {
+  ...CARD,
+  style: "large",
+  width: 380,
+  pad: { top: 52, right: 24, bottom: 24, left: 24 },
+};
+
+const LARGE_STATES: { name: string; note: string; props: Partial<QuickAccessCardViewProps> }[] = [
+  {
+    name: "L1 Large normal",
+    note: "Big enough to check you captured the right thing.",
+    props: { timer: 0.6 },
+  },
+  {
+    name: "L2 Hover on Delete",
+    note: "Tooltip above the Delete button.",
+    props: { tip: "delete" },
+  },
+  {
+    name: "L3 Deleted, with Undo",
+    note: "Moved to the Trash. Undo brings it back while the line runs.",
+    props: { deleted: true, timer: 0.65, timerSecs: 6 },
+  },
+  {
+    name: "L4 Saved",
+    note: "Same status row as the compact card, inside the padding.",
+    props: { status: { kind: "saved", folder: "Pictures/LumenGrab", fileName: CARD.fileName } },
+  },
+];
+
 const STATES: { name: string; note: string; props: Partial<QuickAccessCardViewProps> }[] = [
   { name: "01 Normal", note: "Pin and OCR are hidden until M6; Edit until M4.", props: {} },
   { name: "02 Hover with tooltip", note: "Tooltip above the button.", props: { tip: "copy" } },
@@ -72,6 +102,24 @@ export function QuickAccessGallery() {
           <QuickAccessCardView card={CARD} {...props} />
         </Frame>
       ))}
+      {LARGE_STATES.map(({ name, note, props }) => (
+        <Frame key={name} name={name} note={note}>
+          <QuickAccessCardView card={LARGE} {...props} />
+        </Frame>
+      ))}
+      <Frame
+        name="L5 Several captures"
+        note="Only the newest is large. Older ones shrink to the compact card and close first."
+      >
+        <div className="flex flex-col">
+          <QuickAccessCardView
+            card={{ ...CARD, width: 380, pad: { top: 4, right: 24, bottom: 4, left: 24 } }}
+          />
+          <QuickAccessCardView
+            card={{ ...LARGE, pad: { top: 4, right: 24, bottom: 24, left: 24 } }}
+          />
+        </div>
+      </Frame>
     </main>
   );
 }

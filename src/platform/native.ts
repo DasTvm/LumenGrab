@@ -148,9 +148,11 @@ export const nativePlatform: Platform = {
     return raw ? toCard(raw) : null;
   },
 
-  async onQuickAccessCard(_slot, listener) {
-    // Sent by Rust to the window of a card whenever its card is added, restacked or removed.
-    return listen<{ card: RawQuickAccessCard | null }>("quick-access", (event) => {
+  async onQuickAccessCard(slot, listener) {
+    // Sent by Rust whenever a card is added, restacked or removed. Every page hears every window's
+    // updates, so each keeps only its own.
+    return listen<{ label: string; card: RawQuickAccessCard | null }>("quick-access", (event) => {
+      if (event.payload.label !== slot) return;
       listener(event.payload.card ? toCard(event.payload.card) : null);
     });
   },
@@ -161,6 +163,14 @@ export const nativePlatform: Platform = {
 
   async quickAccessClose(id) {
     await call("quick_access_close", { id });
+  },
+
+  async quickAccessDelete(id) {
+    await call("quick_access_delete", { id });
+  },
+
+  async quickAccessUndoDelete(id) {
+    await call("quick_access_undo_delete", { id });
   },
 
   async quickAccessCopy(id) {

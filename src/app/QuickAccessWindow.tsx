@@ -12,6 +12,8 @@ const COPIED_MS = 1800;
 const TIP_DELAY_MS = 350;
 /** Room above the card for a tooltip: its height plus the gap to the card. */
 const TIP_ROOM = 44;
+/** How long Undo is offered after Delete. The file only goes to the Trash when this has run out. */
+const UNDO_SECS = 6;
 
 function message(e: unknown, fallback: string): string {
   return e instanceof Error ? e.message : fallback;
@@ -59,11 +61,12 @@ export function QuickAccessWindow() {
 function QuickAccessController({ card }: { card: QuickAccessCard }) {
   const [copied, setCopied] = useState(false);
   const [status, setStatus] = useState<StatusRow | null>(null);
+  const [deleted, setDeleted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [tip, setTip] = useState<TipTarget | null>(null);
   const [thumbReady, setThumbReady] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
   const tipTimer = useRef<number | undefined>(undefined);
   const copiedTimer = useRef<number | undefined>(undefined);
   const { id } = card;
@@ -116,6 +119,35 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
       });
   }, [id]);
 
+  const remove = useCallback(() => {
+    setStatus(null);
+    setCopied(false);
+    platform.quickAccessDelete(id).then(
+      () => {
+        setDeleted(true);
+      },
+      (e: unknown) => {
+        setStatus({
+          kind: "error",
+          title: "Could not delete the screenshot",
+          detail: message(e, "It may already be gone."),
+          retry: "copy",
+        });
+      },
+    );
+  }, [id]);
+
+  const undo = useCallback(() => {
+    platform.quickAccessUndoDelete(id).then(
+      () => {
+        setDeleted(false);
+      },
+      () => {
+        close(); // it is already gone: nothing left to bring back
+      },
+    );
+  }, [id, close]);
+
   // Keys work once the card has been clicked (it only takes the keyboard focus when clicked).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -151,13 +183,14 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
     },
     [],
   );
-  const shownTip = copied ? "copied" : tip;
+  // The compact card says "Copied" in a pill above the button; the large one in its button.
+  const shownTip = copied && card.style === "compact" ? "copied" : tip;
 
   // Tell the native side how tall the card is (and how much room a tooltip needs). The window is
   // shown by the first report, once the thumbnail is there, so it never flashes empty.
   const extraTop = shownTip ? TIP_ROOM : 0;
   useEffect(() => {
-    const el = cardRef.current;
+    const el = cardEl;
     if (!el || !thumbReady) return;
     let last = "";
     const report = () => {
@@ -174,11 +207,11 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
     return () => {
       observer.disconnect();
     };
-  }, [id, thumbReady, extraTop, status]);
+  }, [id, cardEl, thumbReady, extraTop, status, deleted, card.style]);
 
   // Hovering means being over the card itself, not over the transparent room around it.
   useEffect(() => {
-    const el = cardRef.current;
+    const el = cardEl;
     if (!el) return;
     const enter = () => {
       setHovered(true);
@@ -192,7 +225,7 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
       el.removeEventListener("pointerenter", enter);
       el.removeEventListener("pointerleave", leave);
     };
-  }, []);
+  }, [cardEl]);
 
   return (
     <>
@@ -200,10 +233,14 @@ function QuickAccessController({ card }: { card: QuickAccessCard }) {
         card={card}
         copied={copied}
         status={status}
-        tip={shownTip}
+        deleted={deleted}
+        tip={deleted ? null : shownTip}
         timer="running"
+        timerSecs={deleted ? UNDO_SECS : card.autoCloseSecs}
         paused={hovered || busy}
-        cardRef={cardRef}
+        onCardElement={setCardEl}
+        onDelete={remove}
+        onUndo={undo}
         onCopy={copy}
         onSave={saveAs}
         onClose={close}

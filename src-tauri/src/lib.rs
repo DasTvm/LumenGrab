@@ -48,6 +48,8 @@ pub fn run() {
             quick_access::commands::quick_access_card,
             quick_access::commands::quick_access_size,
             quick_access::commands::quick_access_close,
+            quick_access::commands::quick_access_delete,
+            quick_access::commands::quick_access_undo_delete,
             quick_access::commands::quick_access_copy,
             quick_access::commands::quick_access_reveal,
             quick_access::commands::quick_access_save_as,

@@ -164,6 +164,9 @@ export interface Platform {
    */
   quickAccessSize(id: string, height: number, extraTop: number, extraBottom: number): Promise<void>;
   quickAccessClose(id: string): Promise<void>;
+  /** "Delete": the screenshot goes to the Trash when the card closes, unless `quickAccessUndoDelete` comes first. */
+  quickAccessDelete(id: string): Promise<void>;
+  quickAccessUndoDelete(id: string): Promise<void>;
   /** Copies the saved screenshot to the clipboard. */
   quickAccessCopy(id: string): Promise<void>;
   /** "Save as…": resolves to where the copy went, or `null` if the user cancelled. */

@@ -19,14 +19,80 @@ test.describe("quick access gallery (design states)", () => {
       ]) {
         await expect(page.getByRole("region", { name })).toBeVisible();
       }
-      await expect(page.getByRole("tooltip")).toHaveCount(2); // hover tooltip and the Copied pill
-      await expect(page.getByRole("status")).toHaveCount(2);
+      await expect(
+        page.getByRole("region", { name: "02 Hover with tooltip" }).getByRole("tooltip"),
+      ).toContainText("Copy image");
+      await expect(
+        page.getByRole("region", { name: "03 Copied" }).getByRole("tooltip"),
+      ).toContainText("Copied");
+      await expect(
+        page.getByRole("region", { name: "04 Saved" }).getByRole("status"),
+      ).toContainText("Saved to Pictures/LumenGrab");
+      await expect(
+        page.getByRole("region", { name: "05 Save failed" }).getByRole("status"),
+      ).toContainText("Could not save: folder not writable");
       await page.screenshot({
         path: `test-results/quick-access-states-${scheme}.png`,
         animations: "disabled",
       });
     });
   }
+});
+
+test.describe("quick access large style (design states)", () => {
+  test.use({ viewport: { width: 1040, height: 1400 } });
+
+  test("large states look like the design", async ({ page }) => {
+    await page.goto("/?window=quick-access-states");
+    for (const name of [
+      "L1 Large normal",
+      "L2 Hover on Delete",
+      "L3 Deleted, with Undo",
+      "L4 Saved",
+      "L5 Several captures",
+    ]) {
+      await expect(page.getByRole("region", { name })).toBeVisible();
+    }
+    const large = page.getByRole("region", { name: "L1 Large normal" });
+    await expect(large.getByText("1920 × 1080")).toBeVisible();
+    await expect(large.getByText("Area · 1.2 MB")).toBeVisible();
+    await expect(large.getByRole("button", { name: "Copy image" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "L3 Deleted, with Undo" })).toContainText(
+      "Screenshot moved to Trash",
+    );
+    await page.screenshot({
+      path: "test-results/quick-access-large-states-light.png",
+      animations: "disabled",
+      fullPage: true,
+    });
+  });
+});
+
+test.describe("quick access large card (browser mock)", () => {
+  test.use({ viewport: { width: 440, height: 420 } });
+
+  test("Delete asks first, shows Undo, and only Close or the end of the line really deletes", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=large&secs=0");
+    await page.getByRole("button", { name: "Delete screenshot" }).click();
+    expect((await submissions(page)).filter((s) => s.kind === "qaDelete")).toEqual([
+      { kind: "qaDelete", id: "demo" },
+    ]);
+    await expect(page.getByText("Screenshot moved to Trash")).toBeVisible();
+    await expect(page.getByTestId("undo-line")).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).click();
+    expect((await submissions(page)).filter((s) => s.kind === "qaUndoDelete")).toHaveLength(1);
+    await expect(page.getByRole("button", { name: "Copy image" })).toBeVisible();
+    // Nothing closed the card: the file is still there.
+    expect((await submissions(page)).filter((s) => s.kind === "qaClose")).toHaveLength(0);
+  });
+
+  test("copy turns the button into Copied", async ({ page }) => {
+    await page.goto("/?window=quick&card=large&secs=0");
+    await page.getByRole("button", { name: "Copy image" }).click();
+    await expect(page.getByRole("button", { name: "Copy image" })).toContainText("Copied");
+  });
 });
 
 test.describe("quick access card (browser mock)", () => {

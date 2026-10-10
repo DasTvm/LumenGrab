@@ -44,6 +44,8 @@ export interface MockSubmission {
     | "qaSize"
     | "qaClose"
     | "qaCopy"
+    | "qaDelete"
+    | "qaUndoDelete"
     | "qaSaveAs"
     | "qaReveal"
     | "mode"
@@ -235,6 +237,16 @@ export const mockPlatform: Platform = {
 
   quickAccessClose(id: string): Promise<void> {
     record({ kind: "qaClose", id });
+    return Promise.resolve();
+  },
+
+  quickAccessDelete(id: string): Promise<void> {
+    record({ kind: "qaDelete", id });
+    return Promise.resolve();
+  },
+
+  quickAccessUndoDelete(id: string): Promise<void> {
+    record({ kind: "qaUndoDelete", id });
     return Promise.resolve();
   },
 

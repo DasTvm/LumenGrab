@@ -7,7 +7,7 @@ use tauri::AppHandle;
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
-use super::{card_for_label, close, file_of, resize, CardPayload};
+use super::{card_for_label, close, file_of, resize, set_pending_delete, CardPayload};
 use crate::{capture::encode, platform};
 
 /// The card a (freshly loaded) card window should show, if one is assigned to it.
@@ -31,6 +31,21 @@ pub fn quick_access_size(
 #[tauri::command]
 pub fn quick_access_close(app: AppHandle, id: String) {
     close(&app, &id);
+}
+
+/// "Delete": the screenshot moves to the Trash when the card closes, unless `quick_access_undo_delete` comes first.
+#[tauri::command]
+pub fn quick_access_delete(app: AppHandle, id: String) -> Result<(), String> {
+    set_pending_delete(&app, &id, true)
+        .then_some(())
+        .ok_or_else(|| "This screenshot is no longer available.".to_string())
+}
+
+#[tauri::command]
+pub fn quick_access_undo_delete(app: AppHandle, id: String) -> Result<(), String> {
+    set_pending_delete(&app, &id, false)
+        .then_some(())
+        .ok_or_else(|| "This screenshot is no longer available.".to_string())
 }
 
 /// Copies the saved screenshot to the clipboard again.
