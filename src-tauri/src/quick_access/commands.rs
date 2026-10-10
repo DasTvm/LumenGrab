@@ -10,8 +10,8 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
 use super::{
-    card_for_label, close, drag_image, file_of, notice_handler, resize, set_pending_delete,
-    CardPayload,
+    card_for_label, close, drag_image, file_of, notice_handler, reserve_hint_room, resize,
+    set_pending_delete, CardPayload,
 };
 use crate::{capture::encode, platform};
 
@@ -61,6 +61,11 @@ struct DragState {
 
 /// Starts a drag of the screenshot file out of the card (into a chat, a folder, a web page...).
 /// A sync command on purpose: starting a drag has to happen on the main thread.
+///
+/// On macOS `start_drag` returns at once and the OS runs the drag; on Windows it **blocks until the
+/// drop** (`DoDragDrop`). So "dragging" is announced *before* starting and "done" by the callback
+/// (and once more after a blocking call returns), never the other way round: the first version
+/// announced it after `start_drag` and left the card "dragging" (timer paused) for good on Windows.
 #[tauri::command]
 pub fn quick_access_drag(
     app: AppHandle,
@@ -70,31 +75,40 @@ pub fn quick_access_drag(
     let path = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
     let image = drag_image(&app, &id).ok_or("This screenshot is no longer available.")?;
     let label = window.label().to_string();
-    let (done_app, done_label) = (app.clone(), label.clone());
-    drag::start_drag(
+    let announce = {
+        let (app, label) = (app.clone(), label.clone());
+        move |active: bool| {
+            let _ = app.emit(
+                "quick-access-drag",
+                DragState {
+                    label: label.clone(),
+                    active,
+                },
+            );
+        }
+    };
+    // Room for the hint first: the page cannot ask for it while a blocking drag holds this thread.
+    reserve_hint_room(&app, &id);
+    announce(true);
+    let finished = announce.clone();
+    let started = drag::start_drag(
         &window,
         drag::DragItem::Files(vec![path]),
         drag::Image::Raw(image),
-        move |_result, _cursor| {
-            let _ = done_app.emit(
-                "quick-access-drag",
-                DragState {
-                    label: done_label.clone(),
-                    active: false,
-                },
-            );
-        },
+        move |_result, _cursor| finished(false),
         drag::Options::default(),
-    )
-    .map_err(|e| e.to_string())?;
-    let _ = app.emit(
-        "quick-access-drag",
-        DragState {
-            label,
-            active: true,
-        },
     );
-    Ok(())
+    match started {
+        Ok(()) => {
+            #[cfg(target_os = "windows")]
+            announce(false); // the call blocked until the drop: the drag is over
+            Ok(())
+        }
+        Err(e) => {
+            announce(false);
+            Err(e.to_string())
+        }
+    }
 }
 
 /// Reads a saved screenshot and puts it on the clipboard.

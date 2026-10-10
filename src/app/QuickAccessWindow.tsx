@@ -232,7 +232,12 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
   useEffect(() => {
     let off: (() => void) | undefined;
     let disposed = false;
-    void platform.onQuickAccessDrag(slot, setDragging).then((unlisten) => {
+    const onDrag = (active: boolean) => {
+      setDragging(active);
+      // The pointer events of the drag went to the OS: do not stay "hovered" (timer paused) after it.
+      if (!active) setHovered(false);
+    };
+    void platform.onQuickAccessDrag(slot, onDrag).then((unlisten) => {
       if (disposed) unlisten();
       else off = unlisten;
     });

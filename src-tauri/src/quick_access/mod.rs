@@ -538,6 +538,31 @@ pub fn resize(app: &AppHandle, id: &str, height: f64, extra_top: f64, extra_bott
     }
 }
 
+/// Room for the "Drag to a chat or folder" hint, in logical pixels (above the card in a bottom
+/// corner, below it in a top corner: the same rule the page uses).
+const HINT_ROOM: f64 = 44.0;
+
+/// Makes the window big enough for the drag hint *now*. The page asks for the same room when it
+/// learns that a drag started, but on Windows the drag blocks the main thread right after this
+/// call, so the room has to be there already.
+pub fn reserve_hint_room(app: &AppHandle, id: &str) {
+    let qa = app.state::<QuickAccess>();
+    {
+        let mut inner = qa.inner.lock().expect("quick access state");
+        let Some(area) = inner.area else { return };
+        let bottom = matches!(area.corner, Corner::BottomLeft | Corner::BottomRight);
+        let Some(card) = inner.cards.iter_mut().find(|c| c.id == id) else {
+            return;
+        };
+        if bottom {
+            card.extra_top = card.extra_top.max(HINT_ROOM);
+        } else {
+            card.extra_bottom = card.extra_bottom.max(HINT_ROOM);
+        }
+    }
+    relayout(app);
+}
+
 /// Closes one card. Everything above it moves down to close the gap.
 pub fn close(app: &AppHandle, id: &str) {
     let qa = app.state::<QuickAccess>();
