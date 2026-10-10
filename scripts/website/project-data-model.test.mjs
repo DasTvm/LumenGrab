@@ -140,3 +140,23 @@ test("plain release text cannot introduce executable HTML into rendered markup",
     "<img src=x onerror=alert(1)>",
   );
 });
+
+test("newer development frames sort above older published releases", () => {
+  const feed = fixture();
+  feed.releases = [
+    {
+      id: "1",
+      version: "v1.0.0",
+      title: "First release",
+      publishedAt: "2026-10-10T17:30:00Z",
+      prerelease: false,
+      url: "https://github.com/DasTvm/LumenGrab/releases/tag/v1.0.0",
+      body: "## New\n- Area capture",
+    },
+  ];
+  feed.unreleasedIds = [changes[3].id];
+  assert.deepEqual(
+    buildProjectView(feed).entries.map((entry) => entry.kind),
+    ["prerelease", "release"],
+  );
+});

@@ -214,6 +214,7 @@ const entry = (
   changes,
   kind = "prerelease",
   sourceURL = "",
+  orderDate = "",
 ) => ({
   id,
   title,
@@ -228,6 +229,7 @@ const entry = (
         ? "RELEASE FRAME"
         : "DEVELOPMENT FRAME",
   sourceURL,
+  orderDate,
   changes,
   groups: groups(changes),
   groupsJson: JSON.stringify(groups(changes)),
@@ -265,6 +267,7 @@ export function buildProjectView(input) {
         releaseChanges(release),
         "release",
         release.url,
+        release.publishedAt,
       ),
     ),
     ...days
@@ -280,11 +283,14 @@ export function buildProjectView(input) {
               `${pending.length} ${pending.length === 1 ? "change" : "changes"}`,
               "Development updates. Not released.",
               [...pending].reverse(),
+              "prerelease",
+              "",
+              pending.at(-1).date,
             )
           : null;
       })
       .filter(Boolean),
-  ];
+  ].sort((a, b) => Date.parse(b.orderDate) - Date.parse(a.orderDate));
   if (!feed.releases.some((release) => !release.prerelease) && feed.roadmap.firstRelease) {
     const planned = feed.roadmap.firstRelease;
     entries.unshift(
