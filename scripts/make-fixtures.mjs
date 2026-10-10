@@ -66,7 +66,10 @@ const png = (width, height, pixel) => {
   return out;
 };
 const gradient = (w, h) => png(w, h, (x, y) => [(x * 255) / w, (y * 255) / h, 128, 255]);
-const stripes = (w, h) => png(w, h, (x, y) => ((x + y) % 8 < 4 ? [0, 255, (x * 7) & 255, 255] : [255, 0, (y * 5) & 255, 255]));
+const stripes = (w, h) =>
+  png(w, h, (x, y) =>
+    (x + y) % 8 < 4 ? [0, 255, (x * 7) & 255, 255] : [255, 0, (y * 5) & 255, 255],
+  );
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 // ---- documents ----------------------------------------------------------------------------------
@@ -91,23 +94,130 @@ const manifest = (id, source, png, extra = {}) => ({
   createdAt: "2026-10-06T12:00:00Z",
   modifiedAt: "2026-10-06T12:05:00Z",
   documentId: id,
-  source: { file: "source.png", width: source.width, height: source.height, scale: 2, sha256: sha256(png) },
+  source: {
+    file: "source.png",
+    width: source.width,
+    height: source.height,
+    scale: 2,
+    sha256: sha256(png),
+  },
   ...extra,
 });
 
 const common = { visible: true, locked: false };
 const allLayers = [
-  { id: "a1", ...common, type: "arrow", from: { x: 4, y: 4 }, to: { x: 40, y: 30 }, style: "curved", color: "#EF4444", width: 3, curve: { x: 30, y: 6 } },
-  { id: "a2", ...common, type: "arrow", from: { x: 4, y: 60 }, to: { x: 40, y: 50 }, style: "double", color: "#18181B", width: 2 },
-  { id: "l1", ...common, type: "line", from: { x: 0, y: 32 }, to: { x: 96, y: 32 }, color: "#2563EB80", width: 2, dash: [4, 2] },
-  { id: "r1", ...common, type: "rect", x: 10, y: 10, width: 30, height: 20, rotation: 15, stroke: "#000000", fill: null, strokeWidth: 2, radius: 4, name: "Frame" },
-  { id: "e1", visible: false, locked: true, type: "ellipse", x: 50, y: 10, width: 30, height: 20, rotation: 0, stroke: null, fill: "#C8FF2E80", strokeWidth: 0 },
-  { id: "t1", ...common, type: "text", x: 8, y: 8, width: null, text: "Hello fixture", fontId: "inter", size: 12, weight: 600, color: "#111111", background: "#FFFFFFCC", align: "left", rotation: 0 },
+  {
+    id: "a1",
+    ...common,
+    type: "arrow",
+    from: { x: 4, y: 4 },
+    to: { x: 40, y: 30 },
+    style: "curved",
+    color: "#EF4444",
+    width: 3,
+    curve: { x: 30, y: 6 },
+  },
+  {
+    id: "a2",
+    ...common,
+    type: "arrow",
+    from: { x: 4, y: 60 },
+    to: { x: 40, y: 50 },
+    style: "double",
+    color: "#18181B",
+    width: 2,
+  },
+  {
+    id: "l1",
+    ...common,
+    type: "line",
+    from: { x: 0, y: 32 },
+    to: { x: 96, y: 32 },
+    color: "#2563EB80",
+    width: 2,
+    dash: [4, 2],
+  },
+  {
+    id: "r1",
+    ...common,
+    type: "rect",
+    x: 10,
+    y: 10,
+    width: 30,
+    height: 20,
+    rotation: 15,
+    stroke: "#000000",
+    fill: null,
+    strokeWidth: 2,
+    radius: 4,
+    name: "Frame",
+  },
+  {
+    id: "e1",
+    visible: false,
+    locked: true,
+    type: "ellipse",
+    x: 50,
+    y: 10,
+    width: 30,
+    height: 20,
+    rotation: 0,
+    stroke: null,
+    fill: "#C8FF2E80",
+    strokeWidth: 0,
+  },
+  {
+    id: "t1",
+    ...common,
+    type: "text",
+    x: 8,
+    y: 8,
+    width: null,
+    text: "Hello fixture",
+    fontId: "inter",
+    size: 12,
+    weight: 600,
+    color: "#111111",
+    background: "#FFFFFFCC",
+    align: "left",
+    rotation: 0,
+  },
   { id: "c1", ...common, type: "counter", x: 70, y: 50, value: 3, color: "#EF4444", size: 14 },
-  { id: "p1", ...common, type: "pencil", points: [0, 0, 5, 7, 12, 9, 20, 22], color: "#2563EB", width: 3, smoothing: 0.5 },
-  { id: "h1", ...common, type: "highlighter", rect: { x: 8, y: 40, width: 40, height: 8 }, color: "#FDE047", opacity: 0.4 },
-  { id: "s1", ...common, type: "spotlight", rect: { x: 20, y: 12, width: 50, height: 36 }, shape: "ellipse", dimOpacity: 0.6 },
-  { id: "x1", ...common, type: "redaction", mode: "solid", rect: { x: 60, y: 4, width: 30, height: 10 }, strength: 0, color: "#000000", seed: 1 },
+  {
+    id: "p1",
+    ...common,
+    type: "pencil",
+    points: [0, 0, 5, 7, 12, 9, 20, 22],
+    color: "#2563EB",
+    width: 3,
+    smoothing: 0.5,
+  },
+  {
+    id: "h1",
+    ...common,
+    type: "highlighter",
+    rect: { x: 8, y: 40, width: 40, height: 8 },
+    color: "#FDE047",
+    opacity: 0.4,
+  },
+  {
+    id: "s1",
+    ...common,
+    type: "spotlight",
+    rect: { x: 20, y: 12, width: 50, height: 36 },
+    shape: "ellipse",
+    dimOpacity: 0.6,
+  },
+  {
+    id: "x1",
+    ...common,
+    type: "redaction",
+    mode: "solid",
+    rect: { x: 60, y: 4, width: 30, height: 10 },
+    strength: 0,
+    color: "#000000",
+    seed: 1,
+  },
 ];
 
 const fixtures = [];
@@ -136,7 +246,15 @@ const fixtures = [];
       layers: allLayers,
       presentation: presentation({
         enabled: true,
-        background: { type: "gradient", angle: 135, stops: [{ offset: 0, color: "#C8FF2E" }, { offset: 0.5, color: "#2563EB" }, { offset: 1, color: "#18181B" }] },
+        background: {
+          type: "gradient",
+          angle: 135,
+          stops: [
+            { offset: 0, color: "#C8FF2E" },
+            { offset: 0.5, color: "#2563EB" },
+            { offset: 1, color: "#18181B" },
+          ],
+        },
         padding: { top: 48, right: 64, bottom: 80, left: 64 },
         autoBalance: false,
         cornerRadius: 16,
@@ -154,7 +272,16 @@ const fixtures = [];
 {
   const source = { width: 96, height: 64 };
   const image = stripes(source.width, source.height);
-  const redaction = (id, mode, rect, strength, extra = {}) => ({ id, ...common, type: "redaction", mode, rect, strength, seed: 1234, ...extra });
+  const redaction = (id, mode, rect, strength, extra = {}) => ({
+    id,
+    ...common,
+    type: "redaction",
+    mode,
+    rect,
+    strength,
+    seed: 1234,
+    ...extra,
+  });
   fixtures.push({
     name: "v1-redactions",
     manifest: manifest("00000000-0000-4000-8000-000000000003", source, image),
@@ -188,7 +315,21 @@ const fixtures = [];
       crop: null,
       futureProjectField: { keep: true },
       layers: [
-        { id: "r1", ...common, type: "rect", x: 4, y: 4, width: 20, height: 10, rotation: 0, stroke: "#000000", fill: null, strokeWidth: 1, radius: 0, futureLayerField: "keep me" },
+        {
+          id: "r1",
+          ...common,
+          type: "rect",
+          x: 4,
+          y: 4,
+          width: 20,
+          height: 10,
+          rotation: 0,
+          stroke: "#000000",
+          fill: null,
+          strokeWidth: 1,
+          radius: 0,
+          futureLayerField: "keep me",
+        },
         { id: "st1", ...common, type: "stamp", shape: "star", points: 5 },
       ],
       presentation: presentation({
@@ -201,7 +342,10 @@ const fixtures = [];
       "source.png": [image, 0],
       "preview.png": [image, 0],
       [`assets/${assetName}`]: [asset, 0],
-      "extra/notes.txt": [strToU8("An entry this version does not know. It must survive a save.\n"), 6],
+      "extra/notes.txt": [
+        strToU8("An entry this version does not know. It must survive a save.\n"),
+        6,
+      ],
     },
     assets: [assetName],
     extraEntries: ["extra/notes.txt"],
@@ -212,15 +356,24 @@ for (const fixture of fixtures) {
   const target = join(OUT, `${fixture.name}.lumengrab`);
   const expected = join(OUT, `${fixture.name}.expected.json`);
   if (existsSync(target) || existsSync(expected)) {
-    console.error(`${fixture.name}: already exists, refusing to overwrite (golden fixtures are never edited)`);
+    console.error(
+      `${fixture.name}: already exists, refusing to overwrite (golden fixtures are never edited)`,
+    );
     process.exitCode = 1;
     continue;
   }
   const files = {
-    "manifest.json": [strToU8(`${JSON.stringify(fixture.manifest, null, 2)}\n`), { level: 6, mtime: Date.UTC(2026, 0, 1) }],
-    "project.json": [strToU8(`${JSON.stringify(fixture.project, null, 2)}\n`), { level: 6, mtime: Date.UTC(2026, 0, 1) }],
+    "manifest.json": [
+      strToU8(`${JSON.stringify(fixture.manifest, null, 2)}\n`),
+      { level: 6, mtime: Date.UTC(2026, 0, 1) },
+    ],
+    "project.json": [
+      strToU8(`${JSON.stringify(fixture.project, null, 2)}\n`),
+      { level: 6, mtime: Date.UTC(2026, 0, 1) },
+    ],
   };
-  for (const [name, [data, level]] of Object.entries(fixture.entries)) files[name] = [data, { level, mtime: Date.UTC(2026, 0, 1) }];
+  for (const [name, [data, level]] of Object.entries(fixture.entries))
+    files[name] = [data, { level, mtime: Date.UTC(2026, 0, 1) }];
   writeFileSync(target, zipSync(files));
   writeFileSync(
     expected,
