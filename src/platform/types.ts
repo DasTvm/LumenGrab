@@ -61,11 +61,13 @@ export interface NoticeAction {
 
 /** An error or warning shown as a card in the Quick Access corner (design: "Feedback and Errors"). */
 export interface QuickAccessNotice {
-  tone: "error" | "warning";
-  /** A name the page maps to an icon: `triangle-alert`, `clipboard-x`, `keyboard`, `scan-line`, `trash`. */
+  tone: "error" | "warning" | "info";
+  /** A name the page maps to an icon: `triangle-alert`, `clipboard-x`, `keyboard`, `scan-line`, `trash`, `logo`. */
   icon: string;
   title: string;
   body: string;
+  /** Keys drawn as keycaps under the text (the first-start hint). */
+  keys: string[];
   actions: NoticeAction[];
 }
 

@@ -18,6 +18,7 @@
 //!
 //!   LUMENGRAB_DEV_QA=n                             deliver n synthetic captures (1.2 s apart) to test the Quick Access
 //!                                                  cards without a real capture; the app stays open
+//!   LUMENGRAB_DEV_INTRO=1                          show the first-start hint (normally Windows only, once)
 //!   LUMENGRAB_DEV_SAVE_DIR=/path                   save screenshots there instead of Pictures/LumenGrab
 //!   LUMENGRAB_DEV_CONFIG_DIR=/path                 read and write settings.json there (try settings without
 //!                                                  touching the real file)
@@ -99,6 +100,13 @@ fn quick_access_demo(app: &AppHandle) {
 
 pub fn autostart(app: &AppHandle) {
     quick_access_demo(app);
+    if std::env::var("LUMENGRAB_DEV_INTRO").is_ok() {
+        let app = app.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(2500));
+            crate::quick_access::show_intro(&app, true);
+        });
+    }
     if let Ok(which) = std::env::var("LUMENGRAB_DEV_WINDOW") {
         let app = app.clone();
         std::thread::spawn(move || {

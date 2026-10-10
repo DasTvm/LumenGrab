@@ -85,6 +85,15 @@ pub fn run() {
             }
             overlay::warm_up(app.handle());
             quick_access::warm_up(app.handle());
+            // Windows has no permission window to say hello: tell the user once where the app lives.
+            #[cfg(target_os = "windows")]
+            {
+                let handle = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(2500));
+                    quick_access::show_intro(&handle, false);
+                });
+            }
             hotkeys::start_escape_worker(app.handle());
             let failed = hotkeys::register(app.handle());
             app.manage(hotkeys::HotkeyFailures(failed));

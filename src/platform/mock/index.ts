@@ -215,7 +215,7 @@ export const mockPlatform: Platform = {
       return Promise.resolve({
         id: "demo",
         style: "compact",
-        width: 480,
+        width: notice.tone === "info" ? 380 : 480,
         autoCloseSecs: 0,
         thumbUrl: "",
         pixelWidth: 0,

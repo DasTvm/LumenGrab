@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import type { QuickAccessCard, QuickAccessNotice } from "@/platform";
 import { Button } from "@/ui/components/button";
+import { Keycap } from "@/ui/components/keycap";
+import { LogoMark } from "@/ui/components/logo-mark";
 import { cn } from "@/ui/lib/utils";
 
 type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
@@ -57,6 +59,15 @@ export function NoticeCardView({
   const { notice } = card;
   const Icon = NOTICE_ICONS[notice.icon] ?? TriangleAlert;
   const warning = notice.tone === "warning";
+  if (notice.tone === "info") {
+    return (
+      <WelcomeCard
+        {...{ card, busy, error, onAction, onCardElement }}
+        keys={notice.keys}
+        notice={notice}
+      />
+    );
+  }
   return (
     <div
       style={{
@@ -110,6 +121,70 @@ export function NoticeCardView({
         >
           <X aria-hidden className="size-4" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** Design: "Welcome Hint". Bigger than a notice, with the app logo and the shortcut as keycaps. */
+function WelcomeCard({
+  card,
+  notice,
+  keys,
+  busy,
+  error,
+  onAction,
+  onCardElement,
+}: NoticeCardViewProps & { notice: QuickAccessNotice; keys: string[] }) {
+  return (
+    <div
+      style={{
+        paddingTop: card.pad.top,
+        paddingRight: card.pad.right,
+        paddingBottom: card.pad.bottom,
+        paddingLeft: card.pad.left,
+      }}
+    >
+      <div
+        ref={onCardElement}
+        data-testid="quick-access-card"
+        role="dialog"
+        aria-label={notice.title}
+        className="flex flex-col gap-4 overflow-hidden rounded-xl border border-border bg-card p-[22px] text-card-foreground shadow-[0_16px_40px_rgb(0_0_0/0.4)]"
+        style={{ width: card.width }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-overlay-surface text-white">
+            <LogoMark className="size-7" />
+          </span>
+          <h2 className="text-[17px] font-semibold">{notice.title}</h2>
+        </div>
+        <p className="text-sm leading-normal text-muted-foreground">{error ?? notice.body}</p>
+        {keys.length > 0 ? (
+          <div
+            role="img"
+            aria-label={`Shortcut: ${keys.join(" ")}`}
+            className="flex items-center gap-1.5"
+          >
+            {keys.map((key) => (
+              <Keycap key={key} className="h-[30px] rounded-[7px] px-[11px] text-[13px]">
+                {key}
+              </Keycap>
+            ))}
+          </div>
+        ) : null}
+        <div className="flex justify-end gap-2">
+          {notice.actions.map((action, i) => (
+            <Button
+              key={action.label}
+              variant={action.primary ? "accent" : "outline"}
+              disabled={busy !== null}
+              onClick={() => onAction?.(i)}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -83,6 +83,7 @@ test.describe("notice cards (browser mock)", () => {
       "Could not copy to the clipboard",
       "Ctrl+Shift+5 is already in use",
       "The capture did not work",
+      "LumenGrab is running",
     ]) {
       await expect(page.getByRole("region", { name: title })).toBeVisible();
     }
@@ -91,6 +92,22 @@ test.describe("notice cards (browser mock)", () => {
       animations: "disabled",
       fullPage: true,
     });
+  });
+
+  test("the first-start hint says where the app lives, shows the shortcut, and Got it dismisses it", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=notice-welcome");
+    const hint = page.getByRole("dialog", { name: "LumenGrab is running" });
+    await expect(hint).toContainText("It lives in the system tray.");
+    await expect(hint.getByRole("img", { name: "Shortcut: Ctrl Shift 1" })).toBeVisible();
+    await page.screenshot({ path: "test-results/welcome-hint-light.png", animations: "disabled" });
+    await hint.getByRole("button", { name: "Open Settings" }).click();
+    await hint.getByRole("button", { name: "Got it" }).click();
+    expect((await submissions(page)).filter((s) => s.kind === "qaNotice")).toEqual([
+      { kind: "qaNotice", id: "demo", index: 0 },
+      { kind: "qaNotice", id: "demo", index: 1 },
+    ]);
   });
 
   test("a save error offers Retry and Choose folder…, and each button reports its index", async ({

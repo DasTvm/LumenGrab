@@ -144,7 +144,6 @@ impl SettingsStore {
     }
 
     /// Changes one thing, keeping the rest.
-    #[allow(dead_code)] // first used by the Windows first-start hint
     pub fn update(&self, change: impl FnOnce(&mut Settings)) -> Result<(), String> {
         let mut next = self.get();
         change(&mut next);

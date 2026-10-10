@@ -124,7 +124,7 @@ export function QuickAccessGallery() {
           <NoticeCardView
             card={{
               ...CARD,
-              width: 480,
+              width: notice.tone === "info" ? 380 : 480,
               notice,
               pad: { top: 8, right: 24, bottom: 24, left: 24 },
             }}

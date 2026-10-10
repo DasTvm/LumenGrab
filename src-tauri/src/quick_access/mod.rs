@@ -42,6 +42,8 @@ const COMPACT_WIDTH: f64 = 340.0;
 const LARGE_WIDTH: f64 = 380.0;
 /// Notice cards (design: "Toast").
 const NOTICE_WIDTH: f64 = 480.0;
+/// The first-start hint (design: "Welcome Hint").
+const WELCOME_WIDTH: f64 = 380.0;
 /// Heights used until the page reports its real one.
 const COMPACT_HEIGHT: f64 = 74.0;
 const LARGE_HEIGHT: f64 = 315.0;
@@ -83,8 +85,12 @@ struct Card {
 
 impl Card {
     fn css_width(&self) -> f64 {
-        if self.notice.is_some() {
-            return NOTICE_WIDTH;
+        if let Some(notice) = &self.notice {
+            return if notice.tone == notice::Tone::Info {
+                WELCOME_WIDTH
+            } else {
+                NOTICE_WIDTH
+            };
         }
         match self.style {
             QuickAccessStyle::Compact => COMPACT_WIDTH,
@@ -459,6 +465,22 @@ pub fn notify(app: &AppHandle, notice: Notice) -> bool {
         pending_delete: false,
         notice: Some(notice),
     })
+}
+
+/// The first-start hint (design: "Windows - First start hint"), once. It is remembered as soon as it
+/// is shown, so a crash or a kill does not make it come back. `force` (dev builds) shows it anyway.
+/// Call from a worker thread.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))] // only Windows asks for it; dev builds force it
+pub fn show_intro(app: &AppHandle, force: bool) {
+    let store = app.state::<SettingsStore>();
+    if store.get().seen_intro && !force {
+        return;
+    }
+    if notify(app, notice::welcome()) && !force {
+        if let Err(e) = store.update(|s| s.seen_intro = true) {
+            eprintln!("[lumengrab] could not remember the first-start hint: {e}");
+        }
+    }
 }
 
 /// What button `index` of a notice card does.

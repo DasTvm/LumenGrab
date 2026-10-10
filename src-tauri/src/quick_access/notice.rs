@@ -14,6 +14,8 @@ use crate::capture::{CaptureMode, Frame};
 pub enum Tone {
     Error,
     Warning,
+    /// Not a problem: the first-start hint.
+    Info,
 }
 
 /// What a notice button does.
@@ -61,6 +63,8 @@ pub struct Notice {
     pub icon: &'static str,
     pub title: String,
     pub body: String,
+    /// Keys to draw as keycaps under the text (the first-start hint).
+    pub keys: Vec<&'static str>,
     pub actions: Vec<Action>,
 }
 
@@ -72,6 +76,7 @@ pub struct NoticePayload {
     pub icon: &'static str,
     pub title: String,
     pub body: String,
+    pub keys: Vec<&'static str>,
     pub actions: Vec<ActionPayload>,
 }
 
@@ -89,6 +94,7 @@ impl Notice {
             icon: self.icon,
             title: self.title.clone(),
             body: self.body.clone(),
+            keys: self.keys.clone(),
             actions: self
                 .actions
                 .iter()
@@ -126,6 +132,7 @@ pub fn save_failed(folder: &str, error: &str, frame: Arc<Frame>, source: Capture
         body: format!(
             "The folder {folder} is not writable ({reason}). Choose another folder or try again."
         ),
+        keys: Vec::new(),
         actions: vec![
             button(
                 "Retry",
@@ -154,6 +161,7 @@ pub fn clipboard_failed(error: &str, saved: PathBuf) -> Notice {
         body: format!(
             "Another app may be blocking the clipboard ({error}). Try again in a moment or save the file instead."
         ),
+        keys: Vec::new(),
         actions: vec![
             button("Try again", "refresh", true, Handler::CopyAgain(saved.clone())),
             button("Save instead", "download", false, Handler::SaveAs(saved)),
@@ -169,6 +177,7 @@ pub fn shortcut_in_use(keys: &str, what: &str) -> Notice {
         body: format!(
             "Another app has registered this shortcut, so “{what}” does not work from the keyboard. You can still start it from the menu bar icon."
         ),
+        keys: Vec::new(),
         actions: vec![
             button("Open Settings", "settings", true, Handler::OpenSettings),
             dismiss(),
@@ -184,6 +193,7 @@ pub fn capture_failed(details: String, mode: CaptureMode, toolbar: bool) -> Noti
         body:
             "The screen could not be captured. This can happen while a display wakes up. Try again."
                 .into(),
+        keys: Vec::new(),
         actions: vec![
             button(
                 "Try again",
@@ -196,12 +206,29 @@ pub fn capture_failed(details: String, mode: CaptureMode, toolbar: bool) -> Noti
     }
 }
 
+/// Windows only, shown once: the app has no window, so say where it lives and how to start it.
+pub fn welcome() -> Notice {
+    Notice {
+        tone: Tone::Info,
+        icon: "logo",
+        title: "LumenGrab is running".into(),
+        body: "It lives in the system tray. Press the shortcut below anytime to start a capture, from any app."
+            .into(),
+        keys: vec!["Ctrl", "Shift", "1"],
+        actions: vec![
+            button("Open Settings", "none", false, Handler::OpenSettings),
+            button("Got it", "none", true, Handler::Dismiss),
+        ],
+    }
+}
+
 pub fn trash_failed(error: &str, file: PathBuf) -> Notice {
     Notice {
         tone: Tone::Error,
         icon: "trash",
         title: "Could not move the screenshot to the Trash".into(),
         body: format!("{error}. The file is still where it was."),
+        keys: Vec::new(),
         actions: vec![
             button("Show file", "folder", true, Handler::Reveal(file)),
             dismiss(),
@@ -254,6 +281,7 @@ mod tests {
             shortcut_in_use("Ctrl+Shift+5", "Capture Window"),
             capture_failed("d".into(), CaptureMode::Area, false),
             trash_failed("e", PathBuf::from("/a.png")),
+            welcome(),
         ] {
             assert_eq!(
                 n.actions.iter().filter(|a| a.primary).count(),
@@ -262,6 +290,16 @@ mod tests {
                 n.title
             );
         }
+    }
+
+    #[test]
+    fn the_welcome_hint_shows_the_main_shortcut_and_is_not_an_error() {
+        let n = welcome();
+        assert_eq!(n.tone, Tone::Info);
+        assert_eq!(n.keys, ["Ctrl", "Shift", "1"]);
+        assert_eq!(n.actions.last().map(|a| a.label), Some("Got it"));
+        let json = serde_json::to_string(&n.payload()).unwrap();
+        assert!(json.contains("\"tone\":\"info\""), "{json}");
     }
 
     #[test]
