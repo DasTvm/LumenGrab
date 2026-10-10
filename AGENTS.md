@@ -176,5 +176,6 @@ Notes:
 - Local macOS test builds: ad-hoc signed builds are identified by their binary hash, so macOS forgets the Screen Recording
   permission after every rebuild. Run `scripts/create-dev-signing-cert.sh` once (self-signed "LumenGrab Local Dev" identity in the
   login keychain, nothing is committed), then build with `APPLE_SIGNING_IDENTITY="LumenGrab Local Dev" pnpm tauri build`. Release builds in CI stay unsigned.
+- The `.lumengrab` logic is TypeScript in `src/document/` (no Tauri imports; tested in plain Node). **Golden fixtures in `fixtures/lumengrab/` are never edited, regenerated or reformatted**; `scripts/make-fixtures.mjs` refuses to overwrite them. New format version = new fixtures + migration + `docs/FORMAT.md` in the same change (see `docs/adr/0002-document-format-implementation.md`).
 - A JavaScript `listen()` hears events that Rust addressed to *any* window (`emit_to(label)` does not filter on the JS side): put the window label in the payload and filter in the page (see `onQuickAccessCard`). Sync Tauri commands run on the main thread: never wait for a window, a dialog or a lock that a window-creating thread holds inside one (use `async` commands).
 - Never call `register`/`unregister` of the global-shortcut plugin from a shortcut handler, a command or an event callback (deadlock, see `docs/adr/0001-capture-backend.md`).

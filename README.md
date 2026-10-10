@@ -19,6 +19,16 @@ presentation-ready visuals.
 
 Details and order: [docs/ROADMAP.md](docs/ROADMAP.md).
 
+## Your files
+
+Screenshots are saved as PNG in `Pictures/LumenGrab`. In the Quick Access card, **Save as…** can also write a
+**`.lumengrab`** file: the untouched original plus everything needed to keep editing later, in one file
+([format spec](docs/FORMAT.md)). Double-click a `.lumengrab` file (or use **Open Document…** in the menu bar / tray menu)
+to open it in LumenGrab. Files from a newer version open read-only instead of being damaged.
+
+A `.lumengrab` file contains the **unredacted original** by design (so it stays editable). Exports and previews are
+always flat, with redactions baked in and the pixels destroyed.
+
 ## Privacy promise
 
 - No accounts, no login, no telemetry.

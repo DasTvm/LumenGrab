@@ -104,6 +104,19 @@ it twice: default and `--features wgc`).
 - Notices: make a folder read-only (or set an impossible one) to see "Could not save", then Retry and Choose folder…; hold the shortcut in another app to see "already in use";
   turn Screen Recording off while the app runs (macOS) to see the dialog. The first-start hint appears once on Windows after the first launch and not again.
 
+## 6d. Documents (`.lumengrab`)
+
+- Quick Access **Save as…**: the dialog offers PNG and LumenGrab document. Both write the file; "Show" in the card then reveals that new file. A save into a read-only folder shows the red status row with Retry.
+- Double-click a `.lumengrab` file: LumenGrab (running in the tray or not) opens a viewer window with the preview, size, date and layer count. A second double-click while the app runs reuses it (no second process, no
+  "shortcut in use" notice). Opening the same file twice brings the existing window to the front.
+- Tray menu **Open Document…** opens the file dialog.
+- A damaged or cut-off file shows "Can't open this file" with a one-line reason and **does not change the file** (check its size/date). A file from a newer version shows "Opened read-only", then the viewer with a Read-only
+  badge; "Check for updates" opens the GitHub Releases page in the browser.
+- **Windows only:** after installing, the `.lumengrab` extension is associated with LumenGrab (Explorer shows the type "LumenGrab document"; double-click opens the viewer; "Open with" lists the app). Double-click while the app is
+  already running opens the viewer in the running instance. Uninstalling removes the association.
+- **macOS only:** Finder shows "LumenGrab Document" as the kind; Get Info > Open with offers LumenGrab.
+- The saved `.lumengrab` unzips (`unzip -l`) into `manifest.json`, `project.json`, `source.png`, `preview.png`, and `source.png` is byte-identical to the PNG that was saved.
+
 ## 7. Display changes
 
 - Plug/unplug a monitor, change resolution or scale, rearrange monitors, sleep/wake, lock screen: the next capture uses the new layout, no stale or offset overlays, no crash.
