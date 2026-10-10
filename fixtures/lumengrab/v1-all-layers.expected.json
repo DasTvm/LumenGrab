@@ -1,0 +1,257 @@
+{
+  "manifest": {
+    "format": "lumengrab",
+    "formatVersion": 1,
+    "minReaderVersion": 1,
+    "createdBy": "LumenGrab 0.1.0 (fixture)",
+    "createdAt": "2026-10-06T12:00:00Z",
+    "modifiedAt": "2026-10-06T12:05:00Z",
+    "documentId": "00000000-0000-4000-8000-000000000002",
+    "source": {
+      "file": "source.png",
+      "width": 96,
+      "height": 64,
+      "scale": 2,
+      "sha256": "61b84db72b04cbbbca69984b76b39a41a176582a6fbf31c93c9497a7e1fa36f6"
+    }
+  },
+  "project": {
+    "version": 1,
+    "crop": null,
+    "layers": [
+      {
+        "id": "a1",
+        "visible": true,
+        "locked": false,
+        "type": "arrow",
+        "from": {
+          "x": 4,
+          "y": 4
+        },
+        "to": {
+          "x": 40,
+          "y": 30
+        },
+        "style": "curved",
+        "color": "#EF4444",
+        "width": 3,
+        "curve": {
+          "x": 30,
+          "y": 6
+        }
+      },
+      {
+        "id": "a2",
+        "visible": true,
+        "locked": false,
+        "type": "arrow",
+        "from": {
+          "x": 4,
+          "y": 60
+        },
+        "to": {
+          "x": 40,
+          "y": 50
+        },
+        "style": "double",
+        "color": "#18181B",
+        "width": 2
+      },
+      {
+        "id": "l1",
+        "visible": true,
+        "locked": false,
+        "type": "line",
+        "from": {
+          "x": 0,
+          "y": 32
+        },
+        "to": {
+          "x": 96,
+          "y": 32
+        },
+        "color": "#2563EB80",
+        "width": 2,
+        "dash": [
+          4,
+          2
+        ]
+      },
+      {
+        "id": "r1",
+        "visible": true,
+        "locked": false,
+        "type": "rect",
+        "x": 10,
+        "y": 10,
+        "width": 30,
+        "height": 20,
+        "rotation": 15,
+        "stroke": "#000000",
+        "fill": null,
+        "strokeWidth": 2,
+        "radius": 4,
+        "name": "Frame"
+      },
+      {
+        "id": "e1",
+        "visible": false,
+        "locked": true,
+        "type": "ellipse",
+        "x": 50,
+        "y": 10,
+        "width": 30,
+        "height": 20,
+        "rotation": 0,
+        "stroke": null,
+        "fill": "#C8FF2E80",
+        "strokeWidth": 0
+      },
+      {
+        "id": "t1",
+        "visible": true,
+        "locked": false,
+        "type": "text",
+        "x": 8,
+        "y": 8,
+        "width": null,
+        "text": "Hello fixture",
+        "fontId": "inter",
+        "size": 12,
+        "weight": 600,
+        "color": "#111111",
+        "background": "#FFFFFFCC",
+        "align": "left",
+        "rotation": 0
+      },
+      {
+        "id": "c1",
+        "visible": true,
+        "locked": false,
+        "type": "counter",
+        "x": 70,
+        "y": 50,
+        "value": 3,
+        "color": "#EF4444",
+        "size": 14
+      },
+      {
+        "id": "p1",
+        "visible": true,
+        "locked": false,
+        "type": "pencil",
+        "points": [
+          0,
+          0,
+          5,
+          7,
+          12,
+          9,
+          20,
+          22
+        ],
+        "color": "#2563EB",
+        "width": 3,
+        "smoothing": 0.5
+      },
+      {
+        "id": "h1",
+        "visible": true,
+        "locked": false,
+        "type": "highlighter",
+        "rect": {
+          "x": 8,
+          "y": 40,
+          "width": 40,
+          "height": 8
+        },
+        "color": "#FDE047",
+        "opacity": 0.4
+      },
+      {
+        "id": "s1",
+        "visible": true,
+        "locked": false,
+        "type": "spotlight",
+        "rect": {
+          "x": 20,
+          "y": 12,
+          "width": 50,
+          "height": 36
+        },
+        "shape": "ellipse",
+        "dimOpacity": 0.6
+      },
+      {
+        "id": "x1",
+        "visible": true,
+        "locked": false,
+        "type": "redaction",
+        "mode": "solid",
+        "rect": {
+          "x": 60,
+          "y": 4,
+          "width": 30,
+          "height": 10
+        },
+        "strength": 0,
+        "color": "#000000",
+        "seed": 1
+      }
+    ],
+    "presentation": {
+      "enabled": true,
+      "background": {
+        "type": "gradient",
+        "angle": 135,
+        "stops": [
+          {
+            "offset": 0,
+            "color": "#C8FF2E"
+          },
+          {
+            "offset": 0.5,
+            "color": "#2563EB"
+          },
+          {
+            "offset": 1,
+            "color": "#18181B"
+          }
+        ]
+      },
+      "padding": {
+        "top": 48,
+        "right": 64,
+        "bottom": 80,
+        "left": 64
+      },
+      "autoBalance": false,
+      "cornerRadius": 16,
+      "shadow": {
+        "enabled": true,
+        "x": 4,
+        "y": 24,
+        "blur": 60,
+        "spread": 2,
+        "color": "#00000066"
+      },
+      "frame": {
+        "type": "browser",
+        "title": "Fixture",
+        "url": "https://example.com/fixture"
+      },
+      "aspect": {
+        "mode": "fixed",
+        "ratio": [
+          16,
+          9
+        ]
+      },
+      "exportScale": 2
+    }
+  },
+  "assets": [],
+  "extraEntries": [],
+  "warnings": [],
+  "readOnly": null
+}

@@ -1,0 +1,3 @@
+# Golden fixtures and documents are binary: never normalise line endings, never diff as text.
+*.lumengrab binary
+fixtures/lumengrab/*.lumengrab binary

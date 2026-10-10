@@ -15,3 +15,6 @@ NOTICE
 # brand files maintained by the designer
 assets
 public
+
+# Golden fixtures are never edited or reformatted (docs/FORMAT.md section 5)
+fixtures/lumengrab/

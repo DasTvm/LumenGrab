@@ -1,0 +1,109 @@
+{
+  "manifest": {
+    "format": "lumengrab",
+    "formatVersion": 1,
+    "minReaderVersion": 1,
+    "createdBy": "LumenGrab 0.1.0 (fixture)",
+    "createdAt": "2026-10-06T12:00:00Z",
+    "modifiedAt": "2026-10-06T12:05:00Z",
+    "documentId": "00000000-0000-4000-8000-000000000003",
+    "source": {
+      "file": "source.png",
+      "width": 96,
+      "height": 64,
+      "scale": 2,
+      "sha256": "83521392ee7f1958daf0ba400a59f3a03ac1e3e73ba32df071abf4de9c9b09a3"
+    }
+  },
+  "project": {
+    "version": 1,
+    "crop": {
+      "x": 8,
+      "y": 4,
+      "width": 80,
+      "height": 56
+    },
+    "layers": [
+      {
+        "id": "b1",
+        "visible": true,
+        "locked": false,
+        "type": "redaction",
+        "mode": "blur",
+        "rect": {
+          "x": 12,
+          "y": 8,
+          "width": 24,
+          "height": 16
+        },
+        "strength": 6,
+        "seed": 1234
+      },
+      {
+        "id": "p1",
+        "visible": true,
+        "locked": false,
+        "type": "redaction",
+        "mode": "pixelate",
+        "rect": {
+          "x": 44,
+          "y": 8,
+          "width": 24,
+          "height": 16
+        },
+        "strength": 8,
+        "seed": 1234
+      },
+      {
+        "id": "s1",
+        "visible": true,
+        "locked": false,
+        "type": "redaction",
+        "mode": "solid",
+        "rect": {
+          "x": 12,
+          "y": 36,
+          "width": 24,
+          "height": 16
+        },
+        "strength": 0,
+        "seed": 1234,
+        "color": "#000000"
+      }
+    ],
+    "presentation": {
+      "enabled": false,
+      "background": {
+        "type": "solid",
+        "color": "#F4F4F5"
+      },
+      "padding": {
+        "top": 64,
+        "right": 64,
+        "bottom": 64,
+        "left": 64
+      },
+      "autoBalance": true,
+      "cornerRadius": 12,
+      "shadow": {
+        "enabled": true,
+        "x": 0,
+        "y": 20,
+        "blur": 50,
+        "spread": 0,
+        "color": "#00000040"
+      },
+      "frame": {
+        "type": "none"
+      },
+      "aspect": {
+        "mode": "free"
+      },
+      "exportScale": 1
+    }
+  },
+  "assets": [],
+  "extraEntries": [],
+  "warnings": [],
+  "readOnly": null
+}
