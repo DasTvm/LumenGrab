@@ -1,0 +1,326 @@
+{
+  "schemaVersion": 1,
+  "milestones": [
+    {
+      "id": "M0",
+      "title": "Scaffold",
+      "description": "App shell, tests, CI and the tray icon.",
+      "status": "done",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "App shell and browser mock mode",
+          "done": true
+        },
+        {
+          "id": "task-2",
+          "title": "Design tokens and core UI",
+          "done": true
+        },
+        {
+          "id": "task-3",
+          "title": "Unit and screenshot tests",
+          "done": true
+        },
+        {
+          "id": "task-4",
+          "title": "Checks for macOS and Windows",
+          "done": true
+        },
+        {
+          "id": "task-5",
+          "title": "Tray icon",
+          "done": true
+        }
+      ],
+      "finishedAt": "2026-10-06"
+    },
+    {
+      "id": "M1",
+      "title": "Capture MVP",
+      "description": "Hotkey, area, window and fullscreen, save and clipboard, multi-monitor.",
+      "status": "building",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "Global hotkey and the capture bar",
+          "done": true
+        },
+        {
+          "id": "task-2",
+          "title": "Area and window selection",
+          "done": true
+        },
+        {
+          "id": "task-3",
+          "title": "Fullscreen capture",
+          "done": true
+        },
+        {
+          "id": "task-4",
+          "title": "Save to file and copy to clipboard",
+          "done": true
+        },
+        {
+          "id": "task-5",
+          "title": "Multi-monitor and mixed DPI, tested on real setups",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "M2",
+      "title": "Quick Access overlay",
+      "description": "Copy, save, edit, drag out, auto-close.",
+      "status": "building",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "Card in a screen corner after each capture",
+          "done": true
+        },
+        {
+          "id": "task-2",
+          "title": "Auto-close and corner setting",
+          "done": true
+        },
+        {
+          "id": "task-3",
+          "title": "Drag the screenshot out",
+          "done": true
+        },
+        {
+          "id": "task-4",
+          "title": "Large preview with delete and undo",
+          "done": true
+        },
+        {
+          "id": "task-5",
+          "title": "Edit opens the editor, arrives with M4",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "M3",
+      "title": "Document and .lumengrab format",
+      "description": "Schemas, read and write, migrations, file association.",
+      "status": "next",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "Document schemas and ZIP container",
+          "done": false
+        },
+        {
+          "id": "task-2",
+          "title": "Read and write with validation",
+          "done": false
+        },
+        {
+          "id": "task-3",
+          "title": "Migrations and golden fixtures",
+          "done": false
+        },
+        {
+          "id": "task-4",
+          "title": "Preview rendering",
+          "done": false
+        },
+        {
+          "id": "task-5",
+          "title": "File association",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "M4",
+      "title": "Editor",
+      "description": "Crop, annotations, redactions, undo and export.",
+      "status": "planned",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "Crop and resize",
+          "done": false
+        },
+        {
+          "id": "task-2",
+          "title": "Annotation tools",
+          "done": false
+        },
+        {
+          "id": "task-3",
+          "title": "Permanent redactions in flat exports",
+          "done": false
+        },
+        {
+          "id": "task-4",
+          "title": "Undo and redo",
+          "done": false
+        },
+        {
+          "id": "task-5",
+          "title": "PNG, JPG and WebP export",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "M5",
+      "title": "Presentation",
+      "description": "Backgrounds, padding, shadows and window frames.",
+      "status": "planned",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "Backgrounds and saved presets",
+          "done": false
+        },
+        {
+          "id": "task-2",
+          "title": "Padding, radius and shadows",
+          "done": false
+        },
+        {
+          "id": "task-3",
+          "title": "Aspect presets",
+          "done": false
+        },
+        {
+          "id": "task-4",
+          "title": "Window frames",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "M6",
+      "title": "History, pin and OCR",
+      "description": "History, pinned captures, copy text, QR, all-in-one mode.",
+      "status": "planned",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "Capture history",
+          "done": false
+        },
+        {
+          "id": "task-2",
+          "title": "Pinned captures",
+          "done": false
+        },
+        {
+          "id": "task-3",
+          "title": "Local text and QR recognition",
+          "done": false
+        },
+        {
+          "id": "task-4",
+          "title": "All-in-one capture mode",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "M7",
+      "title": "Screen recording",
+      "description": "MP4 and GIF with audio and click or key overlays.",
+      "status": "planned",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "MP4 and GIF recording",
+          "done": false
+        },
+        {
+          "id": "task-2",
+          "title": "Microphone and system audio",
+          "done": false
+        },
+        {
+          "id": "task-3",
+          "title": "Click and keystroke overlays",
+          "done": false
+        }
+      ]
+    },
+    {
+      "id": "M8",
+      "title": "Scrolling capture",
+      "description": "Capture a whole page or a long chat in one go.",
+      "status": "planned",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "Long-page capture",
+          "done": false
+        },
+        {
+          "id": "task-2",
+          "title": "Long-chat capture",
+          "done": false
+        },
+        {
+          "id": "task-3",
+          "title": "Stitching and export",
+          "done": false
+        }
+      ]
+    }
+  ],
+  "later": [
+    {
+      "id": "video-editor",
+      "title": "Video editor with smart zooms",
+      "icon": "clapperboard"
+    },
+    {
+      "id": "device-mockups",
+      "title": "Device mockups",
+      "icon": "smartphone"
+    },
+    {
+      "id": "3d-tilt",
+      "title": "3D tilt",
+      "icon": "box"
+    },
+    {
+      "id": "auto-redact",
+      "title": "Local auto-redact",
+      "icon": "shield-check"
+    },
+    {
+      "id": "multi-export",
+      "title": "Multi-format export",
+      "icon": "files"
+    },
+    {
+      "id": "upload-targets",
+      "title": "Upload targets you set up",
+      "icon": "cloud-upload"
+    }
+  ],
+  "firstRelease": {
+    "description": "Planned scope, may change. It builds on Milestones M1 and M2.",
+    "changes": [
+      {
+        "category": "new",
+        "title": "Area, window and fullscreen capture with one global hotkey, on every display."
+      },
+      {
+        "category": "new",
+        "title": "Save to file and copy to clipboard."
+      },
+      {
+        "category": "new",
+        "title": "Quick Access overlay: copy, save, edit, drag out."
+      },
+      {
+        "category": "internal",
+        "title": "Unsigned installers for macOS (.dmg) and Windows (.exe), published as GitHub Releases."
+      }
+    ]
+  }
+}
