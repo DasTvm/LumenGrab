@@ -3,7 +3,6 @@
 
 use std::{
     fs,
-    io::Write,
     path::{Path, PathBuf},
     sync::Mutex,
 };
@@ -156,17 +155,7 @@ fn write_atomic(path: &Path, settings: &Settings) -> Result<(), String> {
     let json = serde_json::to_vec_pretty(settings).map_err(|e| e.to_string())?;
     let dir = path.parent().ok_or("The settings folder is unknown.")?;
     fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    let temp = path.with_extension("json.tmp");
-    let write = || -> std::io::Result<()> {
-        let mut file = fs::File::create(&temp)?;
-        file.write_all(&json)?;
-        file.sync_all()?;
-        fs::rename(&temp, path)
-    };
-    write().map_err(|e| {
-        let _ = fs::remove_file(&temp);
-        format!("{}: {e}", path.display())
-    })
+    crate::fsutil::write_atomic(path, &json).map_err(|e| format!("{}: {e}", path.display()))
 }
 
 pub fn init(app: &AppHandle) -> tauri::Result<()> {

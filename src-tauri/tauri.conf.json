@@ -29,6 +29,20 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "fileAssociations": [
+      {
+        "ext": ["lumengrab"],
+        "name": "LumenGrab Document",
+        "description": "LumenGrab document",
+        "mimeType": "application/vnd.lumengrab",
+        "role": "Editor",
+        "rank": "Owner",
+        "exportedType": {
+          "identifier": "app.lumengrab.document",
+          "conformsTo": ["public.data"]
+        }
+      }
+    ],
     "macOS": {
       "minimumSystemVersion": "14.0"
     }

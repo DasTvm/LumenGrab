@@ -3,6 +3,8 @@
 mod capture;
 #[cfg(any(debug_assertions, feature = "dev-hooks"))]
 mod dev;
+mod document;
+mod fsutil;
 mod hotkeys;
 mod permission;
 mod platform;
@@ -17,11 +19,21 @@ use tauri::{Manager, WindowEvent};
 use capture::{backend, commands, overlay, store::CaptureStore, Capturer};
 
 pub fn run() {
-    tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    // A second launch (a double-click on a .lumengrab file while the app runs in the tray) must not
+    // start another process: it hands its arguments to the running one. First plugin, as required.
+    // Not in dev builds, so `tauri dev` can run next to an installed copy.
+    #[cfg(not(any(debug_assertions, feature = "dev-hooks")))]
+    let builder = builder.plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
+        let handle = app.clone();
+        let _ = app.run_on_main_thread(move || document::open_args(&handle, args));
+    }));
+    builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(hotkeys::plugin())
         .manage(CaptureStore::default())
+        .manage(document::Documents::default())
         .manage(overlay::Pool::default())
         .manage(quick_access::QuickAccess::default())
         .manage::<Arc<dyn Capturer>>(backend::default_capturer())
@@ -64,11 +76,19 @@ pub fn run() {
             permission::permission_close,
             permission::restart_app,
             permission::quit_app,
+            document::document_info,
+            document::document_load,
+            document::document_reveal,
+            document::document_pick_open,
+            document::pick_save_target,
+            document::write_granted_file,
+            document::open_url,
         ])
         .on_window_event(|window, event| {
             // An overlay closed by the OS or the user must not leave the capture stuck "busy".
             if let WindowEvent::Destroyed = event {
                 overlay::on_destroyed(window.app_handle(), window.label());
+                document::on_destroyed(window.app_handle(), window.label());
             }
         })
         .setup(|app| {
@@ -94,6 +114,8 @@ pub fn run() {
                     quick_access::show_intro(&handle, false);
                 });
             }
+            // Windows (and Linux) pass a double-clicked file as an argument on the first launch.
+            document::open_args(app.handle(), std::env::args().skip(1));
             hotkeys::start_escape_worker(app.handle());
             let failed = hotkeys::register(app.handle());
             app.manage(hotkeys::HotkeyFailures(failed));
@@ -103,13 +125,21 @@ pub fn run() {
         })
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|_app, event| {
+        .run(|app, event| match event {
             // This is a tray app: closing the last window (settings) must not quit it.
             // `code` is `None` for implicit exits; an explicit `app.exit()` (Quit) passes through.
-            if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
+            tauri::RunEvent::ExitRequested { api, code, .. } => {
                 if code.is_none() {
                     api.prevent_exit();
                 }
+            }
+            // macOS hands a double-clicked document to the running (or just started) app this way.
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Opened { urls } => {
+                document::open_args(app, urls.iter().map(ToString::to_string));
+            }
+            _ => {
+                let _ = app;
             }
         });
 }

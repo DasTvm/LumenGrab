@@ -4,7 +4,6 @@
 
 use std::{
     fs,
-    io::Write,
     path::{Path, PathBuf},
     sync::Arc,
 };
@@ -165,17 +164,8 @@ fn save_png(dir: &Path, frame: &Frame) -> Result<std::path::PathBuf, String> {
         now.second(),
     );
     let target = geometry::unique_path(dir, &name, |p| p.exists());
-    let temp = dir.join(format!(".{name}.tmp"));
-    let write = || -> std::io::Result<()> {
-        let mut file = fs::File::create(&temp)?;
-        file.write_all(&bytes)?;
-        file.sync_all()?;
-        fs::rename(&temp, &target)
-    };
-    write().map_err(|e| {
-        let _ = fs::remove_file(&temp);
-        format!("{}: {e}", target.display())
-    })?;
+    crate::fsutil::write_atomic(&target, &bytes)
+        .map_err(|e| format!("{}: {e}", target.display()))?;
     Ok(target)
 }
 

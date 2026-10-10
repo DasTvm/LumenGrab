@@ -35,6 +35,11 @@ pub fn open_screen_recording_settings() {
         .spawn();
 }
 
+/// Opens a web address in the default browser.
+pub fn open_url(url: &str) {
+    let _ = Command::new("open").arg(url).spawn();
+}
+
 /// Selects a file in Finder.
 pub fn reveal_file(path: &std::path::Path) {
     let _ = Command::new("open").arg("-R").arg(path).spawn();

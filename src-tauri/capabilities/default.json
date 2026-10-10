@@ -7,7 +7,8 @@
     "permission",
     "permission-lost",
     "overlay-*",
-    "qa-*"
+    "qa-*",
+    "doc-*"
   ],
   "permissions": [
     "core:default"
