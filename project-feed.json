@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-10T22:54:00.539Z",
+  "generatedAt": "2026-10-11T00:27:31.056Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -415,6 +415,13 @@
       "category": "internal",
       "title": "format ADR 0002",
       "url": "https://github.com/DasTvm/LumenGrab/commit/0e8592ef67bd8580c2c0ac999a119fb470bd2c61"
+    },
+    {
+      "id": "fdd2af3d8c6921dba367b00cc1e98e85d4782c1d",
+      "date": "2026-10-11T00:27:21Z",
+      "category": "new",
+      "title": "format v2 with the group layer (migration v1->v2, fixture v2-groups, FORMAT.md, ADR 0003)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/fdd2af3d8c6921dba367b00cc1e98e85d4782c1d"
     }
   ],
   "releases": [],
@@ -477,7 +484,8 @@
     "35b2c162dcd46a1607d4ce89bd34c9b88bc6f8e4",
     "fb0687c0ed808fcd15a62148b199ce5824e0713a",
     "8f6554ab2b343bc7e65c638a0d041e3d7f39da3d",
-    "0e8592ef67bd8580c2c0ac999a119fb470bd2c61"
+    "0e8592ef67bd8580c2c0ac999a119fb470bd2c61",
+    "fdd2af3d8c6921dba367b00cc1e98e85d4782c1d"
   ],
   "roadmap": {
     "schemaVersion": 1,
