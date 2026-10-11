@@ -2,8 +2,10 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { countLayers } from "./layers";
 import { FORMAT_VERSION } from "./limits";
 import { openDocument } from "./read";
+import type { GroupLayer } from "./schema";
 import { serializeDocument } from "./write";
 
 /**
@@ -55,9 +57,10 @@ describe("golden fixtures", () => {
       const { bytes, expected } = load(name);
       const opened = await openDocument(bytes);
 
+      // An older file is upgraded in memory: the project gets the current version (the migrations so
+      // far change nothing else) and the manifest keeps what the file says until it is saved.
       expect(opened.doc.manifest).toEqual(expected.manifest);
-      expect(opened.doc.project).toEqual(expected.project);
-      expect(opened.doc.project?.version).toBeGreaterThanOrEqual(FORMAT_VERSION);
+      expect(opened.doc.project).toEqual({ ...expected.project, version: FORMAT_VERSION });
       expect(Object.keys(opened.doc.assets).sort()).toEqual(expected.assets);
       expect(Object.keys(opened.doc.extraEntries).sort()).toEqual(expected.extraEntries);
       expect(opened.warnings.map((w) => w.code)).toEqual(expected.warnings);
@@ -73,7 +76,15 @@ describe("golden fixtures", () => {
       });
       const second = await openDocument(saved);
       expect(second.doc.project).toEqual(first.doc.project);
-      expect(second.doc.manifest).toEqual(first.doc.manifest);
+      // Saving writes the app's version into the manifest of an older file (docs/FORMAT.md section 5).
+      expect(second.doc.manifest).toEqual({
+        ...first.doc.manifest,
+        formatVersion: FORMAT_VERSION,
+        minReaderVersion:
+          first.doc.manifest.formatVersion < FORMAT_VERSION
+            ? FORMAT_VERSION
+            : first.doc.manifest.minReaderVersion,
+      });
       expect(second.doc.source).toEqual(first.doc.source);
       expect(second.doc.assets).toEqual(first.doc.assets);
       expect(second.doc.extraEntries).toEqual(first.doc.extraEntries);
@@ -108,5 +119,21 @@ describe("golden fixtures", () => {
     ]) {
       expect(types.has(type), type).toBe(true);
     }
+  });
+
+  it("v2-groups covers nested, hidden and locked groups with a redaction inside and an unknown field", async () => {
+    const { doc } = await openDocument(load("v2-groups").bytes);
+    const [rect, callout, hidden, locked] = doc.project?.layers ?? [];
+    expect(rect?.type).toBe("rect");
+    expect(callout).toMatchObject({
+      type: "group",
+      name: "Callout",
+      futureGroupField: { keep: "me" },
+    });
+    const inner = (callout as GroupLayer).layers[1] as GroupLayer;
+    expect(inner.layers.map((l) => l.type)).toEqual(["text", "redaction"]);
+    expect(hidden).toMatchObject({ type: "group", visible: false });
+    expect(locked).toMatchObject({ type: "group", locked: true });
+    expect(countLayers(doc.project?.layers ?? [])).toBe(10);
   });
 });

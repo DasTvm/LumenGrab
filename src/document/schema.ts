@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_COORDINATE } from "./limits";
+import { MAX_COORDINATE, MAX_GROUP_DEPTH } from "./limits";
 
 /**
  * Zod schemas of `manifest.json` and `project.json` (docs/FORMAT.md sections 3 and 4).
@@ -157,6 +157,7 @@ export const KNOWN_LAYER_TYPES: readonly string[] = [
   "highlighter",
   "spotlight",
   "redaction",
+  "group",
 ];
 
 /**
@@ -170,23 +171,76 @@ export const OpaqueLayerSchema = z
   });
 
 const KnownLayerSchema = z.discriminatedUnion("type", KNOWN_LAYERS);
-type KnownLayer = z.infer<typeof KnownLayerSchema>;
+type FlatLayer = z.infer<typeof KnownLayerSchema>;
 export type OpaqueLayer = z.infer<typeof OpaqueLayerSchema>;
+
+/** Layers that move, hide and lock as one (format v2). Children are in z-order, first = bottom. */
+export interface GroupLayer {
+  id: string;
+  type: "group";
+  visible: boolean;
+  locked: boolean;
+  name?: string | undefined;
+  layers: Layer[];
+  [key: string]: unknown;
+}
+export type KnownLayer = FlatLayer | GroupLayer;
 export type Layer = KnownLayer | OpaqueLayer;
 
-/**
- * One layer. The `type` decides which schema applies, so an error names the real problem
- * (`layers.2.width`) instead of "no union branch matched".
- */
-export const LayerSchema: z.ZodType<Layer> = z.any().transform((value: unknown, ctx) => {
+const GroupBaseSchema = z.looseObject({
+  ...base,
+  type: z.literal("group"),
+  layers: z.array(z.unknown()).max(100_000),
+});
+
+type Issues = { message: string; path: PropertyKey[] }[];
+
+/** Parses one layer; `groupDepth` is the number of groups around it. Issues carry the full path. */
+function parseLayer(value: unknown, groupDepth: number): { data: Layer } | { issues: Issues } {
   const type = (value as { type?: unknown } | null)?.type;
+  if (type === "group") {
+    const head = GroupBaseSchema.safeParse(value);
+    if (!head.success) return { issues: head.error.issues.map((i) => ({ ...i, path: i.path })) };
+    if (groupDepth >= MAX_GROUP_DEPTH) {
+      return {
+        issues: [
+          {
+            message: `groups are nested deeper than ${String(MAX_GROUP_DEPTH)} levels`,
+            path: [],
+          },
+        ],
+      };
+    }
+    const children: Layer[] = [];
+    const issues: Issues = [];
+    head.data.layers.forEach((child, index) => {
+      const parsed = parseLayer(child, groupDepth + 1);
+      if ("data" in parsed) children.push(parsed.data);
+      else
+        for (const issue of parsed.issues) {
+          issues.push({ message: issue.message, path: ["layers", index, ...issue.path] });
+        }
+    });
+    if (issues.length > 0) return { issues };
+    return { data: { ...head.data, layers: children } as GroupLayer };
+  }
   const schema =
     typeof type === "string" && KNOWN_LAYER_TYPES.includes(type)
       ? KnownLayerSchema
       : OpaqueLayerSchema;
   const result = schema.safeParse(value);
-  if (result.success) return result.data;
-  for (const issue of result.error.issues) {
+  if (result.success) return { data: result.data };
+  return { issues: result.error.issues.map((i) => ({ message: i.message, path: i.path })) };
+}
+
+/**
+ * One layer. The `type` decides which schema applies, so an error names the real problem
+ * (`layers.2.width`, or `layers.1.layers.0.width` inside a group) instead of "no union branch matched".
+ */
+export const LayerSchema: z.ZodType<Layer> = z.any().transform((value: unknown, ctx) => {
+  const parsed = parseLayer(value, 0);
+  if ("data" in parsed) return parsed.data;
+  for (const issue of parsed.issues) {
     ctx.addIssue({ code: "custom", message: issue.message, path: issue.path });
   }
   return z.NEVER;

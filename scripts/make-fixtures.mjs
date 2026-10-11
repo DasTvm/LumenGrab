@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-// Writes the golden fixtures of format version 1 into fixtures/lumengrab/.
+// Writes the golden fixtures of every format version into fixtures/lumengrab/ (v1: first run, v2: the
+// `group` layer).
 //
-// This was run ONCE. The files it wrote are committed and must never be edited or regenerated
+// Each fixture was written ONCE. The files are committed and must never be edited or regenerated
 // (docs/FORMAT.md section 5, rule 7): they prove that every released version keeps opening.
-// The script refuses to overwrite an existing file. To add fixtures for a new format version, copy
-// this script's approach into a new script (or extend it with new names) and keep the old files.
+// The script never overwrites an existing file: a fixture that already exists is kept and reported.
+// A new format version adds new fixtures below; the old ones stay as they are.
 //
 // It deliberately does NOT use src/document: the fixtures are written by independent code (fflate for
 // the ZIP, node:zlib for the PNGs, literals for the JSON), so a bug in our reader or writer cannot hide
@@ -351,15 +352,130 @@ const fixtures = [];
     extraEntries: ["extra/notes.txt"],
   });
 }
+{
+  const source = { width: 64, height: 48 };
+  const image = stripes(source.width, source.height);
+  const redaction = (id, mode, rect, strength, extra = {}) => ({
+    id,
+    ...common,
+    type: "redaction",
+    mode,
+    rect,
+    strength,
+    seed: 99,
+    ...extra,
+  });
+  fixtures.push({
+    name: "v2-groups",
+    manifest: manifest("00000000-0000-4000-8000-000000000005", source, image, {
+      formatVersion: 2,
+      minReaderVersion: 2,
+    }),
+    project: {
+      version: 2,
+      crop: { x: 2, y: 2, width: 60, height: 44 },
+      layers: [
+        {
+          id: "r1",
+          ...common,
+          type: "rect",
+          x: 4,
+          y: 4,
+          width: 20,
+          height: 10,
+          rotation: 0,
+          stroke: "#000000",
+          fill: null,
+          strokeWidth: 1,
+          radius: 0,
+        },
+        {
+          id: "g1",
+          ...common,
+          type: "group",
+          name: "Callout",
+          futureGroupField: { keep: "me" },
+          layers: [
+            {
+              id: "a1",
+              ...common,
+              type: "arrow",
+              from: { x: 6, y: 30 },
+              to: { x: 30, y: 20 },
+              style: "straight",
+              color: "#EF4444",
+              width: 2,
+            },
+            {
+              id: "g2",
+              ...common,
+              type: "group",
+              layers: [
+                {
+                  id: "t1",
+                  ...common,
+                  type: "text",
+                  x: 8,
+                  y: 32,
+                  width: null,
+                  text: "Inside two groups",
+                  fontId: "inter",
+                  size: 8,
+                  weight: 500,
+                  color: "#111111",
+                  background: null,
+                  align: "left",
+                  rotation: 0,
+                },
+                redaction("x1", "pixelate", { x: 34, y: 8, width: 20, height: 12 }, 4),
+              ],
+            },
+          ],
+        },
+        {
+          id: "g3",
+          visible: false,
+          locked: false,
+          type: "group",
+          name: "Hidden",
+          layers: [
+            redaction("x2", "solid", { x: 4, y: 20, width: 16, height: 8 }, 0, {
+              color: "#000000",
+            }),
+          ],
+        },
+        {
+          id: "g4",
+          visible: true,
+          locked: true,
+          type: "group",
+          layers: [
+            {
+              id: "c1",
+              ...common,
+              type: "counter",
+              x: 50,
+              y: 36,
+              value: 1,
+              color: "#EF4444",
+              size: 10,
+            },
+          ],
+        },
+      ],
+      presentation: presentation(),
+    },
+    entries: { "source.png": [image, 0], "preview.png": [image, 0] },
+    assets: [],
+    extraEntries: [],
+  });
+}
 
 for (const fixture of fixtures) {
   const target = join(OUT, `${fixture.name}.lumengrab`);
   const expected = join(OUT, `${fixture.name}.expected.json`);
   if (existsSync(target) || existsSync(expected)) {
-    console.error(
-      `${fixture.name}: already exists, refusing to overwrite (golden fixtures are never edited)`,
-    );
-    process.exitCode = 1;
+    console.log(`${fixture.name}: already exists, kept (golden fixtures are never overwritten)`);
     continue;
   }
   const files = {

@@ -150,6 +150,45 @@ describe("layer schemas", () => {
   });
 });
 
+describe("group layers (format v2)", () => {
+  const group = (children: unknown[], extra: object = {}) => ({
+    id: "g",
+    visible: true,
+    locked: false,
+    type: "group",
+    layers: children,
+    ...extra,
+  });
+
+  it("accepts a group with children, nested groups and unknown fields, and keeps them", () => {
+    const value = group([layers["rect"], group([layers["arrow"]], { id: "g2" })], {
+      name: "Callout",
+      fromTheFuture: { keep: 1 },
+    });
+    const parsed = LayerSchema.parse(value);
+    expect(parsed).toEqual(value);
+  });
+
+  it("names the field of a broken child with the full path", () => {
+    const bad = group([group([{ ...(layers["rect"] as object), width: "wide" }], { id: "g2" })]);
+    const result = ProjectSchema.safeParse({ ...defaultProject(), layers: [layers["arrow"], bad] });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]?.path).toEqual(["layers", 1, "layers", 0, "layers", 0, "width"]);
+  });
+
+  it("does not turn a group with a bad body into an opaque layer", () => {
+    expect(LayerSchema.safeParse(group("nope" as unknown as unknown[])).success).toBe(false);
+    expect(LayerSchema.safeParse({ ...group([]), visible: "yes" }).success).toBe(false);
+  });
+
+  it("allows eight nested groups and rejects the ninth", () => {
+    const nest = (levels: number): unknown =>
+      levels === 0 ? layers["rect"] : group([nest(levels - 1)], { id: `g${String(levels)}` });
+    expect(LayerSchema.safeParse(nest(8)).success).toBe(true);
+    expect(LayerSchema.safeParse(nest(9)).success).toBe(false);
+  });
+});
+
 describe("project schema", () => {
   it("accepts the default project and keeps unknown top-level fields", () => {
     const project = { ...defaultProject(), layers: Object.values(layers), later: { a: 1 } };

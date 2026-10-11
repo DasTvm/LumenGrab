@@ -3,6 +3,7 @@ import { readContainer } from "./container";
 import { DocumentError } from "./errors";
 import { sha256Hex } from "./hash";
 import { BUNDLED_FONT_IDS, FORMAT_VERSION, LIMITS, type Limits } from "./limits";
+import { countLayers, walkLayers } from "./layers";
 import { migrateToLatest } from "./migrations";
 import { readPngSize } from "./png";
 import { ManifestSchema, ProjectSchema, type Manifest, type Project } from "./schema";
@@ -52,9 +53,9 @@ function parseJsonEntry(bytes: Uint8Array, file: string, limits: Limits): Record
 
 function textFonts(project: Project): string[] {
   const ids = new Set<string>();
-  for (const layer of project.layers) {
+  walkLayers(project.layers, (layer) => {
     if (layer.type === "text" && typeof layer["fontId"] === "string") ids.add(layer["fontId"]);
-  }
+  });
   return [...ids];
 }
 
@@ -105,7 +106,7 @@ export async function openDocument(
       throw new DocumentError("invalid-field", "project.json: invalid or missing field “version”");
     }
     project = parseWith(ProjectSchema, migrateToLatest(rawProject, version), "project.json");
-    if (project.layers.length > limits.maxLayers) {
+    if (countLayers(project.layers) > limits.maxLayers) {
       throw new DocumentError(
         "too-large",
         `project.json: more than ${String(limits.maxLayers)} layers`,

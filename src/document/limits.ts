@@ -1,5 +1,5 @@
 /** The format version this build reads and writes. Bumped with every schema change (docs/FORMAT.md section 5). */
-export const FORMAT_VERSION = 1;
+export const FORMAT_VERSION = 2;
 
 /** Hard limits for reading a file (docs/FORMAT.md sections 2 and 7). A file beyond them is rejected, never partly read. */
 export interface Limits {
@@ -30,3 +30,6 @@ export const MAX_COORDINATE = 1e6;
 /** Fonts bundled with the app, referenced by id (docs/FORMAT.md section 8). Others fall back to the default. */
 export const BUNDLED_FONT_IDS: readonly string[] = ["inter", "jetbrains-mono"];
 export const DEFAULT_FONT_ID = "inter";
+
+/** How many groups may sit inside each other (format v2, docs/FORMAT.md section 4). */
+export const MAX_GROUP_DEPTH = 8;

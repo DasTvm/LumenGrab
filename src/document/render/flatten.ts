@@ -1,3 +1,4 @@
+import { walkLayers } from "../layers";
 import type { Layer, Project } from "../schema";
 import type { DocumentFile } from "../types";
 import { applyRedactions, cloneImage, cropImage, downscaleImage, type RgbaImage } from "./pixels";
@@ -26,7 +27,11 @@ const ANNOTATION_TYPES = [
 
 /** True if the project has a visible layer that is drawn over the picture. Those are not rendered yet (the editor, M4, draws them). */
 export function hasAnnotations(project: Project): boolean {
-  return project.layers.some((layer: Layer) => ANNOTATION_TYPES.includes(layer.type));
+  let found = false;
+  walkLayers(project.layers, (layer: Layer) => {
+    if (ANNOTATION_TYPES.includes(layer.type)) found = true;
+  });
+  return found;
 }
 
 /**

@@ -6,13 +6,16 @@ import { FORMAT_VERSION } from "../limits";
  * version `n` to `n + 1`. They are pure, go forward only, and run in memory on open; the file on disk
  * is only rewritten when the user saves.
  *
- * Version 1 is the first version, so there is nothing to migrate yet. When the schema changes:
+ * Version 2 added the `group` layer. Every v1 project is already a valid v2 project, so the step is
+ * the identity (`migrateToLatest` stamps the version). When the schema changes again:
  * bump `FORMAT_VERSION`, add `MIGRATIONS[oldVersion]`, add a golden fixture `fixtures/lumengrab/v<new>-*`
  * and update docs/FORMAT.md in the same commit.
  */
 export type Migration = (project: Record<string, unknown>) => Record<string, unknown>;
 
-export const MIGRATIONS: Readonly<Record<number, Migration>> = {};
+export const MIGRATIONS: Readonly<Record<number, Migration>> = {
+  1: (project) => project,
+};
 
 /**
  * Upgrades a raw project (version `fromVersion`) step by step to `target`. A project that is already

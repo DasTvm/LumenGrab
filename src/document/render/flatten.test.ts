@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { openDocument } from "../read";
+import type { Layer } from "../schema";
 import { asImage, decodePng, encodePng, nodeCodec, stripes } from "../testing/png";
 import { createDocument, serializeDocument } from "../write";
 import {
@@ -107,6 +108,51 @@ describe("flattening", () => {
       seed: 1,
     });
     expect(decodePng(await renderFlat(doc, nodeCodec)).data).toEqual(decodePng(png).data);
+  });
+});
+
+describe("groups", () => {
+  const solid = (id: string, visible: boolean, x: number, color: string) => ({
+    id,
+    type: "redaction" as const,
+    visible,
+    locked: false,
+    mode: "solid" as const,
+    rect: { x, y: 0, width: 4, height: 16 },
+    strength: 0,
+    color,
+    seed: 1,
+  });
+  const group = (id: string, visible: boolean, layers: Layer[]): Layer => ({
+    id,
+    type: "group",
+    visible,
+    locked: false,
+    layers,
+  });
+
+  it("bakes a redaction that sits inside (nested) groups, and skips one inside a hidden group", async () => {
+    const png = encodePng(stripes(16, 16));
+    const doc = await createDocument(png);
+    if (!doc.project) throw new Error("new documents have a project");
+    doc.project.layers.push(
+      group("g1", true, [group("g2", true, [solid("a", true, 0, "#112233")])]),
+      group("g3", false, [solid("b", true, 8, "#445566")]),
+      group("g4", true, [solid("c", false, 12, "#778899")]),
+    );
+    const out = decodePng(await renderFlat(doc, nodeCodec));
+    const src = decodePng(png);
+    const px = (img: { data: Uint8ClampedArray | Uint8Array }, x: number) => [
+      ...img.data.subarray((3 * 16 + x) * 4, (3 * 16 + x) * 4 + 4),
+    ];
+    expect(px(out, 1)).toEqual([0x11, 0x22, 0x33, 255]); // nested, visible: destroyed
+    expect(px(out, 9)).toEqual(px(src, 9)); // hidden group: not rendered
+    expect(px(out, 13)).toEqual(px(src, 13)); // hidden layer in a visible group
+  });
+
+  it("sees annotations inside groups", async () => {
+    const { doc } = await fixture("v2-groups");
+    expect(doc.project && hasAnnotations(doc.project)).toBe(true);
   });
 });
 

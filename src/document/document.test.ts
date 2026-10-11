@@ -164,27 +164,44 @@ describe("versions", () => {
   it("still gives the project of a read-only file when it happens to fit", async () => {
     const opened = await openDocument(
       await rawFile({
-        manifest: { ...(await goodManifest()), formatVersion: 2, minReaderVersion: 2 },
-        project: { ...goodProject(), version: 2 },
+        manifest: {
+          ...(await goodManifest()),
+          formatVersion: FORMAT_VERSION + 1,
+          minReaderVersion: FORMAT_VERSION + 1,
+        },
+        project: { ...goodProject(), version: FORMAT_VERSION + 1 },
       }),
     );
     expect(opened.readOnly).not.toBeNull();
-    expect(opened.doc.project?.version).toBe(2);
+    expect(opened.doc.project?.version).toBe(FORMAT_VERSION + 1);
   });
 
   it("opens a newer formatVersion with an old minReaderVersion for editing and keeps its unknown parts", async () => {
-    const project = { ...goodProject(), version: 2, addedLater: { keep: true } };
+    const project = { ...goodProject(), version: FORMAT_VERSION + 1, addedLater: { keep: true } };
     const opened = await openDocument(
       await rawFile({
-        manifest: { ...(await goodManifest()), formatVersion: 2, minReaderVersion: 1 },
+        manifest: {
+          ...(await goodManifest()),
+          formatVersion: FORMAT_VERSION + 1,
+          minReaderVersion: FORMAT_VERSION,
+        },
         project,
       }),
     );
     expect(opened.readOnly).toBeNull();
-    expect(opened.doc.project).toMatchObject({ version: 2, addedLater: { keep: true } });
+    expect(opened.doc.project).toMatchObject({
+      version: FORMAT_VERSION + 1,
+      addedLater: { keep: true },
+    });
     const saved = await openDocument(serializeDocument(opened.doc, SOURCE_PNG));
-    expect(saved.doc.project).toMatchObject({ version: 2, addedLater: { keep: true } });
-    expect(saved.doc.manifest).toMatchObject({ formatVersion: 2, minReaderVersion: 1 });
+    expect(saved.doc.project).toMatchObject({
+      version: FORMAT_VERSION + 1,
+      addedLater: { keep: true },
+    });
+    expect(saved.doc.manifest).toMatchObject({
+      formatVersion: FORMAT_VERSION + 1,
+      minReaderVersion: FORMAT_VERSION,
+    });
   });
 });
 

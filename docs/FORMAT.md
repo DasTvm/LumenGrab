@@ -1,6 +1,6 @@
 # `.lumengrab` File Format Specification
 
-Status: **v1, implemented in `src/document/` (M3)** · Extension: `.lumengrab` · Source of truth for the document model.
+Status: **v2, implemented in `src/document/` (v1: M3, v2 adds the `group` layer: M4)** · Extension: `.lumengrab` · Source of truth for the document model.
 
 ## 1. Goals
 
@@ -41,8 +41,8 @@ Rules:
 ```json
 {
   "format": "lumengrab",
-  "formatVersion": 1,
-  "minReaderVersion": 1,
+  "formatVersion": 2,
+  "minReaderVersion": 2,
   "createdBy": "LumenGrab 0.1.0",
   "createdAt": "2026-10-06T12:00:00Z",
   "modifiedAt": "2026-10-06T12:05:00Z",
@@ -57,7 +57,7 @@ Rules:
 - `createdBy` names the version that first created the file and is kept on later saves. `modifiedAt` is set on every save. Timestamps are UTC, `YYYY-MM-DDTHH:MM:SSZ`.
 - `documentId` is a random UUID v4 created with the file and kept for its lifetime.
 
-## 4. `project.json` (v1)
+## 4. `project.json` (v2)
 
 All geometry is in **source-image pixel space** (origin top-left, y down). Colors are hex `#RRGGBB` or `#RRGGBBAA`. Angles in degrees. IDs are short unique strings (1 to 64 characters).
 
@@ -68,13 +68,13 @@ Numbers must be finite. A coordinate or length beyond +-1 000 000 is **clamped**
 ```ts
 // Reference types. Implement as Zod schemas in src/document/schema.ts
 type Project = {
-  version: 1
+  version: 2
   crop: { x: number; y: number; width: number; height: number } | null   // null = full image
   layers: Layer[]                     // z-order: first = bottom
   presentation: Presentation
 }
 
-type Layer = Annotation | Redaction
+type Layer = Annotation | Redaction | Group
 
 type BaseLayer = {
   id: string
@@ -94,6 +94,12 @@ type Annotation = BaseLayer & (
   | { type: "highlighter"; rect: Rect; color: string; opacity: number }
   | { type: "spotlight"; rect: Rect; shape: "rect" | "ellipse"; dimOpacity: number }
 )
+
+// v2. Layers that move, hide and lock as one. Children are in z-order like `layers` (first = bottom).
+type Group = BaseLayer & {
+  type: "group"
+  layers: Layer[]           // may contain groups; at most 8 groups inside each other
+}
 
 type Redaction = BaseLayer & {
   type: "redaction"
@@ -125,6 +131,8 @@ type Presentation = {
 Notes:
 - **A layer whose `type` this version does not know is kept as an opaque layer**: it is preserved with all its fields, written back, and never drawn. A layer of a known type with invalid fields is an error (the file is rejected with the field named), it is not downgraded to an opaque layer.
 - `visible: false` layers are not rendered, redactions included. Everything else about a layer is preserved.
+- **Groups (v2).** A group sits in the z-order of its parent like any layer and draws its children in order at that place. A hidden group hides everything inside it, **redactions included**. A locked group locks everything inside it (the editor does not select or change those layers). Groups are not drawn themselves: they have no geometry. The limit of 5000 layers counts every layer of the tree, groups included. Nesting deeper than 8 groups is an error (the file is rejected with the path of the group, e.g. `layers.1.layers.0`).
+- **Redactions inside groups are baked like any other** (section 7): the renderer collects them depth first, skips those with a hidden layer or group around them, and applies them to the full source image before anything is drawn.
 - A new document starts with `crop: null`, no layers, and this presentation: `enabled: false`, solid `#F4F4F5`, padding 64 on every side, `autoBalance: true`, `cornerRadius: 12`, shadow on (`x 0, y 20, blur 50, spread 0, #00000040`), frame `none`, aspect `free`, `exportScale: 1`.
 - Redactions are layers like any other but are **always rendered baked** into flat exports (see section 7).
 - New layer types and fields are added by bumping `version` (see section 5).
@@ -132,7 +140,7 @@ Notes:
 
 ## 5. Versioning and migrations (mandatory process)
 
-1. `manifest.formatVersion` and `project.version` are integers that start at 1.
+1. `manifest.formatVersion` and `project.version` are integers that start at 1. **v2** added the `group` layer. Every v1 project is a valid v2 project, so the migration `v1 -> v2` changes nothing but the version. New files are written with `formatVersion 2` and `minReaderVersion 2`: a v1 reader would see a group as an unknown layer, not draw its children and so export a redaction inside it unredacted, so it must not open such a file for editing.
 2. **Any** change to `project.json` or the container layout that old readers cannot handle correctly requires:
    - bump `formatVersion` and `project.version`,
    - a pure migration function `migrate_vN_to_vN+1(project)` in `src/document/migrations/`,
@@ -186,7 +194,7 @@ Autosave: editor changes autosave to a recovery location in the app data dir, no
 
 ## 9. Test requirements
 
-Implemented: `src/document/*.test.ts` and `fixtures/lumengrab/`. The golden fixtures of v1 are `v1-minimal`, `v1-all-layers`, `v1-redactions` and `v1-unknown-fields`, each with a hand-written `.expected.json`; they were written by `scripts/make-fixtures.mjs` (independent of `src/document`) and are never edited.
+Implemented: `src/document/*.test.ts` and `fixtures/lumengrab/`. The golden fixtures are `v1-minimal`, `v1-all-layers`, `v1-redactions`, `v1-unknown-fields` (v1) and `v2-groups` (nested, hidden and locked groups, a redaction inside, an unknown field on a group), each with a `.expected.json` of what a correct reader must produce; they were written by `scripts/make-fixtures.mjs` (independent of `src/document`) and are never edited. A v1 fixture opens as a v2 project: the test expects its `.expected.json` with `version` raised to the current one.
 
 - Round-trip test: create -> save -> load -> equals original (including unknown fields).
 - Golden fixtures for every released version open and migrate cleanly.

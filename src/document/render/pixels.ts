@@ -1,3 +1,4 @@
+import { walkLayers } from "../layers";
 import type { Layer, Rect, Redaction } from "../schema";
 
 /**
@@ -226,9 +227,13 @@ export function applyRedaction(image: RgbaImage, layer: Redaction): void {
   else applyPixelate(image, box, layer.strength, layer.seed);
 }
 
-/** The layers that are visible redactions, bottom to top. Hidden layers are not rendered, redactions included. */
+/** The visible redactions, bottom to top, also inside groups. Hidden layers (or hidden groups) are not rendered, redactions included. */
 export function visibleRedactions(layers: readonly Layer[]): Redaction[] {
-  return layers.filter((l): l is Redaction => l.type === "redaction" && l.visible === true);
+  const found: Redaction[] = [];
+  walkLayers(layers, (layer, info) => {
+    if (layer.type === "redaction" && !info.hidden) found.push(layer as Redaction);
+  });
+  return found;
 }
 
 /** Applies all visible redactions in place, bottom to top. */
