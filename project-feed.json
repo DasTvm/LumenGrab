@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T14:43:13.890Z",
+  "generatedAt": "2026-10-11T14:49:56.144Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -450,6 +450,13 @@
       "category": "new",
       "title": "drawing tools (rectangle, ellipse, line, arrow, pencil, highlighter, spotlight, redaction, counter) and the style panel",
       "url": "https://github.com/DasTvm/LumenGrab/commit/c9bffc4a2028ec6410d01367e005bc1f298486cb"
+    },
+    {
+      "id": "47cb21e7b85bee5b54f5c71e9ebc39888f825a87",
+      "date": "2026-10-11T14:49:44Z",
+      "category": "new",
+      "title": "text tool with in-place editing, width handle, measured text boxes",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/47cb21e7b85bee5b54f5c71e9ebc39888f825a87"
     }
   ],
   "releases": [],
@@ -517,7 +524,8 @@
     "80a8017328ae557c71904ba642c7c117b76d00ed",
     "82d845671cc035603fd98b5dbd6e4a35103c801a",
     "d6cf00861592635cdd370fccf6e50df2bc0ba704",
-    "c9bffc4a2028ec6410d01367e005bc1f298486cb"
+    "c9bffc4a2028ec6410d01367e005bc1f298486cb",
+    "47cb21e7b85bee5b54f5c71e9ebc39888f825a87"
   ],
   "roadmap": {
     "schemaVersion": 1,
