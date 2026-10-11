@@ -448,6 +448,40 @@ pub fn on_close_requested(window: &Window, api: &CloseRequestApi) {
     }
 }
 
+/// WebP, lossy, from raw RGBA pixels (the request body; `width`, `height` and `quality` 1-100 as headers).
+/// The system WebView of macOS cannot encode WebP, so the encoder (libwebp) lives here.
+#[tauri::command]
+pub async fn encode_webp(request: Request<'_>) -> Result<Response, String> {
+    let header = |name: &str| -> Option<u32> {
+        request
+            .headers()
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse().ok())
+    };
+    let (width, height, quality) = (
+        header("width").ok_or("The image size is missing.")?,
+        header("height").ok_or("The image size is missing.")?,
+        header("quality").unwrap_or(85).clamp(1, 100),
+    );
+    let InvokeBody::Raw(rgba) = request.body() else {
+        return Err("No image data was sent.".into());
+    };
+    encode_webp_rgba(rgba, width, height, quality).map(Response::new)
+}
+
+fn encode_webp_rgba(rgba: &[u8], width: u32, height: u32, quality: u32) -> Result<Vec<u8>, String> {
+    const MAX_EDGE: u32 = 16384; // the limit of the WebP format
+    if width == 0 || height == 0 || width > MAX_EDGE || height > MAX_EDGE {
+        return Err("This size cannot be saved as WebP.".into());
+    }
+    if rgba.len() as u64 != u64::from(width) * u64::from(height) * 4 {
+        return Err("The image data does not match its size.".into());
+    }
+    let encoded = webp::Encoder::from_rgba(rgba, width, height).encode(quality as f32);
+    Ok(encoded.to_vec())
+}
+
 /// Puts a PNG (the request body) on the clipboard: the top bar's copy button and the Export dialog's Copy.
 #[tauri::command]
 pub async fn copy_png_to_clipboard(app: AppHandle, request: Request<'_>) -> Result<(), String> {
@@ -816,6 +850,17 @@ mod tests {
             (p("/x/shot.png.lumengrab"), "lumengrab".to_string()),
             "a format that was not offered is not accepted"
         );
+    }
+
+    #[test]
+    fn webp_is_encoded_from_rgba_and_bad_input_is_refused() {
+        let rgba: Vec<u8> = (0..16 * 8).flat_map(|i| [i as u8, 90, 200, 255]).collect();
+        let webp = encode_webp_rgba(&rgba, 16, 8, 80).unwrap();
+        assert_eq!(&webp[..4], b"RIFF");
+        assert_eq!(&webp[8..12], b"WEBP");
+        assert!(encode_webp_rgba(&rgba, 16, 9, 80).is_err(), "wrong size");
+        assert!(encode_webp_rgba(&rgba, 0, 8, 80).is_err());
+        assert!(encode_webp_rgba(&[], 20000, 1, 80).is_err(), "too large");
     }
 
     #[test]

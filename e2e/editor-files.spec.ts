@@ -253,7 +253,7 @@ test.describe("export and copy (browser mock)", () => {
     await page.getByRole("button", { name: "Export", exact: true }).click();
     await exportDialog(page).getByRole("radio", { name: "WebP" }).click();
     await expect(exportDialog(page).getByText(/^85% · about \d+ KB$/)).toBeVisible();
-    await exportDialog(page).getByRole("button", { name: "Save WEBP" }).click();
+    await exportDialog(page).getByRole("button", { name: "Save WebP" }).click();
     await expect.poll(async () => (await written(page)).length).toBeGreaterThan(100);
     const webp = await written(page);
     expect(String.fromCharCode(...webp.slice(0, 4))).toBe("RIFF");

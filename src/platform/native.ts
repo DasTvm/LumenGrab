@@ -270,6 +270,25 @@ export const nativePlatform: Platform = {
     });
   },
 
+  async encodeWebp(
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    quality: number,
+  ): Promise<Uint8Array> {
+    try {
+      const body = new Uint8Array(rgba.buffer, rgba.byteOffset, rgba.byteLength);
+      const out = await invoke<ArrayBuffer>("encode_webp", body, {
+        headers: { width: String(width), height: String(height), quality: String(quality) },
+      });
+      return new Uint8Array(out);
+    } catch (err) {
+      throw new PlatformError(
+        typeof err === "string" ? err : "The image could not be saved as WebP.",
+      );
+    }
+  },
+
   async copyPngToClipboard(png: Uint8Array): Promise<void> {
     try {
       await invoke("copy_png_to_clipboard", png);

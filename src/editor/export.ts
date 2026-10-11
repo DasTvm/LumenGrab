@@ -1,6 +1,7 @@
 import { flattenProject, PREVIEW_MAX_EDGE } from "@/document/render/flatten";
 import { downscaleImage, type RgbaImage } from "@/document/render/pixels";
 import type { Project } from "@/document/schema";
+import { platform } from "@/platform";
 import { editorCodec } from "./draw/codec";
 import { MIME, type ImageFormat, type Size } from "./export-model";
 
@@ -71,6 +72,10 @@ export async function encodeImage(
       0,
     );
   }
+  if (format === "webp" && !(await canvasEncodesWebp())) {
+    // WebKit's canvas cannot encode WebP: the native side does (libwebp).
+    return platform.encodeWebp(image.data, image.width, image.height, Math.round(quality * 100));
+  }
   const blob = await canvas.convertToBlob({
     type: MIME[format],
     ...(format === "png" ? {} : { quality }),
@@ -80,6 +85,24 @@ export async function encodeImage(
     throw new Error(`This system cannot save ${format.toUpperCase()} images.`);
   }
   return new Uint8Array(await blob.arrayBuffer());
+}
+
+let canvasWebp: Promise<boolean> | null = null;
+
+/** Whether the WebView's own canvas can encode WebP (Chromium can, the WebView of macOS cannot). */
+function canvasEncodesWebp(): Promise<boolean> {
+  canvasWebp ??= (async () => {
+    try {
+      const probe = new OffscreenCanvas(1, 1);
+      context(probe).fillRect(0, 0, 1, 1);
+      return (
+        (await probe.convertToBlob({ type: "image/webp", quality: 0.8 })).type === "image/webp"
+      );
+    } catch {
+      return false;
+    }
+  })();
+  return canvasWebp;
 }
 
 let webp: Promise<boolean> | null = null;

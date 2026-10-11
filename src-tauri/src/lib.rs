@@ -90,6 +90,7 @@ pub fn run() {
             document::document_bind_saved,
             document::document_set_dirty,
             document::copy_png_to_clipboard,
+            document::encode_webp,
             quick_access::commands::quick_access_edit,
             recovery::recovery_write,
             recovery::recovery_set_name,

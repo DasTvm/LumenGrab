@@ -117,6 +117,26 @@ it twice: default and `--features wgc`).
 - **macOS only:** Finder shows "LumenGrab Document" as the kind; Get Info > Open with offers LumenGrab.
 - The saved `.lumengrab` unzips (`unzip -l`) into `manifest.json`, `project.json`, `source.png`, `preview.png`, and `source.png` is byte-identical to the PNG that was saved.
 
+## 6e. Editor (M4)
+
+Open it with Quick Access **Edit** (a new capture), by double-clicking a `.lumengrab`, or from the tray (Open Document…). The window is laid out for 1280 x 880.
+
+- **Edit** on a Quick Access card opens the screenshot as an unsaved document (name without extension, no dot); the card closes. Closing the editor window right away closes it without a question.
+- Every tool by mouse on real captures: rectangle, ellipse, line, arrow (all four styles; drag the bend handle of a curved one), pencil, highlighter (text stays readable under it), counter (numbers count up, Restart at 1), spotlight (rectangle and ellipse),
+  text (type, wrap by the width handle, Cmd/Ctrl+Enter, double-click to edit again), redaction (blur, pixelate, solid; the panel's strength). Selection handles, the rotate handle and Shift/Alt while drawing or resizing.
+- Cmd/Ctrl+Z, Shift+Cmd+Z (Ctrl+Y on Windows), Delete, Cmd/Ctrl+D, Cmd/Ctrl+G, arrow keys nudge, zoom with Cmd/Ctrl+wheel and trackpad pinch, Space + drag pans, Fit / 100 %.
+- Layers panel: hide, lock, rename (double-click or Enter), drag to reorder and into groups, group / ungroup, context menu with the shortcuts of the design.
+- Crop: ratios, W and H fields, Apply (Enter), Cancel (Esc), Reset; the crop can be opened again and adjusted; undo brings back the full picture.
+- **What you see is what you export:** export PNG at 1x, 0.5x, 2x, a custom size, JPG and **WebP** (macOS: encoded by the app, not the WebView), and compare them with the editor. Blur, pixelate and solid are really destroyed (open the PNG and
+  try to read what was under them). Copy (button and dialog) pastes the same picture into another app.
+- **Save:** Cmd/Ctrl+S on a new capture asks where and creates a `.lumengrab`; later saves write to it. With a redaction in the document the Export dialog shows "This file keeps your original pixels" and "Export flat PNG instead".
+  Unzip the file: `source.png` is byte-identical to the capture, `preview.png` shows annotations and redactions.
+- **Unsaved changes:** change something, close the window (red button / Cmd+W): "Save changes to …?" with Save, Don't save, Cancel. Cancel keeps the window; a failed save keeps it open with "Could not save" and Retry / Save elsewhere….
+- **Recovery:** change something, wait 4 seconds, kill the app (`kill -9`), start it again: "Recover unsaved work" lists the document with its time and what changed; Recover opens it as unsaved; Discard all deletes the copies. Tray menu **Recover Unsaved Work…** opens the same window. A saved document leaves no recovery copy.
+- **Windows only:** shortcuts use Ctrl, the Export and Unsaved dialogs are readable at 150 % and 200 % scale, WebP and JPG export work, dragging handles feels the same on a 125 % monitor.
+- Dark mode (derived, not designed): all of the above is readable; the lime handles are visible on the picture.
+- Not covered by automated tests: IME text input (Japanese, Chinese) in the text field, very large pictures (5K): drawing a blur over one should stay smooth.
+
 ## 7. Display changes
 
 - Plug/unplug a monitor, change resolution or scale, rearrange monitors, sleep/wake, lock screen: the next capture uses the new layout, no stale or offset overlays, no crash.

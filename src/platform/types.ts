@@ -252,6 +252,16 @@ export interface Platform {
   setDocumentDirty(label: string, dirty: boolean): Promise<void>;
   /** Calls `listener` when the user tries to close this window while it has unsaved changes. */
   onDocumentCloseRequested(label: string, listener: () => void): Promise<() => void>;
+  /**
+   * Encodes RGBA pixels as lossy WebP (quality 1-100). The WebView of macOS cannot do it, so the native
+   * side does; the editor uses this only when the WebView cannot.
+   */
+  encodeWebp(
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    quality: number,
+  ): Promise<Uint8Array>;
   /** Puts a PNG on the clipboard. */
   copyPngToClipboard(png: Uint8Array): Promise<void>;
   /** "Edit" on a Quick Access card: opens the screenshot in the editor. */

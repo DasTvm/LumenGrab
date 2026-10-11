@@ -58,6 +58,7 @@ export interface MockSubmission {
     | "docBind"
     | "docDirty"
     | "copyPng"
+    | "encodeWebp"
     | "qaEdit"
     | "recoveryWrite"
     | "recoveryDelete"
@@ -447,6 +448,22 @@ export const mockPlatform: Platform = {
     return Promise.resolve(() => {
       if (log.requestClose === listener) delete log.requestClose;
     });
+  },
+
+  /** The mock runs in a browser engine that encodes WebP itself; this is the same thing through the canvas. */
+  async encodeWebp(
+    rgba: Uint8ClampedArray,
+    width: number,
+    height: number,
+    quality: number,
+  ): Promise<Uint8Array> {
+    record({ kind: "encodeWebp", size: rgba.length });
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new PlatformError("No canvas.");
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(rgba), width, height), 0, 0);
+    const blob = await canvas.convertToBlob({ type: "image/webp", quality: quality / 100 });
+    return new Uint8Array(await blob.arrayBuffer());
   },
 
   copyPngToClipboard(png: Uint8Array): Promise<void> {

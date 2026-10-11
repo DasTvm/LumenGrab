@@ -284,7 +284,7 @@ export function ExportDialog({
           </Button>
         ) : null}
         <Button data-autofocus onClick={save}>
-          {image ? `Save ${format === "jpg" ? "JPG" : format.toUpperCase()}` : "Save .lumengrab"}
+          {image ? `Save ${{ png: "PNG", jpg: "JPG", webp: "WebP" }[format]}` : "Save .lumengrab"}
         </Button>
       </div>
     </Modal>

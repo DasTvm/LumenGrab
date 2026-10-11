@@ -4,8 +4,8 @@ A free screenshot and screen-recording app for **macOS and Windows**, with a bui
 presentation layer (backgrounds, padding, shadows, window frames) that turns plain screenshots into
 presentation-ready visuals.
 
-> **Status: early development (milestone M0, scaffold only).** There is no capture or editor yet.
-> This README describes where the project is going.
+> **Status: early development.** Capture, Quick Access, the `.lumengrab` format and the editor (annotate, redact, crop, export) work;
+> the presentation layer, history, OCR and recording are still planned. Details: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Planned features
 
@@ -24,7 +24,11 @@ Details and order: [docs/ROADMAP.md](docs/ROADMAP.md).
 Screenshots are saved as PNG in `Pictures/LumenGrab`. In the Quick Access card, **Save as…** can also write a
 **`.lumengrab`** file: the untouched original plus everything needed to keep editing later, in one file
 ([format spec](docs/FORMAT.md)). Double-click a `.lumengrab` file (or use **Open Document…** in the menu bar / tray menu)
-to open it in LumenGrab. Files from a newer version open read-only instead of being damaged.
+to open it in the editor. Files from a newer version open read-only instead of being damaged.
+
+**The editor** (Quick Access **Edit**, or any `.lumengrab`): arrows, lines, shapes, text, counters, highlighter, pencil, spotlight,
+blur / pixelate / solid redaction, crop, layers with groups, undo and redo. Export as PNG, JPG or WebP (at 0.5×, 1×, 2× or a custom
+size), copy to the clipboard, or save a `.lumengrab`. Your work is autosaved to a recovery copy, and after a crash LumenGrab offers it back.
 
 A `.lumengrab` file contains the **unredacted original** by design (so it stays editable). Exports and previews are
 always flat, with redactions baked in and the pixels destroyed.
