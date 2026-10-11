@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T14:50:37.720Z",
+  "generatedAt": "2026-10-11T15:00:04.420Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -464,6 +464,13 @@
       "category": "internal",
       "title": "lint fix in text edit test",
       "url": "https://github.com/DasTvm/LumenGrab/commit/ffe1e3b12697c79d3b9b26e794f19c89c1389197"
+    },
+    {
+      "id": "4f31874900a5d4675d71793bf28af5bbbd34cafe",
+      "date": "2026-10-11T14:59:54Z",
+      "category": "new",
+      "title": "incremental redaction preview (only touched rectangles are redone) and an editor-equals-export test",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/4f31874900a5d4675d71793bf28af5bbbd34cafe"
     }
   ],
   "releases": [],
@@ -533,7 +540,8 @@
     "d6cf00861592635cdd370fccf6e50df2bc0ba704",
     "c9bffc4a2028ec6410d01367e005bc1f298486cb",
     "47cb21e7b85bee5b54f5c71e9ebc39888f825a87",
-    "ffe1e3b12697c79d3b9b26e794f19c89c1389197"
+    "ffe1e3b12697c79d3b9b26e794f19c89c1389197",
+    "4f31874900a5d4675d71793bf28af5bbbd34cafe"
   ],
   "roadmap": {
     "schemaVersion": 1,
