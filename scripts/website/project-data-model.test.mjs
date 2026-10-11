@@ -53,17 +53,32 @@ test("one shared model produces category totals, day clusters and daily filtered
   );
 });
 test("roadmap progress is based on explicit checked tasks, not commits", () => {
-  const view = buildProjectView(fixture());
+  const feed = fixture();
+  // Use stable partial-progress input rather than freezing the live roadmap in time.
+  feed.roadmap.milestones.forEach((milestone) => {
+    milestone.status = "planned";
+    delete milestone.finishedAt;
+    milestone.tasks.forEach((task) => {
+      task.done = false;
+    });
+  });
+  const milestone = feed.roadmap.milestones[1];
+  milestone.status = "building";
+  milestone.tasks.slice(0, 4).forEach((task) => {
+    task.done = true;
+  });
+  const view = buildProjectView(feed);
   assert.equal(view.milestones[1].done, 4);
   assert.equal(view.milestones[1].total, 5);
   assert.equal(
     JSON.parse(view.milestones[1].pixelsJson).filter((cell) => cell.lit === "true").length,
     19,
   );
-  assert.equal(view.doneCount, 1);
-  assert.equal(view.buildingCount, 2);
-  const invalid = structuredClone(roadmap);
+  assert.equal(view.doneCount, 0);
+  assert.equal(view.buildingCount, 1);
+  const invalid = structuredClone(feed.roadmap);
   invalid.milestones[1].status = "done";
+  invalid.milestones[1].finishedAt = "2026-10-11";
   assert.throws(() => validateRoadmap(invalid));
 });
 test("rejects invalid categories, duplicate IDs, foreign links, impossible dates and incomplete feeds", () => {

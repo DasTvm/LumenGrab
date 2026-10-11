@@ -39,7 +39,7 @@
       "id": "M1",
       "title": "Capture MVP",
       "description": "Hotkey, area, window and fullscreen, save and clipboard, multi-monitor.",
-      "status": "building",
+      "status": "done",
       "tasks": [
         {
           "id": "task-1",
@@ -64,15 +64,16 @@
         {
           "id": "task-5",
           "title": "Multi-monitor and mixed DPI, tested on real setups",
-          "done": false
+          "done": true
         }
-      ]
+      ],
+      "finishedAt": "2026-10-11"
     },
     {
       "id": "M2",
       "title": "Quick Access overlay",
       "description": "Copy, save, edit, drag out, auto-close.",
-      "status": "building",
+      "status": "done",
       "tasks": [
         {
           "id": "task-1",
@@ -96,73 +97,80 @@
         },
         {
           "id": "task-5",
-          "title": "Edit opens the editor, arrives with M4",
-          "done": false
+          "title": "Edit opens the editor",
+          "done": true
         }
-      ]
+      ],
+      "finishedAt": "2026-10-11"
     },
     {
       "id": "M3",
       "title": "Document and .lumengrab format",
       "description": "Schemas, read and write, migrations, file association.",
-      "status": "next",
+      "status": "done",
       "tasks": [
         {
           "id": "task-1",
           "title": "Document schemas and ZIP container",
-          "done": false
+          "done": true
         },
         {
           "id": "task-2",
           "title": "Read and write with validation",
-          "done": false
+          "done": true
         },
         {
           "id": "task-3",
           "title": "Migrations and golden fixtures",
-          "done": false
+          "done": true
         },
         {
           "id": "task-4",
           "title": "Preview rendering",
-          "done": false
+          "done": true
         },
         {
           "id": "task-5",
           "title": "File association",
-          "done": false
+          "done": true
         }
-      ]
+      ],
+      "finishedAt": "2026-10-10"
     },
     {
       "id": "M4",
       "title": "Editor",
       "description": "Crop, annotations, redactions, undo and export.",
-      "status": "planned",
+      "status": "building",
       "tasks": [
         {
           "id": "task-1",
           "title": "Crop and resize",
-          "done": false
+          "done": true
         },
         {
           "id": "task-2",
           "title": "Annotation tools",
-          "done": false
+          "done": true
         },
         {
           "id": "task-3",
           "title": "Permanent redactions in flat exports",
-          "done": false
+          "done": true
         },
         {
           "id": "task-4",
           "title": "Undo and redo",
-          "done": false
+          "done": true
         },
         {
           "id": "task-5",
           "title": "PNG, JPG and WebP export",
+          "done": true
+        },
+        {
+          "id": "task-6",
+          "title": "Complete native editor acceptance checks on macOS and Windows",
           "done": false
         }
       ]
@@ -171,7 +179,7 @@
       "id": "M5",
       "title": "Presentation",
       "description": "Backgrounds, padding, shadows and window frames.",
-      "status": "planned",
+      "status": "next",
       "tasks": [
         {
           "id": "task-1",

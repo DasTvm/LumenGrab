@@ -11,36 +11,37 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Unit and screenshot tests
   - [x] Checks for macOS and Windows
   - [x] Tray icon
-- [ ] **M1 Capture MVP**: Hotkey, area, window and fullscreen, save and clipboard, multi-monitor.
-  - Status: building.
+- [x] **M1 Capture MVP**: Hotkey, area, window and fullscreen, save and clipboard, multi-monitor.
+  - Status: done; finished 2026-10-11.
   - [x] Global hotkey and the capture bar
   - [x] Area and window selection
   - [x] Fullscreen capture
   - [x] Save to file and copy to clipboard
-  - [ ] Multi-monitor and mixed DPI, tested on real setups
-- [ ] **M2 Quick Access overlay**: Copy, save, edit, drag out, auto-close.
-  - Status: building.
+  - [x] Multi-monitor and mixed DPI, tested on real setups
+- [x] **M2 Quick Access overlay**: Copy, save, edit, drag out, auto-close.
+  - Status: done; finished 2026-10-11.
   - [x] Card in a screen corner after each capture
   - [x] Auto-close and corner setting
   - [x] Drag the screenshot out
   - [x] Large preview with delete and undo
-  - [ ] Edit opens the editor, arrives with M4
-- [ ] **M3 Document and .lumengrab format**: Schemas, read and write, migrations, file association.
-  - Status: next.
-  - [ ] Document schemas and ZIP container
-  - [ ] Read and write with validation
-  - [ ] Migrations and golden fixtures
-  - [ ] Preview rendering
-  - [ ] File association
+  - [x] Edit opens the editor
+- [x] **M3 Document and .lumengrab format**: Schemas, read and write, migrations, file association.
+  - Status: done; finished 2026-10-10.
+  - [x] Document schemas and ZIP container
+  - [x] Read and write with validation
+  - [x] Migrations and golden fixtures
+  - [x] Preview rendering
+  - [x] File association
 - [ ] **M4 Editor**: Crop, annotations, redactions, undo and export.
-  - Status: planned.
-  - [ ] Crop and resize
-  - [ ] Annotation tools
-  - [ ] Permanent redactions in flat exports
-  - [ ] Undo and redo
-  - [ ] PNG, JPG and WebP export
+  - Status: building.
+  - [x] Crop and resize
+  - [x] Annotation tools
+  - [x] Permanent redactions in flat exports
+  - [x] Undo and redo
+  - [x] PNG, JPG and WebP export
+  - [ ] Complete native editor acceptance checks on macOS and Windows
 - [ ] **M5 Presentation**: Backgrounds, padding, shadows and window frames.
-  - Status: planned.
+  - Status: next.
   - [ ] Backgrounds and saved presets
   - [ ] Padding, radius and shadows
   - [ ] Aspect presets

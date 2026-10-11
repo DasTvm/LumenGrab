@@ -120,6 +120,8 @@ The full spec is in `docs/FORMAT.md`. That file is the **source of truth**. Rule
 
 Work in **small milestones**. Finish, test and commit one before starting the next. Never attempt "build the whole app" in one go.
 
+**Keep the public roadmap current in the same change as milestone work.** The source of truth for task completion and milestone status is `docs/website-roadmap.json`, not commit messages or generated `docs/ROADMAP.md`. When implementing or verifying a listed task, update its `done` state and the affected milestone's status. Only mark a milestone `done` once every task is verified; record `finishedAt`. Keep outstanding native/manual checks as explicit incomplete tasks. Run `node scripts/website/roadmap-markdown.mjs` and commit both roadmap files with the implementation. CI checks their consistency; the website feed publishes the JSON automatically after a main push.
+
 **M0 – Scaffold:** Tauri 2 + React + TS + Tailwind + shadcn, lint/format, Vitest, Playwright, browser mock mode, CI building macOS + Windows artifacts, tray icon.
 **M1 – Capture MVP:** global hotkey, area / window / fullscreen capture, save to file + copy to clipboard, multi-monitor + mixed DPI.
 **M2 – Quick Access Overlay:** small overlay after capture (copy, save, edit, drag out, auto-close).

@@ -20,4 +20,14 @@ for (const milestone of roadmap.milestones) {
   for (const task of milestone.tasks) lines.push(`  - [${task.done ? "x" : " "}] ${task.title}`);
 }
 lines.push("", "Later: " + roadmap.later.map((idea) => idea.title).join(", ") + ".", "");
-await writeFile(new URL("../../docs/ROADMAP.md", import.meta.url), lines.join("\n"));
+const target = new URL("../../docs/ROADMAP.md", import.meta.url);
+const output = lines.join("\n");
+if (process.argv.includes("--check")) {
+  if ((await readFile(target, "utf8")) !== output) {
+    throw new Error(
+      "Roadmap documentation is stale. Run node scripts/website/roadmap-markdown.mjs and commit both roadmap files.",
+    );
+  }
+} else {
+  await writeFile(target, output);
+}

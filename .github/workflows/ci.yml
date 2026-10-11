@@ -13,6 +13,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  website-data:
+    name: Website feed and roadmap consistency
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: lts/*
+      - run: node --test scripts/website/project-data-model.test.mjs
+      - run: node scripts/website/roadmap-markdown.mjs --check
+
   checks:
     name: Lint, typecheck, tests
     runs-on: ubuntu-24.04
