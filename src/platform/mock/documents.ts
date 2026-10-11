@@ -3,12 +3,12 @@ import { writeContainer, type ContainerEntry } from "../../document/container";
 import { sha256Hex } from "../../document/hash";
 import { renderPreview } from "../../document/render/flatten";
 import { editorCodec } from "../../editor/draw/codec";
-import type { Redaction } from "../../document/schema";
+import type { Layer, Redaction } from "../../document/schema";
 import { createDocument, defaultProject, serializeDocument } from "../../document/write";
 import sampleCaptureUrl from "./sample-capture.png?url";
 
 /**
- * Documents for the browser mock, built with the real library (`?scenario=ready|redactions|annotated|
+ * Documents for the browser mock, built with the real library (`?scenario=ready|redactions|annotated|stack|
  * readonly|corrupt|truncated|warnings`), so the viewer window can be developed and tested without the app.
  */
 
@@ -30,11 +30,94 @@ const redaction = (id: string, mode: Redaction["mode"], x: number, y: number): R
   seed: 2024,
 });
 
-async function newDocument(layers: Redaction[] | "annotation" = []) {
+const base = { visible: true, locked: false };
+
+/** A realistic stack for the layers panel: a group with a callout, a counter, a redaction and a locked frame. */
+const LAYER_STACK: Layer[] = [
+  {
+    id: "frame",
+    ...base,
+    locked: true,
+    type: "rect",
+    name: "Frame",
+    x: 40,
+    y: 40,
+    width: 1360,
+    height: 820,
+    rotation: 0,
+    stroke: "#18181B",
+    fill: null,
+    strokeWidth: 2,
+    radius: 0,
+  },
+  {
+    id: "callout",
+    ...base,
+    type: "group",
+    name: "Total callout",
+    layers: [
+      {
+        id: "box",
+        ...base,
+        type: "rect",
+        x: 700,
+        y: 420,
+        width: 400,
+        height: 120,
+        rotation: 0,
+        stroke: "#EF4444",
+        fill: null,
+        strokeWidth: 6,
+        radius: 12,
+      },
+      {
+        id: "pointer",
+        ...base,
+        type: "arrow",
+        from: { x: 560, y: 700 },
+        to: { x: 720, y: 560 },
+        style: "curved",
+        color: "#EF4444",
+        width: 6,
+      },
+      {
+        id: "note",
+        ...base,
+        type: "text",
+        x: 380,
+        y: 700,
+        width: null,
+        text: "Wrong total?",
+        fontId: "inter",
+        size: 36,
+        weight: 600,
+        color: "#EF4444",
+        background: null,
+        align: "left",
+        rotation: 0,
+      },
+    ],
+  },
+  { ...redaction("mask", "pixelate", 120, 300), strength: 14 },
+  {
+    id: "one",
+    ...base,
+    type: "counter",
+    x: 90,
+    y: 250,
+    value: 1,
+    color: "#EF4444",
+    size: 48,
+  },
+];
+
+async function newDocument(layers: Redaction[] | "annotation" | "stack" = []) {
   const png = await sampleCapture();
   const doc = await createDocument(png, { scale: 2, now: NOW, createdBy: "LumenGrab 0.1.0" });
   if (!doc.project) throw new Error("a new document has a project");
-  if (layers === "annotation") {
+  if (layers === "stack") {
+    doc.project.layers.push(...structuredClone(LAYER_STACK));
+  } else if (layers === "annotation") {
     doc.project.layers.push({
       id: "a1",
       type: "rect",
@@ -88,6 +171,8 @@ export async function buildScenario(scenario: string): Promise<Uint8Array> {
       return save(
         await newDocument([redaction("r1", "solid", 120, 120), redaction("r2", "blur", 120, 300)]),
       );
+    case "stack":
+      return save(await newDocument("stack"));
     case "annotated":
       return save(await newDocument("annotation"));
     case "readonly":

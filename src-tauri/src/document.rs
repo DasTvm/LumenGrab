@@ -175,8 +175,9 @@ pub fn open(app: &AppHandle, path: &Path) -> Result<String, String> {
         WebviewUrl::App(format!("index.html?window=document&label={label}").into()),
     )
     .title(title)
-    .inner_size(980.0, 700.0)
-    .min_inner_size(640.0, 480.0)
+    // The editor (tool rail, canvas, panel) is laid out for 1280 x 880; smaller screens may shrink it.
+    .inner_size(1280.0, 880.0)
+    .min_inner_size(960.0, 640.0)
     .center()
     .build();
     match built {

@@ -39,7 +39,7 @@ We build similar features, not a copy.
 |---|---|
 | App shell | **Tauri 2** (Rust backend, system WebView) |
 | UI | **React + TypeScript (strict) + Tailwind + shadcn/ui (Radix)** |
-| Editor canvas | **Konva.js** (react-konva) |
+| Editor canvas | Plain **2D canvas** with our own `drawLayers` (the same code renders every export) and an SVG overlay for handles; Konva was evaluated and dropped, see `docs/adr/0004-editor-canvas.md` |
 | State | Zustand (+ immer) |
 | Animations | Motion (framer-motion successor) |
 | Schema validation | **Zod** |
