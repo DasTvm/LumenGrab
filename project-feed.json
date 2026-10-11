@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T15:42:21.225Z",
+  "generatedAt": "2026-10-11T19:32:40.265Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -492,6 +492,13 @@
       "category": "internal",
       "title": "canvas codec without a needless cast",
       "url": "https://github.com/DasTvm/LumenGrab/commit/3cb8e0bae67625b116ba16f824b8b7ef6a2bf775"
+    },
+    {
+      "id": "2ddd491e080f682d46351dffdf0fc1b14c845f36",
+      "date": "2026-10-11T19:32:23Z",
+      "category": "new",
+      "title": "native WebP encoding (libwebp) for the macOS WebView, docs (ADR 0005, test checklist, README), licenses",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/2ddd491e080f682d46351dffdf0fc1b14c845f36"
     }
   ],
   "releases": [],
@@ -565,7 +572,8 @@
     "4f31874900a5d4675d71793bf28af5bbbd34cafe",
     "db461938015a65df63bf77f4441b19fc4f582661",
     "610f62a216b9dd1d723be5f75a51d6fb31ab50b3",
-    "3cb8e0bae67625b116ba16f824b8b7ef6a2bf775"
+    "3cb8e0bae67625b116ba16f824b8b7ef6a2bf775",
+    "2ddd491e080f682d46351dffdf0fc1b14c845f36"
   ],
   "roadmap": {
     "schemaVersion": 1,
