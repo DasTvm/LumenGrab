@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T00:27:31.056Z",
+  "generatedAt": "2026-10-11T00:32:50.723Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -422,6 +422,13 @@
       "category": "new",
       "title": "format v2 with the group layer (migration v1->v2, fixture v2-groups, FORMAT.md, ADR 0003)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/fdd2af3d8c6921dba367b00cc1e98e85d4782c1d"
+    },
+    {
+      "id": "80a8017328ae557c71904ba642c7c117b76d00ed",
+      "date": "2026-10-11T00:32:40Z",
+      "category": "new",
+      "title": "layer tree operations, patch-based undo/redo store and geometry with tests",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/80a8017328ae557c71904ba642c7c117b76d00ed"
     }
   ],
   "releases": [],
@@ -485,7 +492,8 @@
     "fb0687c0ed808fcd15a62148b199ce5824e0713a",
     "8f6554ab2b343bc7e65c638a0d041e3d7f39da3d",
     "0e8592ef67bd8580c2c0ac999a119fb470bd2c61",
-    "fdd2af3d8c6921dba367b00cc1e98e85d4782c1d"
+    "fdd2af3d8c6921dba367b00cc1e98e85d4782c1d",
+    "80a8017328ae557c71904ba642c7c117b76d00ed"
   ],
   "roadmap": {
     "schemaVersion": 1,
