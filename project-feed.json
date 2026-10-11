@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T20:18:05.573Z",
+  "generatedAt": "2026-10-11T20:32:06.739Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -506,6 +506,13 @@
       "category": "internal",
       "title": "AGENTS.md layout and screens list for the editor",
       "url": "https://github.com/DasTvm/LumenGrab/commit/48eb86241ba4f29a6c80686867273f2a9dfec572"
+    },
+    {
+      "id": "419002fd88514d982e58e638f9e91cf23bd4aaf5",
+      "date": "2026-10-11T20:31:56Z",
+      "category": "new",
+      "title": "own colour picker with saved colours, eight bundled fonts plus installed fonts, typed font size, panel edge fix, Dock and Cmd+Tab presence on macOS",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/419002fd88514d982e58e638f9e91cf23bd4aaf5"
     }
   ],
   "releases": [],
@@ -581,7 +588,8 @@
     "610f62a216b9dd1d723be5f75a51d6fb31ab50b3",
     "3cb8e0bae67625b116ba16f824b8b7ef6a2bf775",
     "2ddd491e080f682d46351dffdf0fc1b14c845f36",
-    "48eb86241ba4f29a6c80686867273f2a9dfec572"
+    "48eb86241ba4f29a6c80686867273f2a9dfec572",
+    "419002fd88514d982e58e638f9e91cf23bd4aaf5"
   ],
   "roadmap": {
     "schemaVersion": 1,
