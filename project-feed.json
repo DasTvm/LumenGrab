@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T14:10:31.907Z",
+  "generatedAt": "2026-10-11T14:33:16.339Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -436,6 +436,13 @@
       "category": "new",
       "title": "one drawing code for all layer types, annotations in preview and export, rendering rules in FORMAT.md",
       "url": "https://github.com/DasTvm/LumenGrab/commit/82d845671cc035603fd98b5dbd6e4a35103c801a"
+    },
+    {
+      "id": "d6cf00861592635cdd370fccf6e50df2bc0ba704",
+      "date": "2026-10-11T14:33:03Z",
+      "category": "new",
+      "title": "editor window with tool rail, canvas, zoom, selection, layers panel (groups, rename, reorder) and tests",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/d6cf00861592635cdd370fccf6e50df2bc0ba704"
     }
   ],
   "releases": [],
@@ -501,7 +508,8 @@
     "0e8592ef67bd8580c2c0ac999a119fb470bd2c61",
     "fdd2af3d8c6921dba367b00cc1e98e85d4782c1d",
     "80a8017328ae557c71904ba642c7c117b76d00ed",
-    "82d845671cc035603fd98b5dbd6e4a35103c801a"
+    "82d845671cc035603fd98b5dbd6e4a35103c801a",
+    "d6cf00861592635cdd370fccf6e50df2bc0ba704"
   ],
   "roadmap": {
     "schemaVersion": 1,
