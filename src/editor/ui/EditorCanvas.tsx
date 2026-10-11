@@ -6,6 +6,7 @@ import type { BaseImage } from "./base-image";
 import { useEditor, useStores, useUi } from "./context";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { ZoomBar } from "./ZoomBar";
+import { DrawController } from "./draw-tool";
 import { SelectController, type PointerInfo } from "./select-tool";
 import { fitView, toImage, wheelZoom, zoomAt } from "./view";
 
@@ -36,6 +37,16 @@ export function EditorCanvas({ base }: Props) {
   const panDrag = useRef<{ x: number; y: number; view: NonNullable<typeof view> } | null>(null);
 
   const controller = useMemo(() => new SelectController(editor, ui), [editor, ui]);
+  const drawing = useMemo(
+    () => new DrawController(editor, ui, controller),
+    [editor, ui, controller],
+  );
+  /** The controller of the active tool; `null` for tools that have none yet (text, crop). */
+  const current = useCallback(() => {
+    const t = ui.getState().tool;
+    if (t === "select") return controller;
+    return t === "text" || t === "crop" ? null : drawing;
+  }, [ui, controller, drawing]);
   const content: Rect = project.crop ?? { x: 0, y: 0, width: base.width, height: base.height };
 
   // Measure the area.
@@ -185,7 +196,7 @@ export function EditorCanvas({ base }: Props) {
       return;
     }
     const pointer = info(e);
-    if (pointer && ui.getState().tool === "select") controller.down(pointer);
+    if (pointer) current()?.down(pointer);
     redrawOverlay();
   };
 
@@ -201,16 +212,13 @@ export function EditorCanvas({ base }: Props) {
       return;
     }
     const pointer = info(e);
-    if (!pointer) return;
-    if (ui.getState().tool === "select") {
-      if (controller.active) {
-        controller.move(pointer);
-        redrawOverlay();
-      } else {
-        setCursor(controller.cursor(pointer.p));
-      }
+    const active = current();
+    if (!pointer || !active) return;
+    if (active.active) {
+      active.move(pointer);
+      redrawOverlay();
     } else {
-      setCursor("crosshair");
+      setCursor(active.cursor(pointer.p));
     }
   };
 
@@ -223,15 +231,16 @@ export function EditorCanvas({ base }: Props) {
       return;
     }
     const pointer = info(e);
-    if (pointer && ui.getState().tool === "select") controller.up(pointer);
+    if (pointer) current()?.up(pointer);
     redrawOverlay();
   };
 
   // Esc cancels a drag in progress.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && controller.active) {
+      if (e.key === "Escape" && (controller.active || drawing.active)) {
         controller.cancel();
+        drawing.cancel();
         redrawOverlay();
       }
     };
@@ -239,9 +248,15 @@ export function EditorCanvas({ base }: Props) {
     return () => {
       window.removeEventListener("keydown", onKey);
     };
-  }, [controller]);
+  }, [controller, drawing]);
 
-  const shownCursor = panning ? "grab" : tool === "select" ? cursor : "crosshair";
+  const shownCursor = panning
+    ? "grab"
+    : tool === "select" || cursor !== "default"
+      ? cursor
+      : tool === "crop"
+        ? "default"
+        : "crosshair";
 
   return (
     <div

@@ -22,6 +22,8 @@ export interface UiState {
   feedback: Feedback;
   /** Layers collapsed in the layers panel (group ids). */
   collapsed: string[];
+  /** The number the counter tool places next after "Restart at 1"; `null` = one above the highest in the document. */
+  counterNext: number | null;
   /** The pointer is held down for panning (Space) or a gesture is running: cursor hints. */
   panning: boolean;
 }
@@ -36,6 +38,7 @@ export interface UiActions {
   flash(kind: "saved" | "copied"): void;
   toggleCollapsed(id: string): void;
   setPanning(panning: boolean): void;
+  setCounterNext(value: number | null): void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -53,6 +56,7 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     feedback: null,
     collapsed: [],
     panning: false,
+    counterNext: null,
 
     setTool: (tool) => {
       set({ tool });
@@ -83,6 +87,9 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setPanning: (panning) => {
       set({ panning });
+    },
+    setCounterNext: (counterNext) => {
+      set({ counterNext });
     },
   }));
 }

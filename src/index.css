@@ -19,3 +19,37 @@
     transform: scaleX(0);
   }
 }
+
+/* Editor panels: the slider of the design (a 4 px track filled in lime up to the thumb, a white round thumb). */
+.lg-slider {
+  appearance: none;
+  width: 100%;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.lg-slider:focus-visible {
+  outline: 2px solid var(--lg-ring);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+.lg-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--lg-brand) var(--lg-fill, 0%),
+    var(--lg-border) var(--lg-fill, 0%)
+  );
+}
+.lg-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid var(--lg-border);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.25);
+}

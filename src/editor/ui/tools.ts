@@ -67,6 +67,16 @@ export const PALETTE = [
   "#18181B",
 ] as const;
 
+/** The swatch rows of the design (a tool's panel offers its own set). */
+export const SWATCHES = {
+  stroke: PALETTE,
+  fill: ["#EF4444", "#F97316", "#FACC15", "#C8FF2E", "#16A34A", "#2563EB"],
+  textColor: ["#EF4444", "#FFFFFF", "#FACC15", "#C8FF2E", "#16A34A", "#2563EB", "#18181B"],
+  textBackground: ["#FFFFFF", "#18181B", "#FACC15", "#C8FF2E", "#EF4444", "#2563EB"],
+  highlighter: ["#FACC15", "#C8FF2E", "#F97316", "#F472B6", "#38BDF8", "#4ADE80", "#EF4444"],
+  solid: ["#000000", "#FFFFFF", "#71717A", "#EF4444", "#2563EB", "#C8FF2E", "#18181B"],
+} as const;
+
 /** What a new layer of each tool starts with (design: "Defaults for new …"). Changed by the tool's panel. */
 export interface ToolOptions {
   arrow: { style: "straight" | "curved" | "outlined" | "double"; color: string; width: number };
@@ -85,6 +95,7 @@ export interface ToolOptions {
   highlighter: { color: string; opacity: number };
   pencil: { color: string; width: number; smoothing: number };
   spotlight: { shape: "rect" | "ellipse"; dimOpacity: number };
+  /** `strength` is a percentage (0-100); the file stores pixels (`redactStrengthPx`). */
   redact: { mode: "blur" | "pixelate" | "solid"; strength: number; color: string };
 }
 
@@ -105,7 +116,7 @@ export const DEFAULT_OPTIONS: ToolOptions = {
   highlighter: { color: "#FACC15", opacity: 0.4 },
   pencil: { color: "#EF4444", width: 4, smoothing: 0.6 },
   spotlight: { shape: "rect", dimOpacity: 0.6 },
-  redact: { mode: "blur", strength: 14, color: "#000000" },
+  redact: { mode: "blur", strength: 70, color: "#000000" },
 };
 
 /** The dash pattern of a dashed line, in multiples of its width. */

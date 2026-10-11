@@ -1,5 +1,6 @@
 import { Button } from "@/ui/components/button";
 import { Tooltip } from "@/ui/components/tooltip";
+import { chooseTool } from "./commands";
 import { useUi, useStores } from "./context";
 import { TOOL_ICONS } from "./icons";
 import { TOOL_GROUPS, type ToolId } from "./tools";
@@ -11,7 +12,7 @@ interface Props {
 
 /** The tool rail (design: Editor, tool rail). Twelve tools in four groups; the active one is lime. */
 export function ToolRail({ readOnly }: Props) {
-  const { ui } = useStores();
+  const { ui, editor } = useStores();
   const active = useUi((s) => s.tool);
   const cropping = active === "crop";
 
@@ -47,7 +48,7 @@ export function ToolRail({ readOnly }: Props) {
                   disabled={reason !== null}
                   data-tool={tool.id}
                   onClick={() => {
-                    ui.getState().setTool(tool.id);
+                    chooseTool(editor, ui, tool.id);
                   }}
                 >
                   <Icon aria-hidden />

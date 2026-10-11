@@ -1,4 +1,7 @@
+import { isStyleTool, layerIsOf } from "../model/bindings";
 import type { EditorStoreApi } from "../model/store";
+import { findLayer } from "../model/tree";
+import type { ToolId } from "./tools";
 import type { EditorCommand } from "./shortcuts";
 import type { UiStoreApi } from "./ui-store";
 import { centerView, fitView, stepZoom, zoomAt } from "./view";
@@ -8,6 +11,22 @@ export interface CommandEnv {
   ui: UiStoreApi;
   /** Commands that leave the editor (save, export, copy); the window supplies them. */
   outside?: Partial<Record<"save" | "saveAs" | "export" | "copy", () => void>>;
+}
+
+/**
+ * Picks a tool. A drawing tool starts from its own defaults, so a selection of something else is
+ * dropped (selecting a rectangle and pressing A for Arrow should not leave the rectangle selected).
+ */
+export function chooseTool(editor: EditorStoreApi, ui: UiStoreApi, tool: ToolId): void {
+  const { project, selection } = editor.getState();
+  if (isStyleTool(tool) && selection.length > 0) {
+    const mine = selection.every((id) => {
+      const layer = findLayer(project.layers, id);
+      return layer !== null && layerIsOf(tool, layer);
+    });
+    if (!mine) editor.getState().select([]);
+  }
+  ui.getState().setTool(tool);
 }
 
 /** Runs a command. Shortcuts, menus and buttons all end up here, so they cannot disagree. */
@@ -49,7 +68,7 @@ export function runCommand(command: EditorCommand, env: CommandEnv): void {
       state.nudge(command.dx, command.dy);
       return;
     case "tool":
-      ui.getState().setTool(command.tool);
+      chooseTool(editor, ui, command.tool);
       return;
     case "fit":
     case "zoom100":

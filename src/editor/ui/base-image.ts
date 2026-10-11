@@ -36,8 +36,10 @@ export class BaseImage {
   }
 
   private paint(image: RgbaImage): void {
-    const ctx = this.canvas.getContext("2d") as
-      CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null;
+    const ctx =
+      this.canvas instanceof HTMLCanvasElement
+        ? this.canvas.getContext("2d")
+        : this.canvas.getContext("2d");
     if (!ctx) throw new Error("This system cannot process images in the browser engine.");
     ctx.putImageData(
       new ImageData(new Uint8ClampedArray(image.data), image.width, image.height),

@@ -381,3 +381,244 @@ test.describe("layers panel (browser mock)", () => {
     expect((await layers(page)).map((l) => l.id)).toEqual(["frame", "callout", "one", "mask"]);
   });
 });
+
+test.describe("drawing tools and the style panel (browser mock)", () => {
+  test.beforeEach(async ({ page }) => {
+    await open(page, "ready");
+    await ready(page);
+  });
+
+  const last = async (page: Page) => (await layers(page)).at(-1) as Record<string, unknown>;
+  const pick = (page: Page, tool: string) =>
+    page.getByRole("button", { name: tool, exact: true }).click();
+
+  test("rectangle and ellipse: drag, shift for a square, the panel then edits the new shape", async ({
+    page,
+  }) => {
+    await pick(page, "Rectangle");
+    await drag(page, [200, 200], [500, 340]);
+    expect(await last(page)).toMatchObject({
+      type: "rect",
+      x: 200,
+      y: 200,
+      width: 300,
+      height: 140,
+      stroke: "#EF4444",
+      fill: null,
+      strokeWidth: 4,
+      radius: 8,
+    });
+    await expect(page.getByText("Selected rectangle")).toBeVisible();
+    await page.getByRole("radio", { name: "Fill: #2563EB" }).click();
+    await page.getByRole("radio", { name: "Stroke: #18181B" }).click();
+    expect(await last(page)).toMatchObject({ fill: "#2563EB", stroke: "#18181B" });
+
+    await pick(page, "Ellipse");
+    const a = await at(page, 700, 300);
+    const b = await at(page, 800, 330);
+    await page.keyboard.down("Shift");
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 6 });
+    await page.mouse.up();
+    await page.keyboard.up("Shift");
+    const e = await last(page);
+    expect(e["type"]).toBe("ellipse");
+    expect(Number(e["width"])).toBeCloseTo(Number(e["height"]), 1);
+    await page.screenshot({
+      path: "test-results/editor-rectangle-light.png",
+      animations: "disabled",
+    });
+  });
+
+  test("a slider drag changes the selected layer as one undo step, and Undo brings it back", async ({
+    page,
+  }) => {
+    await pick(page, "Rectangle");
+    await drag(page, [200, 200], [500, 340]);
+    const slider = page.getByRole("slider", { name: "Corner radius" });
+    const box = await slider.boundingBox();
+    if (!box) throw new Error("no slider");
+    await page.mouse.move(box.x + 8, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.9, box.y + box.height / 2, { steps: 8 });
+    await page.mouse.up();
+    expect(Number((await last(page))["radius"])).toBeGreaterThan(20);
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await last(page)).toMatchObject({ radius: 8 }); // back to what it was, not a step in between
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await layers(page)).toHaveLength(0);
+  });
+
+  test("a changed option is remembered for the next shape", async ({ page }) => {
+    await pick(page, "Rectangle");
+    await page.getByRole("radio", { name: "Stroke: #2563EB" }).click(); // nothing selected: the defaults
+    await drag(page, [200, 200], [400, 300]);
+    expect(await last(page)).toMatchObject({ stroke: "#2563EB" });
+    await page.keyboard.press("Escape");
+    await drag(page, [500, 500], [700, 600]);
+    expect(await last(page)).toMatchObject({ stroke: "#2563EB" });
+  });
+
+  test("arrow: the four styles, colour and width; the curve handle bends it", async ({ page }) => {
+    await pick(page, "Arrow");
+    await expect(page.getByText("Defaults for new arrows")).toBeVisible();
+    await page.getByRole("radio", { name: "Curved" }).click();
+    await drag(page, [200, 600], [700, 500]);
+    expect(await last(page)).toMatchObject({
+      type: "arrow",
+      style: "curved",
+      from: { x: 200, y: 600 },
+    });
+    const grips = page.locator("[data-grip]");
+    await expect(grips).toHaveCount(3); // both ends and the bend
+    await page.getByRole("radio", { name: "Double" }).click();
+    expect(await last(page)).toMatchObject({ style: "double" });
+    await expect(grips).toHaveCount(2);
+    await page.getByRole("radio", { name: "Outlined" }).click();
+    await page.getByRole("radio", { name: "Color: #2563EB" }).click();
+    expect(await last(page)).toMatchObject({ style: "outlined", color: "#2563EB" });
+    await page.getByRole("radio", { name: "Curved" }).click();
+    // Drag the bend handle: the curve gets a control point.
+    const handle = page.locator('[data-grip="curve"]');
+    const hb = await handle.boundingBox();
+    if (!hb) throw new Error("no curve handle");
+    await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(hb.x + hb.width / 2, hb.y - 60, { steps: 5 });
+    await page.mouse.up();
+    expect((await last(page))["curve"]).toBeDefined();
+    await page.screenshot({ path: "test-results/editor-arrow-light.png", animations: "disabled" });
+  });
+
+  test("line: solid or dashed, width", async ({ page }) => {
+    await pick(page, "Line");
+    await drag(page, [100, 100], [600, 140]);
+    expect(await last(page)).toMatchObject({ type: "line", color: "#EF4444" });
+    expect(await last(page)).not.toHaveProperty("dash");
+    await page.getByRole("radio", { name: "Dashed" }).click();
+    expect((await last(page))["dash"]).toEqual([10, 8]);
+    await page.getByRole("radio", { name: "Solid" }).click();
+    expect(await last(page)).not.toHaveProperty("dash");
+  });
+
+  test("pencil, highlighter, spotlight", async ({ page }) => {
+    await pick(page, "Pencil");
+    const a = await at(page, 300, 300);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    for (let i = 1; i <= 12; i += 1) await page.mouse.move(a.x + i * 12, a.y + Math.sin(i) * 20);
+    await page.mouse.up();
+    expect(((await last(page))["points"] as number[]).length).toBeGreaterThan(10);
+    await expect(page.getByRole("slider", { name: "Smoothing" })).toHaveValue("60");
+
+    await pick(page, "Highlighter");
+    await drag(page, [200, 500], [600, 540]);
+    expect(await last(page)).toMatchObject({ type: "highlighter", color: "#FACC15", opacity: 0.4 });
+    await expect(page.getByText("Highlighted text")).toBeVisible();
+
+    await pick(page, "Spotlight");
+    await page.getByRole("radio", { name: "Ellipse" }).click();
+    await drag(page, [700, 300], [1000, 500]);
+    expect(await last(page)).toMatchObject({
+      type: "spotlight",
+      shape: "ellipse",
+      dimOpacity: 0.6,
+    });
+    await expect(
+      page.getByText("Dims everything outside the shape to draw the eye."),
+    ).toBeVisible();
+  });
+
+  test("counter: numbers count up, Restart at 1, undo", async ({ page }) => {
+    await pick(page, "Counter");
+    await expect(page.getByTestId("counter-next")).toHaveText("1");
+    for (const [x, y] of [
+      [200, 200],
+      [300, 200],
+      [400, 200],
+    ] as const)
+      await click(page, x, y);
+    expect((await layers(page)).map((l) => l["value"])).toEqual([1, 2, 3]);
+    await expect(page.getByTestId("counter-next")).toHaveText("4");
+    await page.getByRole("button", { name: "Restart at 1" }).click();
+    await expect(page.getByTestId("counter-next")).toHaveText("1");
+    await click(page, 500, 200);
+    expect(await last(page)).toMatchObject({ value: 1, size: 32 });
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await layers(page)).toHaveLength(3);
+  });
+
+  test("redaction: mode and strength in the panel, solid takes a colour, and the picture changes", async ({
+    page,
+  }) => {
+    await pick(page, "Redaction");
+    await expect(page.getByText("Defaults for new redactions")).toBeVisible();
+    await drag(page, [100, 100], [500, 220]);
+    expect(await last(page)).toMatchObject({ type: "redaction", mode: "blur" });
+    const before = await page
+      .getByTestId("editor-canvas")
+      .evaluate((c: HTMLCanvasElement) => c.toDataURL());
+    await page.getByRole("radio", { name: "Solid" }).click();
+    expect(await last(page)).toMatchObject({ mode: "solid", strength: 0 });
+    await page.getByRole("radio", { name: "Color: #EF4444" }).click();
+    expect(await last(page)).toMatchObject({ color: "#EF4444" });
+    await expect(
+      page.getByText("A solid box hides what is under it in every export."),
+    ).toBeVisible();
+    const after = await page
+      .getByTestId("editor-canvas")
+      .evaluate((c: HTMLCanvasElement) => c.toDataURL());
+    expect(after).not.toBe(before);
+    await page.getByRole("radio", { name: "Pixelate" }).click();
+    await expect(page.getByRole("slider", { name: "Strength" })).toBeVisible();
+    expect(await last(page)).toMatchObject({ mode: "pixelate" });
+    await page.screenshot({
+      path: "test-results/editor-redaction-light.png",
+      animations: "disabled",
+    });
+  });
+
+  test("Esc while drawing throws the shape away; a click on a shape with a drawing tool selects it", async ({
+    page,
+  }) => {
+    await pick(page, "Rectangle");
+    const a = await at(page, 200, 200);
+    const b = await at(page, 400, 300);
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(b.x, b.y, { steps: 4 });
+    await page.keyboard.press("Escape");
+    await page.mouse.up();
+    expect(await layers(page)).toHaveLength(0);
+    await drag(page, [200, 200], [400, 300]);
+    await page.keyboard.press("Escape"); // clears the selection
+    await click(page, 200, 250); // the left edge of the rectangle
+    expect(await selection(page)).toHaveLength(1);
+  });
+
+  test("the panel names what a mixed selection is, and each tool's panel has its controls", async ({
+    page,
+  }) => {
+    for (const [tool, control] of [
+      ["Text", "Weight"],
+      ["Counter", "Next number"],
+      ["Pencil", "Smoothing"],
+      ["Spotlight", "Dim strength"],
+      ["Redaction", "Mode"],
+      ["Highlighter", "Opacity"],
+      ["Ellipse", "Stroke width"],
+    ] as const) {
+      await pick(page, tool);
+      await expect(page.getByRole("region", { name: control })).toBeVisible();
+    }
+    await pick(page, "Text");
+    await page.getByRole("radio", { name: "JetBrains Mono" }).click();
+    await page.getByRole("button", { name: "Size: larger" }).click();
+    await expect(page.getByText("26 px")).toBeVisible();
+    await page.screenshot({
+      path: "test-results/editor-text-panel-light.png",
+      animations: "disabled",
+    });
+  });
+});

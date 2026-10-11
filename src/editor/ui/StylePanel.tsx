@@ -3,6 +3,8 @@ import { Button } from "@/ui/components/button";
 import { findLayer } from "../model/tree";
 import { useEditor, useStores, useUi } from "./context";
 import { TOOL_ICONS } from "./icons";
+import { isStyleTool, type StyleTool } from "../model/bindings";
+import { ToolPanelBody } from "./ToolPanels";
 import { toolById, toolForLayerType, type ToolId } from "./tools";
 
 /**
@@ -14,34 +16,49 @@ export function StylePanel({ readOnly }: { readOnly: boolean }) {
   const tool = useUi((s) => s.tool);
   const layers = useEditor((s) => s.project.layers);
   const selection = useEditor((s) => s.selection);
-  const only = selection.length === 1 ? findLayer(layers, selection[0] ?? "") : null;
-  const layerTool = only ? toolForLayerType(only.type) : null;
-  // The panel follows the selection; with nothing selected it follows the active tool.
-  const shown: ToolId | null = layerTool ?? (tool === "select" || tool === "crop" ? null : tool);
+  const picked = selection.map((id) => findLayer(layers, id)).filter((l) => l !== null);
+  const kinds = new Set(picked.map((l) => toolForLayerType(l.type)));
+  // One kind of layer selected: its options. Nothing selected: the active tool's defaults.
+  const layerTool = kinds.size === 1 ? ([...kinds][0] ?? null) : null;
+  const shown: StyleTool | null =
+    layerTool && isStyleTool(layerTool)
+      ? layerTool
+      : picked.length === 0 && isStyleTool(tool)
+        ? tool
+        : null;
   const count = selection.length;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid="style-panel">
       {shown ? (
-        <PanelTitle tool={shown} selected={layerTool !== null} />
+        <>
+          <PanelTitle tool={shown} selected={picked.length > 0} count={picked.length} />
+          <fieldset
+            disabled={readOnly}
+            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-4 pb-2"
+          >
+            <ToolPanelBody tool={shown} />
+          </fieldset>
+        </>
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-          <MousePointerClick aria-hidden className="size-6 text-muted-foreground" />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+          <span className="flex size-11 items-center justify-center rounded-full bg-muted text-muted-foreground">
+            <MousePointerClick aria-hidden className="size-5" />
+          </span>
           <p className="text-sm font-medium">
             {count > 1
               ? `${String(count)} layers selected`
-              : only
+              : count === 1
                 ? "Group selected"
                 : "Nothing selected"}
           </p>
           <p className="text-[13px] text-muted-foreground">
             {count > 0
               ? "Move them together, or open the Layers tab to group, hide or lock."
-              : "Click a layer on the picture, or pick a tool to draw."}
+              : "Click an annotation to change its style, or pick a tool to start drawing."}
           </p>
         </div>
       )}
-      {shown ? <div className="flex-1" /> : null}
       {count > 0 && !readOnly ? (
         <div
           className="flex items-center gap-1 border-t border-border pt-2"
@@ -99,7 +116,7 @@ export function StylePanel({ readOnly }: { readOnly: boolean }) {
   );
 }
 
-function PanelTitle({ tool, selected }: { tool: ToolId; selected: boolean }) {
+function PanelTitle({ tool, selected, count }: { tool: ToolId; selected: boolean; count: number }) {
   const info = toolById(tool);
   const Icon = TOOL_ICONS[tool];
   const noun = info.label.toLowerCase();
@@ -116,8 +133,20 @@ function PanelTitle({ tool, selected }: { tool: ToolId; selected: boolean }) {
         </kbd>
       </div>
       <p className="text-xs text-muted-foreground">
-        {selected ? `Selected ${noun}` : `Defaults for new ${noun}${noun.endsWith("s") ? "" : "s"}`}
+        {selected
+          ? count > 1
+            ? `${String(count)} ${noun}${noun.endsWith("s") ? "" : "s"} selected`
+            : `Selected ${noun}`
+          : `Defaults for new ${plural(tool)}`}
       </p>
     </div>
   );
+}
+
+/** "arrows", "highlights", "redactions" (the captions of the design). */
+function plural(tool: ToolId): string {
+  const noun = toolById(tool).label.toLowerCase();
+  if (tool === "highlighter") return "highlights";
+  if (tool === "pencil") return "pencil strokes";
+  return noun.endsWith("s") ? noun : `${noun}s`;
 }
