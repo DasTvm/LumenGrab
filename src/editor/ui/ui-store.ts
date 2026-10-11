@@ -22,6 +22,8 @@ export interface UiState {
   feedback: Feedback;
   /** Layers collapsed in the layers panel (group ids). */
   collapsed: string[];
+  /** The text layer being typed in; `isNew` while it is a fresh box that is removed again if it stays empty. */
+  editing: { id: string; isNew: boolean } | null;
   /** The number the counter tool places next after "Restart at 1"; `null` = one above the highest in the document. */
   counterNext: number | null;
   /** The pointer is held down for panning (Space) or a gesture is running: cursor hints. */
@@ -39,6 +41,7 @@ export interface UiActions {
   toggleCollapsed(id: string): void;
   setPanning(panning: boolean): void;
   setCounterNext(value: number | null): void;
+  setEditing(editing: { id: string; isNew: boolean } | null): void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -57,6 +60,7 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     collapsed: [],
     panning: false,
     counterNext: null,
+    editing: null,
 
     setTool: (tool) => {
       set({ tool });
@@ -90,6 +94,9 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setCounterNext: (counterNext) => {
       set({ counterNext });
+    },
+    setEditing: (editing) => {
+      set({ editing });
     },
   }));
 }

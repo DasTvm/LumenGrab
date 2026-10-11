@@ -152,6 +152,7 @@ export function LayersPanel() {
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
+                  e.stopPropagation();
                   setRenaming(layer.id);
                 } else if (e.key === " ") {
                   e.preventDefault();

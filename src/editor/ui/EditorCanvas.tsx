@@ -5,7 +5,13 @@ import { ensureFonts } from "../draw/fonts";
 import type { BaseImage } from "./base-image";
 import { useEditor, useStores, useUi } from "./context";
 import { SelectionOverlay } from "./SelectionOverlay";
+import { TextEditor } from "./TextEditor";
 import { ZoomBar } from "./ZoomBar";
+import { finishEditing, startEditText } from "./text-edit";
+import { measureTextLayer } from "../draw/text-measure";
+import { isGroup } from "@/document/layers";
+import { hitTest } from "../model/geometry";
+import type { Layer } from "@/document/schema";
 import { DrawController } from "./draw-tool";
 import { SelectController, type PointerInfo } from "./select-tool";
 import { fitView, toImage, wheelZoom, zoomAt } from "./view";
@@ -27,6 +33,7 @@ export function EditorCanvas({ base }: Props) {
   const view = useUi((s) => s.view);
   const tool = useUi((s) => s.tool);
   const panning = useUi((s) => s.panning);
+  const editing = useUi((s) => s.editing);
 
   const areaRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -36,16 +43,19 @@ export function EditorCanvas({ base }: Props) {
   const [, redrawOverlay] = useReducer((n: number) => n + 1, 0);
   const panDrag = useRef<{ x: number; y: number; view: NonNullable<typeof view> } | null>(null);
 
-  const controller = useMemo(() => new SelectController(editor, ui), [editor, ui]);
+  const controller = useMemo(
+    () => new SelectController(editor, ui, measureTextLayer),
+    [editor, ui],
+  );
   const drawing = useMemo(
-    () => new DrawController(editor, ui, controller),
+    () => new DrawController(editor, ui, controller, measureTextLayer),
     [editor, ui, controller],
   );
-  /** The controller of the active tool; `null` for tools that have none yet (text, crop). */
+  /** The controller of the active tool; `null` for tools that have none yet (crop). */
   const current = useCallback(() => {
     const t = ui.getState().tool;
     if (t === "select") return controller;
-    return t === "text" || t === "crop" ? null : drawing;
+    return t === "crop" ? null : drawing;
   }, [ui, controller, drawing]);
   const content: Rect = project.crop ?? { x: 0, y: 0, width: base.width, height: base.height };
 
@@ -100,6 +110,8 @@ export function EditorCanvas({ base }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     base.update(project.layers);
+    // The text being typed in is the text field, not drawn twice.
+    const shown = editing ? withoutLayer(project.layers, editing.id) : project.layers;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, w, h);
     ctx.setTransform(dpr * view.zoom, 0, 0, dpr * view.zoom, dpr * view.x, dpr * view.y);
@@ -123,7 +135,7 @@ export function EditorCanvas({ base }: Props) {
     ctx.clip();
     ctx.imageSmoothingEnabled = view.zoom < 2;
     ctx.drawImage(base.canvas, 0, 0);
-    drawLayers(ctx, project.layers, { width: base.width, height: base.height });
+    drawLayers(ctx, shown, { width: base.width, height: base.height });
     ctx.restore();
   }, [
     base,
@@ -135,6 +147,7 @@ export function EditorCanvas({ base }: Props) {
     content.width,
     content.height,
     fontRev,
+    editing,
   ]);
 
   const toArea = useCallback((clientX: number, clientY: number): Point => {
@@ -195,9 +208,27 @@ export function EditorCanvas({ base }: Props) {
       setCursor("grabbing");
       return;
     }
+    // A press on the picture ends the text being typed (the field's own blur does too).
+    finishEditing(editor, ui);
     const pointer = info(e);
     if (pointer) current()?.down(pointer);
     redrawOverlay();
+  };
+
+  /** Double-click on a text edits it, with any tool. */
+  const onDoubleClick = (e: React.MouseEvent) => {
+    const pointer = info(e);
+    if (!pointer) return;
+    const hit = hitTest(
+      editor.getState().project.layers,
+      pointer.p,
+      6 / (ui.getState().view?.zoom ?? 1),
+      {
+        enterGroups: true,
+        measure: measureTextLayer,
+      },
+    );
+    if (hit) startEditText(editor, ui, hit);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -268,6 +299,7 @@ export function EditorCanvas({ base }: Props) {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onDoubleClick={onDoubleClick}
     >
       <canvas
         ref={canvasRef}
@@ -281,9 +313,18 @@ export function EditorCanvas({ base }: Props) {
           size={size}
           controller={controller}
           showFrame={tool !== "crop"}
+          fontRev={fontRev}
         />
       ) : null}
+      {view ? <TextEditor view={view} /> : null}
       <ZoomBar area={size} />
     </div>
   );
+}
+
+/** The layers without one (the text being typed in), keeping groups and order. */
+function withoutLayer(layers: readonly Layer[], id: string): Layer[] {
+  return layers
+    .filter((l) => l.id !== id)
+    .map((l) => (isGroup(l) ? { ...l, layers: withoutLayer(l.layers, id) } : l));
 }

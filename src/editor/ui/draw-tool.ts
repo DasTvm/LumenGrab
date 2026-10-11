@@ -1,5 +1,11 @@
 import type { Layer, Point, Rect } from "@/document/schema";
-import { constrainAngle, distance, hitTest, nextCounterValue } from "../model/geometry";
+import {
+  constrainAngle,
+  distance,
+  hitTest,
+  nextCounterValue,
+  type MeasureText,
+} from "../model/geometry";
 import { randomId, type EditorStoreApi } from "../model/store";
 import {
   dragBox,
@@ -14,6 +20,7 @@ import {
 } from "../model/style";
 import { findLayer } from "../model/tree";
 import { hitGrip } from "./selection";
+import { startEditText, startNewText } from "./text-edit";
 import type { PointerInfo, SelectController } from "./select-tool";
 import type { ToolId } from "./tools";
 import type { UiStoreApi } from "./ui-store";
@@ -54,6 +61,7 @@ export class DrawController {
     private readonly editor: EditorStoreApi,
     private readonly ui: UiStoreApi,
     private readonly select: SelectController,
+    private readonly measure?: MeasureText,
   ) {}
 
   private get zoom(): number {
@@ -144,8 +152,15 @@ export class DrawController {
       if (ui.getState().counterNext !== null) ui.getState().setCounterNext(value + 1);
       return;
     }
+    const hit = hitTest(editor.getState().project.layers, at, HIT_REACH / this.zoom, {
+      measure: this.measure,
+    });
+    if (tool === "text") {
+      // A click on a text edits it; anywhere else starts a new one.
+      if (!(hit && startEditText(editor, ui, hit))) startNewText(editor, ui, at);
+      return;
+    }
     // Any other tool: a click picks the layer under it, or clears the selection.
-    const hit = hitTest(editor.getState().project.layers, at, HIT_REACH / this.zoom);
     if (hit) {
       if (info.shift || info.mod) {
         const current = editor.getState().selection;

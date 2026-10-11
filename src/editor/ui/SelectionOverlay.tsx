@@ -9,6 +9,8 @@ interface Props {
   size: Size;
   controller: SelectController;
   showFrame: boolean;
+  /** Changes when fonts finished loading: text sizes were measured with a fallback font before. */
+  fontRev: number;
 }
 
 const HANDLE = 9;
@@ -23,7 +25,7 @@ const pts = (points: readonly Point[]) =>
  * the rotate handle on its stem, round handles on the ends and the bend of an arrow, and the size badge
  * while a box is resized. Drawn in screen pixels, so it stays crisp and the same size at any zoom.
  */
-export function SelectionOverlay({ view, size, controller, showFrame }: Props) {
+export function SelectionOverlay({ view, size, controller, showFrame, fontRev }: Props) {
   // Re-render with the document: layers moving or the selection changing.
   useEditor((s) => s.project);
   useEditor((s) => s.selection);
@@ -38,6 +40,7 @@ export function SelectionOverlay({ view, size, controller, showFrame }: Props) {
       width={size.width}
       height={size.height}
       data-testid="selection-overlay"
+      data-font-rev={fontRev}
     >
       {marquee ? (
         <rect

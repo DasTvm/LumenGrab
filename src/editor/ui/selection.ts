@@ -88,7 +88,10 @@ export function selectionFrame(
     const box = layerBox(only, measure);
     if (box) {
       const rotation = canRotate(only) ? Number(only["rotation"] ?? 0) : 0;
-      const grips: Grip[] = HANDLES.map((handle) => ({
+      // A text box only changes its width (it grows in height with its text): handles on the sides.
+      const handles =
+        only.type === "text" ? HANDLES.filter((h) => h === "e" || h === "w") : HANDLES;
+      const grips: Grip[] = handles.map((handle) => ({
         kind: "resize",
         handle,
         at: handlePoint(box, rotation, handle),

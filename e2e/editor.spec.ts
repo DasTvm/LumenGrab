@@ -622,3 +622,153 @@ test.describe("drawing tools and the style panel (browser mock)", () => {
     });
   });
 });
+
+test.describe("text (browser mock)", () => {
+  test.beforeEach(async ({ page }) => {
+    await open(page, "ready");
+    await ready(page);
+    await page.getByRole("button", { name: "Text", exact: true }).click();
+  });
+
+  const field = (page: Page) => page.getByRole("textbox", { name: "Text" });
+  const lastLayer = async (page: Page) => (await layers(page)).at(-1) as Record<string, unknown>;
+
+  test("a click opens a field with the placeholder; typing, Cmd/Ctrl+Enter, one undo step", async ({
+    page,
+  }) => {
+    await click(page, 300, 300);
+    await expect(field(page)).toBeFocused();
+    await expect(field(page)).toHaveAttribute("placeholder", "Type something…");
+    await page.keyboard.type("Check the total");
+    await page.screenshot({
+      path: "test-results/editor-text-typing-light.png",
+      animations: "disabled",
+    });
+    await page.keyboard.press("ControlOrMeta+Enter");
+    await expect(field(page)).toHaveCount(0);
+    expect(await lastLayer(page)).toMatchObject({
+      type: "text",
+      text: "Check the total",
+      x: 300,
+      y: 300,
+      fontId: "inter",
+      size: 24,
+      weight: 500,
+    });
+    expect(await selection(page)).toHaveLength(1);
+    // The text is drawn on the canvas now: dark pixels in its box.
+    const dark = await page.getByTestId("editor-canvas").evaluate((c: HTMLCanvasElement) => {
+      const ctx = c.getContext("2d");
+      const dpr = window.devicePixelRatio || 1;
+      const view = window.__lumengrabEditor?.ui.getState().view;
+      if (!ctx || !view) return 0;
+      const x = Math.round((view.x + 300 * view.zoom) * dpr);
+      const y = Math.round((view.y + 300 * view.zoom) * dpr);
+      const data = ctx.getImageData(
+        x,
+        y,
+        Math.round(150 * view.zoom * dpr),
+        Math.round(30 * view.zoom * dpr),
+      ).data;
+      let n = 0;
+      for (let i = 0; i < data.length; i += 4)
+        if ((data[i] ?? 255) < 90 && (data[i + 3] ?? 0) > 200) n += 1;
+      return n;
+    });
+    expect(dark).toBeGreaterThan(30);
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await layers(page)).toHaveLength(0);
+  });
+
+  test("a box that stays empty disappears on Esc or on a click outside, without a history step", async ({
+    page,
+  }) => {
+    await click(page, 300, 300);
+    await expect(field(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(field(page)).toHaveCount(0);
+    expect(await layers(page)).toHaveLength(0);
+    await click(page, 300, 300);
+    await expect(field(page)).toBeVisible();
+    await click(page, 700, 500);
+    await expect(field(page)).toBeVisible(); // the click ended the empty box and opened a new one there
+    await page.keyboard.press("Escape");
+    expect(await layers(page)).toHaveLength(0);
+    await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
+  });
+
+  test("a click outside keeps what was typed and the text stays selected with handles on its sides", async ({
+    page,
+  }) => {
+    await click(page, 300, 300);
+    await page.keyboard.type("Hello");
+    await page.getByRole("button", { name: "Select" }).click(); // ends the edit through the blur
+    await expect(field(page)).toHaveCount(0);
+    expect((await lastLayer(page))["text"]).toBe("Hello");
+    await expect(page.locator("[data-grip]")).toHaveCount(3); // east, west and rotate
+  });
+
+  test("double-click edits a text again; emptying it deletes it", async ({ page }) => {
+    await click(page, 300, 300);
+    await page.keyboard.type("First");
+    await page.keyboard.press("ControlOrMeta+Enter");
+    await page.getByRole("button", { name: "Select" }).click();
+    await page.keyboard.press("Escape");
+    const p = await at(page, 320, 312);
+    await page.mouse.dblclick(p.x, p.y);
+    await expect(field(page)).toBeVisible();
+    await expect(field(page)).toHaveValue("First");
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.type("Second");
+    await page.keyboard.press("ControlOrMeta+Enter");
+    expect((await lastLayer(page))["text"]).toBe("Second");
+    await page.keyboard.press("Enter"); // Enter edits the selected text
+    await expect(field(page)).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Escape");
+    expect(await layers(page)).toHaveLength(0);
+    await page.keyboard.press("ControlOrMeta+z");
+    expect((await lastLayer(page))["text"]).toBe("Second");
+  });
+
+  test("the style panel changes the text while it is typed; the right handle sets the width and lines wrap", async ({
+    page,
+  }) => {
+    await click(page, 200, 200);
+    await page.keyboard.type("A long sentence that should wrap into several lines");
+    await page.getByRole("radio", { name: "JetBrains Mono" }).click(); // blurs the field: the edit ends, the text stays selected
+    expect(await lastLayer(page)).toMatchObject({ fontId: "jetbrains-mono" });
+    await page.getByRole("radio", { name: "Bold" }).click();
+    await page.getByRole("radio", { name: "Color: #2563EB" }).click();
+    await page.getByRole("radio", { name: "Background: #FFFFFF" }).click();
+    await page.getByRole("radio", { name: "Align center" }).click();
+    expect(await lastLayer(page)).toMatchObject({
+      weight: 700,
+      color: "#2563EB",
+      background: "#FFFFFF",
+      align: "center",
+    });
+
+    await page.keyboard.press("Enter");
+    const handle = page.locator('[data-grip="text-width"]');
+    const hb = await handle.boundingBox();
+    if (!hb) throw new Error("no width handle");
+    await page.mouse.move(hb.x + 4, hb.y + 4);
+    await page.mouse.down();
+    await page.mouse.move(hb.x - 120, hb.y + 4, { steps: 6 });
+    await page.mouse.up();
+    const width = Number((await lastLayer(page))["width"]);
+    expect(width).toBeGreaterThan(20);
+    await page.keyboard.press("ControlOrMeta+Enter");
+    // The frame is as tall as the wrapped text (two lines at 56 %), not as one line.
+    const outline = await page
+      .locator('[data-testid="selection-frame"] polygon')
+      .evaluate((el) => el.getBoundingClientRect().height);
+    expect(outline).toBeGreaterThan(30);
+    await page.screenshot({
+      path: "test-results/editor-text-finished-light.png",
+      animations: "disabled",
+    });
+  });
+});

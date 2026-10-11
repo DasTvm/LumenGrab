@@ -12,6 +12,8 @@ import { ToolRail } from "./ToolRail";
 import { TopBar } from "./TopBar";
 import { createUiStore, type UiStoreApi } from "./ui-store";
 import { createEditorStore, type EditorStoreApi } from "../model/store";
+import { findLayer } from "../model/tree";
+import { startEditText } from "./text-edit";
 
 interface Props {
   doc: DocumentFile;
@@ -56,6 +58,13 @@ export function EditorWindow({ doc, source, fileName, warnings, busy, notice, on
       if (e.code === "Space" && !e.repeat) {
         e.preventDefault();
         ui.getState().setPanning(true);
+        return;
+      }
+      if (e.key === "Enter" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        // Enter edits the selected text (and the layers panel renames its own rows).
+        const { project, selection } = editor.getState();
+        const only = selection.length === 1 ? findLayer(project.layers, selection[0] ?? "") : null;
+        if (only?.type === "text" && startEditText(editor, ui, only.id)) e.preventDefault();
         return;
       }
       const command = commandForKey(e, isMac);
