@@ -31,6 +31,7 @@ import type { Layer } from "@/document/schema";
 import { Button } from "@/ui/components/button";
 import { cn } from "@/ui/lib/utils";
 import { layerLabel } from "../model/labels";
+import { findLayer } from "../model/tree";
 import { useEditor, useStores, useUi } from "./context";
 import { buildRows, dropPosition, dropTarget, type DropPosition, type Row } from "./layers-model";
 import { LayerMenu } from "./LayerMenu";
@@ -65,9 +66,98 @@ export function LayersPanel() {
 
   const [renaming, setRenaming] = useState<string | null>(null);
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null);
-  const [drag, setDrag] = useState<{ ids: string[] } | null>(null);
+  const [drag, setDrag] = useState<{ ids: string[]; label: string; x: number; y: number } | null>(
+    null,
+  );
   const [over, setOver] = useState<{ id: string; position: DropPosition } | null>(null);
   const anchor = useRef<string | null>(null);
+  const list = useRef<HTMLUListElement>(null);
+  const press = useRef<{ id: string; x: number; y: number } | null>(null);
+  const justDragged = useRef(false);
+  // The handlers below live on the window while a drag runs; they read the newest state through this.
+  const latest = useRef({ layers, selection, drag, over });
+  useEffect(() => {
+    latest.current = { layers, selection, drag, over };
+  });
+
+  /**
+   * Reordering with the pointer, not with HTML5 drag and drop: the system WebViews hand drag events to the
+   * native window first (Windows swallows them completely), so `draggable` rows never worked in the app.
+   */
+  useEffect(() => {
+    const target = (x: number, y: number) => {
+      const el = document
+        .elementsFromPoint(x, y)
+        .find((e) => e instanceof HTMLElement && e.dataset["layer"] && list.current?.contains(e));
+      return el instanceof HTMLElement ? el : null;
+    };
+    const onMove = (e: PointerEvent) => {
+      const down = press.current;
+      const { layers: current, selection: picked, drag: running } = latest.current;
+      if (!down) return;
+      let dragging = running;
+      if (!dragging) {
+        if (Math.hypot(e.clientX - down.x, e.clientY - down.y) < 4) return;
+        const ids = picked.includes(down.id) ? picked : [down.id];
+        if (!picked.includes(down.id)) editor.getState().select([down.id]);
+        const first = findLayer(current, ids[0] ?? "");
+        const label =
+          ids.length > 1 ? `${String(ids.length)} layers` : first ? layerLabel(first) : "Layer";
+        dragging = { ids, label, x: e.clientX, y: e.clientY };
+        // Keep it where the next move (and the release) can see it, before React has rendered.
+        latest.current = { ...latest.current, drag: dragging };
+      }
+      setDrag({ ...dragging, x: e.clientX, y: e.clientY });
+      const row = target(e.clientX, e.clientY);
+      const id = row?.dataset["layer"];
+      if (!row || !id) {
+        latest.current = { ...latest.current, over: null };
+        setOver(null);
+        return;
+      }
+      const box = row.getBoundingClientRect();
+      const isGroup = row.getAttribute("data-group") === "true";
+      const position = dropPosition(e.clientY - box.top, box.height, isGroup);
+      const next = dropTarget(current, dragging.ids, id, position) ? { id, position } : null;
+      latest.current = { ...latest.current, over: next };
+      setOver(next);
+    };
+    const finish = (apply: boolean) => {
+      const { layers: current, drag: dragging, over: hover } = latest.current;
+      press.current = null;
+      if (dragging) {
+        justDragged.current = true;
+        setTimeout(() => {
+          justDragged.current = false;
+        }, 0);
+        if (apply && hover) {
+          const to = dropTarget(current, dragging.ids, hover.id, hover.position);
+          if (to) editor.getState().moveTo(dragging.ids, to.parentId, to.index);
+        }
+      }
+      setDrag(null);
+      setOver(null);
+    };
+    const onUp = () => {
+      finish(true);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && latest.current.drag) {
+        e.stopPropagation();
+        finish(false);
+      }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    window.addEventListener("keydown", onKey, true);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [editor]);
 
   const pick = (row: Row, e: React.MouseEvent) => {
     const id = row.layer.id;
@@ -103,11 +193,12 @@ export function LayersPanel() {
         Top of the list is in front. Drag to reorder.
       </p>
       <ul
+        ref={list}
         aria-label="Layers"
-        className="-mx-2 flex min-h-0 flex-1 flex-col overflow-y-auto px-2"
-        onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(null);
-        }}
+        className={cn(
+          "-mx-2 flex min-h-0 flex-1 flex-col overflow-y-auto px-2 select-none",
+          drag && "cursor-grabbing",
+        )}
       >
         {rows.map((row) => {
           const layer = row.layer;
@@ -122,10 +213,10 @@ export function LayersPanel() {
               data-layer={layer.id}
               data-selected={selected}
               data-drop={dropping ?? undefined}
+              data-group={row.isGroup}
               role="option"
               aria-selected={selected}
               tabIndex={0}
-              draggable={renaming !== layer.id}
               className={cn(
                 "group/row relative flex h-9 shrink-0 cursor-default items-center gap-1.5 rounded-md px-1 text-[13px] outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 selected && (count > 1 ? "bg-brand/25 ring-1 ring-primary" : "bg-muted"),
@@ -139,6 +230,7 @@ export function LayersPanel() {
               )}
               style={{ paddingLeft: 4 + row.depth * 18 }}
               onClick={(e) => {
+                if (justDragged.current) return; // the click that ends a drag is not a selection
                 pick(row, e);
               }}
               onContextMenu={(e) => {
@@ -159,37 +251,11 @@ export function LayersPanel() {
                   editor.getState().select([layer.id]);
                 }
               }}
-              onDragStart={(e) => {
-                const ids = selection.includes(layer.id) ? selection : [layer.id];
-                if (!selection.includes(layer.id)) editor.getState().select([layer.id]);
-                setDrag({ ids });
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", ids.join(","));
-              }}
-              onDragEnd={() => {
-                setDrag(null);
-                setOver(null);
-              }}
-              onDragOver={(e) => {
-                if (!drag) return;
-                const rect = e.currentTarget.getBoundingClientRect();
-                const position = dropPosition(e.clientY - rect.top, rect.height, row.isGroup);
-                if (!dropTarget(layers, drag.ids, layer.id, position)) {
-                  setOver(null);
-                  return;
-                }
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                setOver({ id: layer.id, position });
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (drag && over) {
-                  const target = dropTarget(layers, drag.ids, over.id, over.position);
-                  if (target) editor.getState().moveTo(drag.ids, target.parentId, target.index);
-                }
-                setDrag(null);
-                setOver(null);
+              onPointerDown={(e) => {
+                // The drag starts after a few pixels of movement (see the effect above), so a plain click still selects.
+                if (e.button !== 0 || renaming === layer.id) return;
+                if ((e.target as HTMLElement).closest("button, input")) return;
+                press.current = { id: layer.id, x: e.clientX, y: e.clientY };
               }}
             >
               <GripVertical
@@ -337,6 +403,16 @@ export function LayersPanel() {
           <Trash2 aria-hidden />
         </Button>
       </div>
+      {drag ? (
+        <div
+          aria-hidden
+          data-testid="layer-drag-ghost"
+          className="pointer-events-none fixed z-50 rounded-md border border-border bg-card px-2.5 py-1 text-[13px] shadow-[0_6px_18px_rgb(0_0_0/0.25)]"
+          style={{ left: drag.x + 12, top: drag.y + 8 }}
+        >
+          {drag.label}
+        </div>
+      ) : null}
       {menu ? (
         <LayerMenu
           at={menu}

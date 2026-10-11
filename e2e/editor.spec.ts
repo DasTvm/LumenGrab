@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { Layer } from "../src/document/schema";
 
 test.use({ viewport: { width: 1280, height: 880 } });
@@ -46,6 +46,18 @@ async function click(
   for (const m of modifiers) await page.keyboard.down(m);
   await page.mouse.click(p.x, p.y);
   for (const m of modifiers) await page.keyboard.up(m);
+}
+
+/** Drags a layers-panel row with the mouse (the panel uses pointer events, not HTML5 drag and drop). */
+async function dragRow(page: Page, from: Locator, to: Locator, fraction: number) {
+  const a = await from.boundingBox();
+  const b = await to.boundingBox();
+  if (!a || !b) throw new Error("no rows");
+  await page.mouse.move(a.x + 60, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + 60, a.y + a.height / 2 + 8, { steps: 2 });
+  await page.mouse.move(b.x + 60, b.y + b.height * fraction, { steps: 6 });
+  await page.mouse.up();
 }
 
 async function drag(page: Page, from: [number, number], to: [number, number]) {
@@ -351,9 +363,9 @@ test.describe("layers panel (browser mock)", () => {
 
   test("dragging a row reorders the stack, and into a group", async ({ page }) => {
     const row = (id: string) => page.locator(`[data-layer="${id}"]`);
-    await row("one").dragTo(row("frame"), { targetPosition: { x: 100, y: 30 } }); // below the frame: to the back
+    await dragRow(page, row("one"), row("frame"), 0.85); // below the frame: to the back
     expect((await layers(page)).map((l) => l.id)).toEqual(["one", "frame", "callout", "mask"]);
-    await row("mask").dragTo(row("callout"), { targetPosition: { x: 100, y: 18 } }); // into the group
+    await dragRow(page, row("mask"), row("callout"), 0.5); // into the group
     const group = (await layers(page)).find((l) => l.id === "callout") as unknown as {
       layers: { id: string }[];
     };
@@ -361,6 +373,36 @@ test.describe("layers panel (browser mock)", () => {
     await page.keyboard.press("ControlOrMeta+z");
     await page.keyboard.press("ControlOrMeta+z");
     expect((await layers(page)).map((l) => l.id)).toEqual(["frame", "callout", "mask", "one"]);
+  });
+
+  test("while dragging a row a chip follows the pointer and the drop place is marked; Esc cancels", async ({
+    page,
+  }) => {
+    const row = (id: string) => page.locator(`[data-layer="${id}"]`);
+    const a = await row("one").boundingBox();
+    const b = await row("frame").boundingBox();
+    if (!a || !b) throw new Error("no rows");
+    await page.mouse.move(a.x + 60, a.y + a.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(a.x + 60, a.y + a.height / 2 + 10, { steps: 2 });
+    await page.mouse.move(b.x + 60, b.y + b.height * 0.9, { steps: 5 });
+    await expect(page.getByTestId("layer-drag-ghost")).toHaveText("Counter 1");
+    await expect(row("frame")).toHaveAttribute("data-drop", "below");
+    await page.keyboard.press("Escape");
+    await page.mouse.up();
+    await expect(page.getByTestId("layer-drag-ghost")).toHaveCount(0);
+    expect((await layers(page)).map((l) => l.id)).toEqual(["frame", "callout", "mask", "one"]);
+  });
+
+  test("a plain click still selects, and a drag does not leave the row selected twice", async ({
+    page,
+  }) => {
+    await page.locator('[data-layer="mask"]').click();
+    expect(await selection(page)).toEqual(["mask"]);
+    const row = (id: string) => page.locator(`[data-layer="${id}"]`);
+    await dragRow(page, row("one"), row("callout"), 0.9); // below the group, in front of the frame
+    expect(await selection(page)).toEqual(["one"]);
+    expect((await layers(page)).map((l) => l.id)).toEqual(["frame", "one", "callout", "mask"]);
   });
 
   test("Delete in the panel and the Style tab's object actions work on the selection", async ({
