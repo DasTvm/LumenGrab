@@ -183,6 +183,14 @@ test.describe("permission lost dialog", () => {
 test.describe("quick access large card (browser mock)", () => {
   test.use({ viewport: { width: 440, height: 420 } });
 
+  test("Edit opens the screenshot in the editor", async ({ page }) => {
+    await page.goto("/?window=quick&card=large&secs=0");
+    await page.getByRole("button", { name: "Edit" }).click();
+    expect((await submissions(page)).filter((s) => s.kind === "qaEdit")).toEqual([
+      { kind: "qaEdit", id: "demo" },
+    ]);
+  });
+
   test("Delete asks first, shows Undo, and only Close or the end of the line really deletes", async ({
     page,
   }) => {

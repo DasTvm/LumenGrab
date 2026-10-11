@@ -51,6 +51,7 @@ export interface UiActions {
   setFit(fit: boolean): void;
   setTab(tab: PanelTab): void;
   flash(kind: "saved" | "copied"): void;
+  clearFeedback(at: number): void;
   toggleCollapsed(id: string): void;
   setPanning(panning: boolean): void;
   setCounterNext(value: number | null): void;
@@ -97,6 +98,10 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     flash: (kind) => {
       set({ feedback: { kind, at: Date.now() } });
+    },
+    // Only the message it was started for goes away (a newer one keeps its own two seconds).
+    clearFeedback: (at) => {
+      if (get().feedback?.at === at) set({ feedback: null });
     },
     toggleCollapsed: (id) => {
       const { collapsed } = get();

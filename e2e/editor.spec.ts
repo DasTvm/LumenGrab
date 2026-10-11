@@ -954,8 +954,9 @@ test.describe("crop (browser mock)", () => {
     await page.getByRole("textbox", { name: "Height" }).press("Enter");
     await page.keyboard.press("Enter");
     expect(await crop(page)).toEqual({ x: 0, y: 0, width: 700, height: 450 });
-    await page.getByRole("button", { name: "Export" }).click();
-    await expect(page.getByRole("status").last()).toContainText("Saved");
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    await page.getByRole("button", { name: "Save PNG" }).click();
+    await expect(page.getByTestId("feedback-pill")).toHaveText("Saved");
     const size = await page.evaluate(() => {
       const bytes = window.__lumengrabMock?.written?.["t1"];
       if (!bytes) return null;

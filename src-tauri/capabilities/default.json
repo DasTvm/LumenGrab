@@ -8,7 +8,8 @@
     "permission-lost",
     "overlay-*",
     "qa-*",
-    "doc-*"
+    "doc-*",
+    "recover"
   ],
   "permissions": [
     "core:default"

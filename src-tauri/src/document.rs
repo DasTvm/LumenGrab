@@ -8,7 +8,7 @@
 //! overwrite arbitrary files.
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
     sync::{
         atomic::{AtomicU32, AtomicU64, Ordering},
@@ -18,9 +18,11 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tauri::{
+    image::Image,
     ipc::{InvokeBody, Request, Response},
-    AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
+    AppHandle, CloseRequestApi, Emitter, Manager, WebviewUrl, WebviewWindowBuilder, Window,
 };
+use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
 use crate::{fsutil, platform};
@@ -34,10 +36,40 @@ const MAX_GRANTS: usize = 16;
 /// The only web address the app opens for the page ("Check for updates" of the read-only dialog).
 pub const RELEASES_URL: &str = "https://github.com/DasTvm/LumenGrab/releases";
 
+/// What a document window shows.
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Source {
+    /// A `.lumengrab` file on disk: the window edits and saves it.
+    File(PathBuf),
+    /// A screenshot (PNG) that is not a document yet ("Edit" in Quick Access): the first save asks where.
+    Capture(PathBuf),
+    /// Unsaved work found after a crash (a `.lumengrab` in the recovery folder), with the name it had.
+    Recovered { path: PathBuf, name: String },
+}
+
+impl Source {
+    /// The file the page reads its bytes from.
+    fn read_path(&self) -> &Path {
+        match self {
+            Self::File(p) | Self::Capture(p) | Self::Recovered { path: p, .. } => p,
+        }
+    }
+
+    fn kind(&self) -> &'static str {
+        match self {
+            Self::File(_) => "file",
+            Self::Capture(_) => "capture",
+            Self::Recovered { .. } => "recovered",
+        }
+    }
+}
+
 #[derive(Default)]
 struct Registry {
-    /// Window label -> the one file that window shows.
-    windows: HashMap<String, PathBuf>,
+    /// Window label -> what that window shows.
+    windows: HashMap<String, Source>,
+    /// Windows with changes that are not saved: closing them asks first.
+    dirty: HashSet<String>,
     /// Save token -> the place the user picked in a dialog. Kept in order, oldest first.
     grants: Vec<(u64, PathBuf)>,
     /// Save token -> a file that was written to that place, so the page can ask to show it.
@@ -45,24 +77,47 @@ struct Registry {
 }
 
 impl Registry {
-    fn register(&mut self, label: &str, path: PathBuf) {
-        self.windows.insert(label.to_owned(), path);
+    fn register(&mut self, label: &str, source: Source) {
+        self.windows.insert(label.to_owned(), source);
     }
 
+    fn source_of(&self, label: &str) -> Option<&Source> {
+        self.windows.get(label)
+    }
+
+    /// The `.lumengrab` file of a window, if it is one that was saved (or opened from disk).
     fn path_of(&self, label: &str) -> Option<&Path> {
-        self.windows.get(label).map(PathBuf::as_path)
+        match self.windows.get(label) {
+            Some(Source::File(p)) => Some(p),
+            _ => None,
+        }
     }
 
     fn unregister(&mut self, label: &str) {
         self.windows.remove(label);
+        self.dirty.remove(label);
     }
 
-    /// The window already showing `path`, if any.
-    fn find_open(&self, path: &Path) -> Option<&str> {
+    fn find_source(&self, source: &Source) -> Option<&str> {
         self.windows
             .iter()
-            .find(|(_, p)| p.as_path() == path)
+            .find(|(_, s)| *s == source)
             .map(|(label, _)| label.as_str())
+    }
+
+    fn set_dirty(&mut self, label: &str, dirty: bool) {
+        if !self.windows.contains_key(label) {
+            return;
+        }
+        if dirty {
+            self.dirty.insert(label.to_owned());
+        } else {
+            self.dirty.remove(label);
+        }
+    }
+
+    fn is_dirty(&self, label: &str) -> bool {
+        self.dirty.contains(label)
     }
 
     fn grant(&mut self, token: u64, path: PathBuf) {
@@ -144,15 +199,32 @@ pub fn open_args<I: IntoIterator<Item = String>>(app: &AppHandle, args: I) {
     }
 }
 
-/// Opens the viewer window for a document, or brings the one that already shows it to the front.
+/// Opens the editor window for a document file, or brings the one that already shows it to the front.
 /// Returns the window label. Not for the command thread of a sync command (it waits for the main thread).
 pub fn open(app: &AppHandle, path: &Path) -> Result<String, String> {
     if !is_document_file(path) {
         return Err("This is not a LumenGrab document.".into());
     }
-    let docs = app.state::<Documents>();
     let path = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
-    let existing = docs.registry().find_open(&path).map(str::to_owned);
+    open_source(app, Source::File(path))
+}
+
+/// The editor for a screenshot that is not a document yet (the "Edit" button of Quick Access).
+pub fn open_capture(app: &AppHandle, png: &Path) -> Result<String, String> {
+    if !png.is_file() {
+        return Err("This screenshot is no longer available.".into());
+    }
+    open_source(app, Source::Capture(png.to_path_buf()))
+}
+
+/// The editor for work saved by the autosave of a session that did not end cleanly.
+pub fn open_recovered(app: &AppHandle, path: PathBuf, name: String) -> Result<String, String> {
+    open_source(app, Source::Recovered { path, name })
+}
+
+fn open_source(app: &AppHandle, source: Source) -> Result<String, String> {
+    let docs = app.state::<Documents>();
+    let existing = docs.registry().find_source(&source).map(str::to_owned);
     if let Some(label) = existing {
         if let Some(window) = app.get_webview_window(&label) {
             let _ = window.show();
@@ -165,10 +237,8 @@ pub fn open(app: &AppHandle, path: &Path) -> Result<String, String> {
         "{WINDOW_PREFIX}{}",
         docs.windows.fetch_add(1, Ordering::Relaxed) + 1
     );
-    let title = path
-        .file_name()
-        .map_or_else(|| "LumenGrab".into(), |n| n.to_string_lossy().into_owned());
-    docs.registry().register(&label, path);
+    let title = window_title(&source);
+    docs.registry().register(&label, source);
     let built = WebviewWindowBuilder::new(
         app,
         &label,
@@ -190,6 +260,17 @@ pub fn open(app: &AppHandle, path: &Path) -> Result<String, String> {
             Err(e.to_string())
         }
     }
+}
+
+fn window_title(source: &Source) -> String {
+    let name = match source {
+        Source::Recovered { name, .. } => name.clone(),
+        other => other
+            .read_path()
+            .file_name()
+            .map_or_else(|| "LumenGrab".into(), |n| n.to_string_lossy().into_owned()),
+    };
+    name
 }
 
 /// The tray's "Open Document…": asks for a file, then opens it. Blocks on the dialog: worker thread only.
@@ -219,39 +300,63 @@ pub struct DocumentInfo {
     file_name: String,
     /// The folder, as shown to the user.
     folder: String,
+    /// `file` (a `.lumengrab` on disk), `capture` (a screenshot to edit; the first save asks where) or
+    /// `recovered` (unsaved work from the last session).
+    kind: &'static str,
 }
 
+fn source_of(app: &AppHandle, label: &str) -> Result<Source, String> {
+    app.state::<Documents>()
+        .registry()
+        .source_of(label)
+        .cloned()
+        .ok_or_else(|| "This document window is no longer available.".to_string())
+}
+
+/// The `.lumengrab` file of a window. Errors for a window that has no file yet.
 fn window_path(app: &AppHandle, label: &str) -> Result<PathBuf, String> {
     app.state::<Documents>()
         .registry()
         .path_of(label)
         .map(Path::to_path_buf)
-        .ok_or_else(|| "This document window is no longer available.".to_string())
+        .ok_or_else(|| "This document has not been saved yet.".to_string())
 }
 
 #[tauri::command]
 pub fn document_info(app: AppHandle, label: String) -> Result<DocumentInfo, String> {
-    let path = window_path(&app, &label)?;
-    Ok(DocumentInfo {
-        file_name: path
+    let source = source_of(&app, &label)?;
+    let path = source.read_path();
+    let file_name = match &source {
+        Source::Recovered { name, .. } => name.clone(),
+        Source::Capture(p) => p
+            .file_stem()
+            .map(|n| n.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+        Source::File(p) => p
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default(),
-        folder: crate::quick_access::short_folder(&path),
+    };
+    Ok(DocumentInfo {
+        file_name,
+        folder: crate::quick_access::short_folder(path),
+        kind: source.kind(),
     })
 }
 
-/// The bytes of the window's document, as raw binary (not JSON). Async: it may be a big file.
+/// The bytes of the window's document, as raw binary (not JSON): the `.lumengrab` file, or the PNG of a
+/// screenshot that is being edited. Async: it may be a big file.
 #[tauri::command]
 pub async fn document_load(app: AppHandle, label: String) -> Result<Response, String> {
-    let path = window_path(&app, &label)?;
-    let size = std::fs::metadata(&path)
+    let source = source_of(&app, &label)?;
+    let path = source.read_path();
+    let size = std::fs::metadata(path)
         .map_err(|e| format!("{}: {e}", path.display()))?
         .len();
     if size > MAX_DOCUMENT_BYTES {
         return Err("This file is too large to open safely.".into());
     }
-    let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let bytes = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
     Ok(Response::new(bytes))
 }
 
@@ -261,7 +366,7 @@ pub fn document_reveal(app: AppHandle, label: String) -> Result<(), String> {
     Ok(())
 }
 
-/// Closes the window of a document (the "Close" button of the error dialog).
+/// Closes the window of a document (the "Close" button of the error dialog, or "Don't save").
 #[tauri::command]
 pub fn document_close(app: AppHandle, label: String) {
     if label.starts_with(WINDOW_PREFIX) {
@@ -269,6 +374,91 @@ pub fn document_close(app: AppHandle, label: String) {
             let _ = window.destroy();
         }
     }
+}
+
+/// Saves the document to the file it was opened from (Cmd/Ctrl+S). The request body is the file; the
+/// `label` header names the window, so a page can only ever overwrite its own file. Atomic: the old file
+/// stays until the new one is complete. Untitled documents go through `pick_save_target` first.
+#[tauri::command]
+pub async fn document_save(app: AppHandle, request: Request<'_>) -> Result<(), String> {
+    let label = request
+        .headers()
+        .get("label")
+        .and_then(|v| v.to_str().ok())
+        .ok_or("The document is unknown.")?
+        .to_owned();
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err("No file data was sent.".into());
+    };
+    if bytes.len() as u64 > MAX_DOCUMENT_BYTES {
+        return Err("This file is too large to save.".into());
+    }
+    let path = window_path(&app, &label)?;
+    fsutil::write_atomic(&path, bytes).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+/// After a document was written through a save dialog (a grant of the kind `pick_save_target` hands
+/// out), the window is that file from now on: the next Cmd/Ctrl+S saves there, its title follows.
+#[tauri::command]
+pub fn document_bind_saved(app: AppHandle, label: String, token: String) -> Result<(), String> {
+    let token: u64 = token.parse().map_err(|_| "The saved file is unknown.")?;
+    let docs = app.state::<Documents>();
+    let path = {
+        let registry = docs.registry();
+        if registry.source_of(&label).is_none() {
+            return Err("This document window is no longer available.".into());
+        }
+        registry
+            .written_path(token)
+            .map(Path::to_path_buf)
+            .ok_or("The saved file is unknown.")?
+    };
+    if path
+        .extension()
+        .is_none_or(|e| !e.eq_ignore_ascii_case(EXTENSION))
+    {
+        return Err("Only a .lumengrab file can become the file of a document.".into());
+    }
+    let source = Source::File(path);
+    if let Some(window) = app.get_webview_window(&label) {
+        let _ = window.set_title(&window_title(&source));
+    }
+    docs.registry().register(&label, source);
+    Ok(())
+}
+
+/// The page tells whether the document has unsaved changes. A window with changes does not close
+/// without asking (see `on_close_requested`).
+#[tauri::command]
+pub fn document_set_dirty(app: AppHandle, label: String, dirty: bool) {
+    app.state::<Documents>().registry().set_dirty(&label, dirty);
+}
+
+/// The window is being closed (red button, Cmd/Alt+W). A document with unsaved changes stays open and asks the page,
+/// which shows "Save changes to …?" and closes the window with `document_close` once the user decided.
+pub fn on_close_requested(window: &Window, api: &CloseRequestApi) {
+    let label = window.label();
+    if !label.starts_with(WINDOW_PREFIX) {
+        return;
+    }
+    let dirty = window.state::<Documents>().registry().is_dirty(label);
+    if dirty {
+        api.prevent_close();
+        let _ = window.emit("document-close-requested", label.to_owned());
+    }
+}
+
+/// Puts a PNG (the request body) on the clipboard: the top bar's copy button and the Export dialog's Copy.
+#[tauri::command]
+pub async fn copy_png_to_clipboard(app: AppHandle, request: Request<'_>) -> Result<(), String> {
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err("No image data was sent.".into());
+    };
+    let frame = crate::capture::encode::decode_png(bytes).map_err(|e| e.to_string())?;
+    let image = Image::new(&frame.rgba, frame.width, frame.height);
+    app.clipboard()
+        .write_image(&image)
+        .map_err(|e| e.to_string())
 }
 
 /// "Open…": a dialog, then the viewer window. Returns whether a document was opened.
@@ -293,7 +483,7 @@ pub struct SaveTarget {
     /// The place the user picked, for showing in the UI.
     folder: String,
     file_name: String,
-    /// `png` or `lumengrab`, from the file extension.
+    /// `png`, `jpg`, `webp` or `lumengrab`, from the file extension.
     format: String,
 }
 
@@ -301,13 +491,15 @@ pub struct SaveTarget {
 #[serde(rename_all = "camelCase")]
 pub struct SaveOptions {
     suggested_name: String,
-    /// The formats the dialog offers, first is the default: `png`, `lumengrab`.
+    /// The formats the dialog offers, first is the default: `png`, `jpg`, `webp`, `lumengrab`.
     formats: Vec<String>,
 }
 
 fn filter_for(format: &str) -> Option<(&'static str, &'static str)> {
     match format {
         "png" => Some(("PNG image", "png")),
+        "jpg" => Some(("JPEG image", "jpg")),
+        "webp" => Some(("WebP image", "webp")),
         "lumengrab" => Some(("LumenGrab document", "lumengrab")),
         _ => None,
     }
@@ -318,7 +510,8 @@ fn filter_for(format: &str) -> Option<(&'static str, &'static str)> {
 fn with_format_extension(path: PathBuf, formats: &[&str]) -> (PathBuf, String) {
     let current = path
         .extension()
-        .map(|e| e.to_string_lossy().to_ascii_lowercase());
+        .map(|e| e.to_string_lossy().to_ascii_lowercase())
+        .map(|e| if e == "jpeg" { "jpg".to_owned() } else { e });
     if let Some(ext) = &current {
         if formats.contains(&ext.as_str()) {
             return (path, ext.clone());
@@ -449,8 +642,8 @@ mod tests {
     #[test]
     fn a_window_may_read_only_its_own_file() {
         let mut r = Registry::default();
-        r.register("doc-1", p("/a/one.lumengrab"));
-        r.register("doc-2", p("/a/two.lumengrab"));
+        r.register("doc-1", Source::File(p("/a/one.lumengrab")));
+        r.register("doc-2", Source::File(p("/a/two.lumengrab")));
         assert_eq!(r.path_of("doc-1"), Some(Path::new("/a/one.lumengrab")));
         assert_eq!(r.path_of("doc-2"), Some(Path::new("/a/two.lumengrab")));
         assert_eq!(r.path_of("doc-3"), None, "an unknown window gets nothing");
@@ -462,9 +655,63 @@ mod tests {
     #[test]
     fn the_same_file_is_found_again() {
         let mut r = Registry::default();
-        r.register("doc-1", p("/a/one.lumengrab"));
-        assert_eq!(r.find_open(Path::new("/a/one.lumengrab")), Some("doc-1"));
-        assert_eq!(r.find_open(Path::new("/a/other.lumengrab")), None);
+        r.register("doc-1", Source::File(p("/a/one.lumengrab")));
+        let find =
+            |r: &Registry, path: &str| r.find_source(&Source::File(p(path))).map(str::to_owned);
+        assert_eq!(find(&r, "/a/one.lumengrab"), Some("doc-1".into()));
+        assert_eq!(find(&r, "/a/other.lumengrab"), None);
+    }
+
+    #[test]
+    fn a_screenshot_and_recovered_work_are_documents_without_a_file_yet() {
+        let mut r = Registry::default();
+        r.register("doc-1", Source::Capture(p("/pics/shot.png")));
+        r.register(
+            "doc-2",
+            Source::Recovered {
+                path: p("/rec/id.lumengrab"),
+                name: "Checkout".into(),
+            },
+        );
+        assert_eq!(r.path_of("doc-1"), None, "nothing to save to yet");
+        assert_eq!(r.path_of("doc-2"), None);
+        assert_eq!(r.source_of("doc-1").map(Source::kind), Some("capture"));
+        assert_eq!(r.source_of("doc-2").map(Source::kind), Some("recovered"));
+        // Both are read from their own file, which is not a place the page may write.
+        assert_eq!(
+            r.source_of("doc-2").map(|s| s.read_path()),
+            Some(Path::new("/rec/id.lumengrab"))
+        );
+        // The same screenshot is opened in one window only.
+        assert_eq!(
+            r.find_source(&Source::Capture(p("/pics/shot.png"))),
+            Some("doc-1")
+        );
+        // After a save the window is that file.
+        r.register("doc-1", Source::File(p("/docs/shot.lumengrab")));
+        assert_eq!(r.path_of("doc-1"), Some(Path::new("/docs/shot.lumengrab")));
+    }
+
+    #[test]
+    fn a_window_with_unsaved_changes_is_remembered_until_it_is_clean_or_gone() {
+        let mut r = Registry::default();
+        r.register("doc-1", Source::File(p("/a/one.lumengrab")));
+        assert!(!r.is_dirty("doc-1"));
+        r.set_dirty("doc-1", true);
+        assert!(r.is_dirty("doc-1"));
+        r.set_dirty("doc-1", false);
+        assert!(!r.is_dirty("doc-1"));
+        r.set_dirty("doc-1", true);
+        r.unregister("doc-1");
+        assert!(
+            !r.is_dirty("doc-1"),
+            "a closed window is not dirty any more"
+        );
+        r.set_dirty("settings", true);
+        assert!(
+            !r.is_dirty("settings"),
+            "only document windows can be dirty"
+        );
     }
 
     #[test]
@@ -551,7 +798,18 @@ mod tests {
         );
         assert_eq!(
             with_format_extension(p("/x/shot.jpg"), &formats),
-            (p("/x/shot.jpg.png"), "png".to_string())
+            (p("/x/shot.jpg.png"), "png".to_string()),
+            "a format that was not offered is not accepted"
+        );
+        let images = ["jpg", "webp"];
+        assert_eq!(
+            with_format_extension(p("/x/shot.JPEG"), &images),
+            (p("/x/shot.JPEG"), "jpg".to_string()),
+            "jpeg is jpg"
+        );
+        assert_eq!(
+            with_format_extension(p("/x/shot.webp"), &images),
+            (p("/x/shot.webp"), "webp".to_string())
         );
         assert_eq!(
             with_format_extension(p("/x/shot.png"), &["lumengrab"]),

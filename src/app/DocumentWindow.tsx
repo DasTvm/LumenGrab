@@ -5,9 +5,9 @@ import { openDocument } from "@/document/read";
 import { canvasCodec } from "@/document/render/canvas-codec";
 import type { RgbaImage } from "@/document/render/pixels";
 import { renderFlat, renderPreview } from "@/document/render/flatten";
+import { createDocument } from "@/document/write";
 import { editorCodec } from "@/editor/draw/codec";
 import { EditorWindow } from "@/editor/ui/EditorWindow";
-import type { DocumentFile } from "@/document/types";
 import type { OpenedDocument } from "@/document/types";
 import { platform, type DocumentInfo, type Os } from "@/platform";
 import { Badge } from "@/ui/components/badge";
@@ -27,6 +27,7 @@ type State =
       preview: Uint8Array | null;
       /** The decoded source picture of an editable document (the editor draws on it). */
       image: RgbaImage | null;
+      app: { name: string; version: string };
     };
 
 const fileManager = (os: Os) => (os === "windows" ? "Explorer" : "Finder");
@@ -70,7 +71,19 @@ export function DocumentWindow() {
           platform.getDocumentInfo(label),
           platform.loadDocument(label),
         ]);
-        const opened = await openDocument(bytes);
+        const app = await platform.getAppInfo();
+        // A screenshot opened for editing is a new document around the PNG, exactly as saved.
+        const opened: OpenedDocument =
+          info.kind === "capture"
+            ? {
+                doc: await createDocument(bytes, {
+                  scale: Math.max(1, Math.round(window.devicePixelRatio * 2) / 2),
+                  createdBy: `${app.name} ${app.version}`,
+                }),
+                warnings: [],
+                readOnly: null,
+              }
+            : await openDocument(bytes);
         // The preview in the file, or a fresh one. A file without a project (newer version) never gets one:
         // its pixels could include what a newer redaction was meant to hide.
         const preview =
@@ -80,7 +93,7 @@ export function DocumentWindow() {
           opened.doc.project && !opened.readOnly
             ? await canvasCodec.decode(opened.doc.source)
             : null;
-        if (!guard.cancelled) setState({ phase: "ready", opened, info, preview, image });
+        if (!guard.cancelled) setState({ phase: "ready", opened, info, preview, image, app });
       } catch (error) {
         if (!guard.cancelled) setState({ phase: "error", ...describeFailure(error) });
       }
@@ -137,58 +150,18 @@ export function DocumentWindow() {
     );
   }
   if (state.image && !opened.readOnly) {
-    return <EditorShell state={state} image={state.image} />;
+    return (
+      <EditorWindow
+        label={label}
+        doc={opened.doc}
+        source={state.image}
+        info={state.info}
+        app={state.app}
+        warnings={opened.warnings}
+      />
+    );
   }
   return <Viewer state={state} os={os} onReveal={reveal} />;
-}
-
-/** The editor for an editable document, with the export of the flat picture for now (saving and the export dialog come next). */
-function EditorShell({
-  state,
-  image,
-}: {
-  state: Extract<State, { phase: "ready" }>;
-  image: RgbaImage;
-}) {
-  const { opened, info } = state;
-  const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
-
-  const exportPng = async (doc: DocumentFile) => {
-    setBusy(true);
-    setNotice(null);
-    try {
-      const baseName = info.fileName.replace(/\.[^.]+$/, "");
-      const target = await platform.pickSaveTarget({
-        suggestedName: `${baseName}.png`,
-        formats: ["png"],
-      });
-      if (!target) return;
-      await platform.writeGrantedFile(target.token, await renderFlat(doc, editorCodec));
-      setNotice({ ok: true, text: `Saved ${target.fileName} to ${target.folder}.` });
-    } catch (error) {
-      setNotice({
-        ok: false,
-        text: error instanceof Error ? error.message : "The export did not work.",
-      });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <EditorWindow
-      doc={opened.doc}
-      source={image}
-      fileName={info.fileName}
-      warnings={opened.warnings}
-      busy={busy}
-      notice={notice}
-      onExport={(doc) => {
-        void exportPng(doc);
-      }}
-    />
-  );
 }
 
 function Viewer({

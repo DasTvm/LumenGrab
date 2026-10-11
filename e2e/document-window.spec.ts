@@ -4,6 +4,14 @@ test.use({ viewport: { width: 1280, height: 880 } });
 
 const submissions = (page: Page) => page.evaluate(() => window.__lumengrabMock?.submissions ?? []);
 const open = (page: Page, query: string) => page.goto(`/?window=document&label=doc-1&${query}`);
+/** The Export button, the dialog's PNG tab (the default), Save. */
+const savePng = async (page: Page) => {
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  await page
+    .getByRole("dialog", { name: "Export" })
+    .getByRole("button", { name: "Save PNG" })
+    .click();
+};
 
 test.describe("document window (browser mock)", () => {
   test("a normal document opens in the editor: name, picture, size, no notices", async ({
@@ -17,7 +25,7 @@ test.describe("document window (browser mock)", () => {
     await expect(page.getByRole("tab", { name: "Layers" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Notices" })).toHaveCount(0);
     await expect(page.getByText("Read-only")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Export" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Export", exact: true })).toBeEnabled();
     await expect(page.getByTestId("unsaved-dot")).toHaveCount(0);
     await page.screenshot({
       path: "test-results/document-ready-light.png",
@@ -49,10 +57,8 @@ test.describe("document window (browser mock)", () => {
     await open(page, "scenario=redactions");
     await page.getByRole("tab", { name: /Layers/ }).click();
     await expect(page.getByRole("tab", { name: "Layers · 2" })).toBeVisible();
-    await page.getByRole("button", { name: "Export" }).click();
-    await expect(page.getByRole("status").last()).toContainText(
-      "Saved Screenshot 2026-10-09 at 14.02.png to Documents/Reports.",
-    );
+    await savePng(page);
+    await expect(page.getByTestId("feedback-pill")).toHaveText("Saved");
     const log = await submissions(page);
     expect(log.find((s) => s.kind === "pickSave")).toMatchObject({
       name: "Screenshot 2026-10-09 at 14.02.png",
@@ -67,22 +73,28 @@ test.describe("document window (browser mock)", () => {
 
   test("cancelling the save dialog writes nothing", async ({ page }) => {
     await open(page, "scenario=ready&cancel=1");
-    await page.getByRole("button", { name: "Export" }).click();
-    await expect(page.getByRole("button", { name: "Export" })).toBeEnabled();
+    await savePng(page);
+    await expect(page.getByRole("dialog", { name: "Export" })).toBeVisible(); // still there to try again
     expect((await submissions(page)).filter((s) => s.kind === "writeFile")).toHaveLength(0);
   });
 
   test("a write that fails says why", async ({ page }) => {
     await open(page, "scenario=ready&writefail=1");
-    await page.getByRole("button", { name: "Export" }).click();
-    await expect(page.getByText("The folder is not writable.")).toBeVisible();
+    await savePng(page);
+    const failure = page.getByRole("dialog", { name: "Could not export" });
+    await expect(failure).toBeVisible();
+    await expect(failure).toContainText("The image was not written. Your document is unchanged.");
+    await expect(failure).toContainText("Details: The folder is not writable.");
   });
 
   test("a document with annotations exports with them drawn in", async ({ page }) => {
     await open(page, "scenario=annotated");
     await expect(page.getByRole("tab", { name: "Layers · 1" })).toBeVisible();
-    await page.getByRole("button", { name: "Export" }).click();
-    await expect(page.getByRole("status").last()).toContainText(/^Saved .*\.png to /);
+    await savePng(page);
+    await expect(page.getByTestId("feedback-pill")).toHaveText("Saved");
+    expect(
+      await page.evaluate(() => window.__lumengrabMock?.written?.["t1"]?.length ?? 0),
+    ).toBeGreaterThan(1000);
   });
 
   test("warnings are shown as notices and the file still opens", async ({ page }) => {

@@ -1,7 +1,8 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TriangleAlert } from "lucide-react";
 import type { RgbaImage } from "@/document/render/pixels";
 import type { DocumentFile, DocumentWarning } from "@/document/types";
+import type { DocumentInfo } from "@/platform";
 import { BaseImage } from "./base-image";
 import { runCommand, isTyping } from "./commands";
 import { EditorProvider } from "./context";
@@ -11,51 +12,79 @@ import { commandForKey } from "./shortcuts";
 import { ToolRail } from "./ToolRail";
 import { TopBar } from "./TopBar";
 import { createUiStore, type UiStoreApi } from "./ui-store";
+import { ExportDialog } from "./dialogs/ExportDialog";
+import { FailureDialog } from "./dialogs/FailureDialog";
+import { UnsavedDialog } from "./dialogs/UnsavedDialog";
+import { applyCrop, cancelCrop } from "./crop-mode";
+import { DocumentSession, type Dialog, type Meta } from "./session";
+import { startEditText } from "./text-edit";
 import { createEditorStore, type EditorStoreApi } from "../model/store";
 import { findLayer } from "../model/tree";
-import { applyCrop, cancelCrop } from "./crop-mode";
-import { startEditText } from "./text-edit";
-
-interface Props {
-  doc: DocumentFile;
-  /** The decoded source picture (never modified). */
-  source: RgbaImage;
-  fileName: string;
-  warnings: DocumentWarning[];
-  busy: boolean;
-  notice: { ok: boolean; text: string } | null;
-  /** Called with the current document (project as edited) when Export is pressed. */
-  onExport: (doc: DocumentFile) => void;
-}
 
 declare global {
   interface Window {
     /** Dev and test builds only: the stores of the open editor, for the browser tests. */
-    __lumengrabEditor?: { editor: EditorStoreApi; ui: UiStoreApi };
+    __lumengrabEditor?: { editor: EditorStoreApi; ui: UiStoreApi; session: DocumentSession };
   }
+}
+
+interface Props {
+  /** The window label (`doc-1`): how the native side knows this document. */
+  label: string;
+  doc: DocumentFile;
+  /** The decoded source picture (never modified). */
+  source: RgbaImage;
+  info: DocumentInfo;
+  app: { name: string; version: string };
+  warnings: DocumentWarning[];
 }
 
 const isMac = typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
 
 /**
  * The editor window of an editable document (`?window=document`): top bar, tool rail, canvas, and the
- * panel with the Style and Layers tabs. The stores are made once per document; nothing here touches
- * the file system, the window shell does.
+ * panel with the Style and Layers tabs, plus the dialogs (Export, unsaved changes, errors). The stores are
+ * made once per document; saving, exporting and recovery are the `DocumentSession`.
  */
-export function EditorWindow({ doc, source, fileName, warnings, busy, notice, onExport }: Props) {
+export function EditorWindow({ label, doc, source, info, app, warnings }: Props) {
   const project = doc.project;
   if (!project) throw new Error("The editor needs an editable document.");
   const editor = useMemo(() => createEditorStore(project), [project]);
   const ui = useMemo(() => createUiStore({ width: source.width, height: source.height }), [source]);
   const base = useMemo(() => new BaseImage(source), [source]);
+  const [dialog, setDialog] = useState<Dialog>(null);
+  const [meta, setMeta] = useState<Meta>({ fileName: info.fileName, kind: info.kind });
+  const session = useMemo(
+    () =>
+      new DocumentSession({
+        label,
+        doc,
+        source,
+        info,
+        app,
+        editor,
+        ui,
+        onMeta: setMeta,
+        onDialog: setDialog,
+      }),
+    [label, doc, source, info, app, editor, ui],
+  );
+  const [webp, setWebp] = useState(true);
 
   useEffect(() => {
-    if (import.meta.env.DEV) window.__lumengrabEditor = { editor, ui };
-  }, [editor, ui]);
+    void session.webpAvailable().then(setWebp);
+  }, [session]);
+
+  useEffect(() => {
+    if (import.meta.env.DEV) window.__lumengrabEditor = { editor, ui, session };
+  }, [editor, ui, session]);
+
+  useEffect(() => session.start(), [session]);
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTyping(e.target)) return;
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return; // a dialog owns the keys
       if (e.code === "Space" && !e.repeat) {
         e.preventDefault();
         ui.getState().setPanning(true);
@@ -74,8 +103,8 @@ export function EditorWindow({ doc, source, fileName, warnings, busy, notice, on
       }
       if (e.key === "Enter" && !e.metaKey && !e.ctrlKey && !e.altKey) {
         // Enter edits the selected text (and the layers panel renames its own rows).
-        const { project, selection } = editor.getState();
-        const only = selection.length === 1 ? findLayer(project.layers, selection[0] ?? "") : null;
+        const { project: current, selection } = editor.getState();
+        const only = selection.length === 1 ? findLayer(current.layers, selection[0] ?? "") : null;
         if (only?.type === "text" && startEditText(editor, ui, only.id)) e.preventDefault();
         return;
       }
@@ -86,8 +115,17 @@ export function EditorWindow({ doc, source, fileName, warnings, busy, notice, on
         editor,
         ui,
         outside: {
+          save: () => {
+            void session.save();
+          },
+          saveAs: () => {
+            void session.saveAsDocument();
+          },
           export: () => {
-            onExport({ ...doc, project: editor.getState().project });
+            session.openExport();
+          },
+          copy: () => {
+            void session.copy();
           },
         },
       });
@@ -101,17 +139,19 @@ export function EditorWindow({ doc, source, fileName, warnings, busy, notice, on
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [editor, ui, doc, onExport]);
+  }, [editor, ui, session]);
 
   return (
     <EditorProvider editor={editor} ui={ui}>
       <div className="flex h-screen flex-col bg-background text-foreground">
         <TopBar
-          fileName={fileName}
-          busy={busy}
+          fileName={meta.fileName}
           readOnly={false}
           onExport={() => {
-            onExport({ ...doc, project: editor.getState().project });
+            session.openExport();
+          }}
+          onCopy={() => {
+            void session.copy();
           }}
         />
         {warnings.length > 0 ? (
@@ -133,13 +173,47 @@ export function EditorWindow({ doc, source, fileName, warnings, busy, notice, on
           <EditorCanvas base={base} />
           <RightPanel readOnly={false} />
         </div>
-        <p
-          role="status"
-          aria-live="polite"
-          className={notice?.ok === false ? "px-4 py-1 text-sm text-destructive" : "sr-only"}
-        >
-          {notice?.text ?? ""}
-        </p>
+        {dialog?.type === "export" ? (
+          <ExportDialog
+            documentName={meta.fileName}
+            content={session.content}
+            redactions={session.redactions}
+            initialFormat={dialog.format}
+            webpAvailable={webp}
+            estimate={session.estimate}
+            onSave={(choice) => {
+              void session.export(choice);
+            }}
+            onCopy={(size) => {
+              void session.copy(size);
+            }}
+            onClose={() => {
+              setDialog(null);
+            }}
+          />
+        ) : null}
+        {dialog?.type === "unsaved" ? (
+          <UnsavedDialog
+            name={meta.fileName.replace(/\.lumengrab$/i, "")}
+            onSave={() => {
+              void session.saveAndClose();
+            }}
+            onDiscard={() => {
+              void session.discardAndClose();
+            }}
+            onCancel={() => {
+              setDialog(null);
+            }}
+          />
+        ) : null}
+        {dialog?.type === "failure" ? (
+          <FailureDialog
+            failure={dialog.failure}
+            onClose={() => {
+              setDialog(null);
+            }}
+          />
+        ) : null}
       </div>
     </EditorProvider>
   );

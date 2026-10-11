@@ -3,6 +3,7 @@ import type {
   AppInfo,
   DocumentInfo,
   CaptureMode,
+  Recoverable,
   OverlayMode,
   OverlaySession,
   OverlayWindowInfo,
@@ -53,6 +54,15 @@ export interface MockSubmission {
     | "qaNotice"
     | "docReveal"
     | "docClose"
+    | "docSave"
+    | "docBind"
+    | "docDirty"
+    | "copyPng"
+    | "qaEdit"
+    | "recoveryWrite"
+    | "recoveryDelete"
+    | "recoveryOpen"
+    | "recoveryClose"
     | "pickSave"
     | "writeFile"
     | "openUrl"
@@ -82,18 +92,36 @@ export interface MockSubmission {
   size?: number;
   extraTop?: number;
   extraBottom?: number;
+  /** `docDirty`: the flag that was sent. */
+  flag?: boolean;
+  ids?: string[];
 }
 
 declare global {
   interface Window {
     /** `written`: the bytes a save wrote, by save token, for browser tests. */
-    __lumengrabMock?: { submissions: MockSubmission[]; written?: Record<string, Uint8Array> };
+    __lumengrabMock?: {
+      submissions: MockSubmission[];
+      written?: Record<string, Uint8Array>;
+      /** The last bytes `saveDocument` wrote, by window label. */
+      saved?: Record<string, Uint8Array>;
+      /** The PNG the copy button put on the (fake) clipboard. */
+      copied?: Uint8Array;
+      /** Recovery copies the editor wrote, by document id. */
+      recovery?: Record<string, { bytes: Uint8Array; name: string }>;
+      /** Pretends the user closed the window while it has unsaved changes. */
+      requestClose?: () => void;
+    };
   }
 }
 
 function record(entry: MockSubmission): void {
   const log = (window.__lumengrabMock ??= { submissions: [] });
   log.submissions.push(entry);
+}
+
+async function fetchSample(): Promise<Uint8Array> {
+  return new Uint8Array(await (await fetch(sampleCaptureUrl)).arrayBuffer());
 }
 
 const SETTINGS_KEY = "lumengrab.mock.settings";
@@ -316,7 +344,7 @@ export const mockPlatform: Platform = {
   /** The demo card's screenshot: the bundled sample picture. */
   async quickAccessFileBytes(id: string): Promise<Uint8Array> {
     record({ kind: "qaFileBytes", id });
-    return new Uint8Array(await (await fetch(sampleCaptureUrl)).arrayBuffer());
+    return fetchSample();
   },
 
   revealSavedFile(token: string): Promise<void> {
@@ -329,16 +357,29 @@ export const mockPlatform: Platform = {
     return Promise.resolve();
   },
 
+  /** `?kind=capture|recovered` makes it an unsaved document; the default is a saved file. */
   getDocumentInfo(): Promise<DocumentInfo> {
+    const kind = new URLSearchParams(window.location.search).get("kind");
+    if (kind === "capture") {
+      return Promise.resolve({
+        fileName: "Screenshot 2026-10-09 at 14.02",
+        folder: "Pictures/LumenGrab",
+        kind: "capture",
+      });
+    }
     return Promise.resolve({
-      fileName: "Screenshot 2026-10-09 at 14.02.lumengrab",
+      fileName:
+        kind === "recovered" ? "Checkout_error" : "Screenshot 2026-10-09 at 14.02.lumengrab",
       folder: "Pictures/LumenGrab",
+      kind: kind === "recovered" ? "recovered" : "file",
     });
   },
 
   /** `?scenario=ready|redactions|annotated|readonly|corrupt|truncated|warnings` picks the document. */
   loadDocument(): Promise<Uint8Array> {
-    return buildScenario(new URLSearchParams(window.location.search).get("scenario") ?? "ready");
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("kind") === "capture") return fetchSample();
+    return buildScenario(q.get("scenario") ?? "ready");
   },
 
   revealDocument(): Promise<void> {
@@ -377,6 +418,102 @@ export const mockPlatform: Platform = {
     return new URLSearchParams(window.location.search).get("writefail") === "1"
       ? Promise.reject(new PlatformError("The folder is not writable."))
       : Promise.resolve();
+  },
+
+  /** `?savefail=1` makes saving fail with a disk-full message. */
+  saveDocument(label: string, bytes: Uint8Array): Promise<void> {
+    record({ kind: "docSave", id: label, size: bytes.length });
+    if (new URLSearchParams(window.location.search).get("savefail") === "1") {
+      return Promise.reject(new PlatformError("no space left on device (os error 28)"));
+    }
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    (log.saved ??= {})[label] = bytes;
+    return Promise.resolve();
+  },
+
+  bindSavedDocument(label: string, token: string): Promise<void> {
+    record({ kind: "docBind", id: label, name: token });
+    return Promise.resolve();
+  },
+
+  setDocumentDirty(label: string, dirty: boolean): Promise<void> {
+    record({ kind: "docDirty", id: label, flag: dirty });
+    return Promise.resolve();
+  },
+
+  onDocumentCloseRequested(_label: string, listener: () => void): Promise<() => void> {
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    log.requestClose = listener;
+    return Promise.resolve(() => {
+      if (log.requestClose === listener) delete log.requestClose;
+    });
+  },
+
+  copyPngToClipboard(png: Uint8Array): Promise<void> {
+    record({ kind: "copyPng", size: png.length });
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    log.copied = png;
+    return new URLSearchParams(window.location.search).get("copyfail") === "1"
+      ? Promise.reject(new PlatformError("The clipboard is not available."))
+      : Promise.resolve();
+  },
+
+  quickAccessEdit(id: string): Promise<void> {
+    record({ kind: "qaEdit", id });
+    return Promise.resolve();
+  },
+
+  recoveryWrite(id: string, bytes: Uint8Array, name: string): Promise<void> {
+    record({ kind: "recoveryWrite", id, size: bytes.length, name });
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    (log.recovery ??= {})[id] = { bytes, name };
+    return Promise.resolve();
+  },
+
+  /** `?recoverable=2` offers two unsaved documents; saved ones from this page's autosave are listed too. */
+  async recoveryList(): Promise<Recoverable[]> {
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    const wanted = Number(new URLSearchParams(window.location.search).get("recoverable") ?? "0");
+    const store = (log.recovery ??= {});
+    const names = ["Screenshot_2026-10-08", "Checkout_error", "Screenshot_2026-10-07"];
+    for (let i = 0; i < wanted; i += 1) {
+      const id = `recovered-${String(i + 1)}`;
+      if (!store[id]) {
+        store[id] = {
+          bytes: await buildScenario(i === 1 ? "redactions" : i === 0 ? "stack" : "ready"),
+          name: names[i] ?? `Capture ${String(i + 1)}`,
+        };
+      }
+    }
+    return Object.entries(store).map(([id, v], i) => ({
+      id,
+      name: v.name,
+      modifiedMs: Date.now() - (i + 1) * 3_600_000,
+      bytes: v.bytes.length,
+    }));
+  },
+
+  recoveryRead(id: string): Promise<Uint8Array> {
+    const entry = window.__lumengrabMock?.recovery?.[id];
+    return entry
+      ? Promise.resolve(entry.bytes)
+      : Promise.reject(new PlatformError("The recovery copy is gone."));
+  },
+
+  recoveryDelete(ids: string[]): Promise<void> {
+    record({ kind: "recoveryDelete", ids });
+    for (const id of ids) delete window.__lumengrabMock?.recovery?.[id];
+    return Promise.resolve();
+  },
+
+  recoveryOpen(ids: string[]): Promise<void> {
+    record({ kind: "recoveryOpen", ids });
+    return Promise.resolve();
+  },
+
+  closeRecoveryWindow(): Promise<void> {
+    record({ kind: "recoveryClose" });
+    return Promise.resolve();
   },
 
   openUrl(url: string): Promise<void> {

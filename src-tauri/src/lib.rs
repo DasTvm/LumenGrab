@@ -9,6 +9,7 @@ mod hotkeys;
 mod permission;
 mod platform;
 mod quick_access;
+mod recovery;
 mod settings;
 mod tray;
 
@@ -85,12 +86,31 @@ pub fn run() {
             document::pick_save_target,
             document::write_granted_file,
             document::open_url,
+            document::document_save,
+            document::document_bind_saved,
+            document::document_set_dirty,
+            document::copy_png_to_clipboard,
+            quick_access::commands::quick_access_edit,
+            recovery::recovery_write,
+            recovery::recovery_set_name,
+            recovery::recovery_list,
+            recovery::recovery_read,
+            recovery::recovery_delete,
+            recovery::recovery_open,
+            recovery::recovery_close,
         ])
         .on_window_event(|window, event| {
             // An overlay closed by the OS or the user must not leave the capture stuck "busy".
-            if let WindowEvent::Destroyed = event {
-                overlay::on_destroyed(window.app_handle(), window.label());
-                document::on_destroyed(window.app_handle(), window.label());
+            match event {
+                WindowEvent::Destroyed => {
+                    overlay::on_destroyed(window.app_handle(), window.label());
+                    document::on_destroyed(window.app_handle(), window.label());
+                }
+                // A document with unsaved changes asks before it closes.
+                WindowEvent::CloseRequested { api, .. } => {
+                    document::on_close_requested(window, api)
+                }
+                _ => {}
             }
         })
         .setup(|app| {
@@ -107,6 +127,7 @@ pub fn run() {
             }
             overlay::warm_up(app.handle());
             quick_access::warm_up(app.handle());
+            recovery::offer_at_startup(app.handle());
             // Windows has no permission window to say hello: tell the user once where the app lives.
             #[cfg(target_os = "windows")]
             {

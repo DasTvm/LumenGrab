@@ -6,6 +6,7 @@ import { OverlayWindow } from "./OverlayWindow";
 import { PermissionWindow } from "./PermissionWindow";
 import { QuickAccessGallery } from "./QuickAccessGallery";
 import { QuickAccessWindow } from "./QuickAccessWindow";
+import { RecoverWindow } from "./RecoverWindow";
 import { SettingsWindow } from "./SettingsWindow";
 
 /** Picks the window to render from `?window=`. One frontend bundle serves every native window. */
@@ -26,6 +27,8 @@ export function App() {
       return <DialogWindow />;
     case "quick":
       return <QuickAccessWindow />;
+    case "recover":
+      return <RecoverWindow />;
     case "permission":
       return <PermissionWindow />;
     case "settings":

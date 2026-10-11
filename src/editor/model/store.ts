@@ -57,6 +57,8 @@ export interface EditorActions {
   redo(): void;
   select(ids: readonly string[]): void;
   markSaved(): void;
+  /** The document has unsaved work from before it was opened (recovered work): it counts as changed. */
+  markUnsaved(): void;
 
   // Layer commands. All of them skip locked layers where that matters, and select what they make.
   addLayer(layer: Layer, parentId?: string | null): void;
@@ -233,6 +235,10 @@ export function createEditorStore(
       },
       markSaved() {
         savedAt = cursor;
+        set(flags());
+      },
+      markUnsaved() {
+        savedAt = null;
         set(flags());
       },
 

@@ -11,6 +11,7 @@ import {
   type OverlaySession,
   type PixelRect,
   type QuickAccessCard,
+  type Recoverable,
   type SaveFormat,
   type SaveTarget,
   type Settings,
@@ -244,6 +245,78 @@ export const nativePlatform: Platform = {
     } catch (err) {
       throw new PlatformError(typeof err === "string" ? err : "The file could not be saved.");
     }
+  },
+
+  async saveDocument(label: string, bytes: Uint8Array): Promise<void> {
+    try {
+      await invoke("document_save", bytes, { headers: { label } });
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The file could not be saved.");
+    }
+  },
+
+  async bindSavedDocument(label: string, token: string): Promise<void> {
+    await call("document_bind_saved", { label, token });
+  },
+
+  async setDocumentDirty(label: string, dirty: boolean): Promise<void> {
+    await call("document_set_dirty", { label, dirty });
+  },
+
+  onDocumentCloseRequested(label: string, listener: () => void): Promise<() => void> {
+    // Every window hears every event: the label in the payload says whose it is.
+    return listen<string>("document-close-requested", (event) => {
+      if (event.payload === label) listener();
+    });
+  },
+
+  async copyPngToClipboard(png: Uint8Array): Promise<void> {
+    try {
+      await invoke("copy_png_to_clipboard", png);
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The image could not be copied.");
+    }
+  },
+
+  async quickAccessEdit(id: string): Promise<void> {
+    await call("quick_access_edit", { id });
+  },
+
+  async recoveryWrite(id: string, bytes: Uint8Array, name: string): Promise<void> {
+    try {
+      await invoke("recovery_write", bytes, { headers: { id } });
+      await invoke("recovery_set_name", { id, name });
+    } catch (err) {
+      throw new PlatformError(
+        typeof err === "string" ? err : "The recovery copy could not be written.",
+      );
+    }
+  },
+
+  recoveryList(): Promise<Recoverable[]> {
+    return call<Recoverable[]>("recovery_list");
+  },
+
+  async recoveryRead(id: string): Promise<Uint8Array> {
+    try {
+      return new Uint8Array(await invoke<ArrayBuffer>("recovery_read", { id }));
+    } catch (err) {
+      throw new PlatformError(
+        typeof err === "string" ? err : "The recovery copy could not be read.",
+      );
+    }
+  },
+
+  async recoveryDelete(ids: string[]): Promise<void> {
+    await call("recovery_delete", { ids });
+  },
+
+  async recoveryOpen(ids: string[]): Promise<void> {
+    await call("recovery_open", { ids });
+  },
+
+  async closeRecoveryWindow(): Promise<void> {
+    await call("recovery_close");
   },
 
   async openUrl(url: string): Promise<void> {

@@ -1,5 +1,15 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Check, CircleCheck, Copy, Download, Grip, Trash2, TriangleAlert, X } from "lucide-react";
+import {
+  Check,
+  CircleCheck,
+  Copy,
+  Download,
+  Grip,
+  Pencil,
+  Trash2,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import type { QuickAccessCard as Card } from "@/platform";
 import { currentOs } from "@/platform/os";
 import { Button } from "@/ui/components/button";
@@ -7,12 +17,12 @@ import { formatBytes } from "@/ui/lib/format";
 import { cn } from "@/ui/lib/utils";
 
 /** Which button a tooltip belongs to. */
-export type TipTarget = "copy" | "save" | "close" | "delete";
+export type TipTarget = "copy" | "save" | "edit" | "close" | "delete";
 
 /** The row under the actions: where "Save as…" put a copy, or what went wrong. */
 export type StatusRow =
   | { kind: "saved"; folder: string; fileName: string; token?: string }
-  | { kind: "error"; title: string; detail: string; retry: "copy" | "save" };
+  | { kind: "error"; title: string; detail: string; retry: "copy" | "save" | "edit" };
 
 export interface QuickAccessCardViewProps {
   card: Card;
@@ -35,6 +45,8 @@ export interface QuickAccessCardViewProps {
   paused?: boolean;
   onCopy?: () => void;
   onSave?: () => void;
+  /** Opens the screenshot in the editor. */
+  onEdit?: () => void;
   onClose?: () => void;
   onReveal?: () => void;
   onRetry?: () => void;
@@ -53,6 +65,7 @@ export interface QuickAccessCardViewProps {
 const TIP_TEXT: Record<TipTarget, { label: string; key?: string }> = {
   copy: { label: "Copy image", key: currentOs() === "macos" ? "⌘C" : "Ctrl+C" },
   save: { label: "Save as…" },
+  edit: { label: "Edit" },
   close: { label: "Close", key: "Esc" },
   delete: { label: "Delete screenshot" },
 };
@@ -230,6 +243,7 @@ function CompactBody({
   onDragStart,
   onCopy,
   onSave,
+  onEdit,
   onClose,
   onReveal,
   onRetry,
@@ -285,6 +299,18 @@ function CompactBody({
           >
             <Download />
           </Button>
+          {onEdit ? (
+            <Button
+              ref={anchor("edit")}
+              variant="ghost"
+              size="icon"
+              aria-label="Edit"
+              onClick={onEdit}
+              {...tipEvents("edit")}
+            >
+              <Pencil />
+            </Button>
+          ) : null}
         </div>
         <span aria-hidden className="h-10 w-px shrink-0 bg-border" />
         <Button
@@ -311,6 +337,7 @@ function LargeBody({
   onDragStart,
   onCopy,
   onSave,
+  onEdit,
   onClose,
   onReveal,
   onRetry,
@@ -366,6 +393,12 @@ function LargeBody({
             <Download />
             Save
           </Button>
+          {onEdit ? (
+            <Button variant="outline" onClick={onEdit} aria-label="Edit">
+              <Pencil />
+              Edit
+            </Button>
+          ) : null}
         </div>
         <Button
           ref={anchor("delete")}

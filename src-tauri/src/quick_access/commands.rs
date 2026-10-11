@@ -183,6 +183,15 @@ pub async fn quick_access_file_bytes(app: AppHandle, id: String) -> Result<Respo
     Ok(Response::new(bytes))
 }
 
+/// "Edit": opens the screenshot of a card in the editor (as an unsaved document) and closes the card.
+#[tauri::command]
+pub async fn quick_access_edit(app: AppHandle, id: String) -> Result<(), String> {
+    let path = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
+    crate::document::open_capture(&app, &path)?;
+    close(&app, &id);
+    Ok(())
+}
+
 /// A button of a notice card was pressed. On success the card closes (unless the user cancelled a
 /// dialog); on failure the error comes back so the card can say so and stay.
 #[tauri::command]

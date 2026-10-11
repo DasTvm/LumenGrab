@@ -43,6 +43,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
     )?;
     let open_document =
         MenuItem::with_id(app, "open-document", "Open Document…", true, None::<&str>)?;
+    let recover = MenuItem::with_id(app, "recover", "Recover Unsaved Work…", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit LumenGrab", true, None::<&str>)?;
     let menu = Menu::with_items(
@@ -56,6 +57,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
             &PredefinedMenuItem::separator(app)?,
             &folder,
             &open_document,
+            &recover,
             &settings,
             &PredefinedMenuItem::separator(app)?,
             &quit,
@@ -76,6 +78,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
                 let app = app.clone();
                 std::thread::spawn(move || crate::document::pick_and_open(&app));
             }
+            "recover" => crate::recovery::show(app),
             "settings" => show_settings(app),
             "quit" => app.exit(0),
             _ => {}

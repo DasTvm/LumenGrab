@@ -199,6 +199,18 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
       });
   }, [id, fileName]);
 
+  const edit = useCallback(() => {
+    setStatus(null);
+    platform.quickAccessEdit(id).catch((e: unknown) => {
+      setStatus({
+        kind: "error",
+        title: "Could not open the editor",
+        detail: message(e, "Try again in a moment."),
+        retry: "edit",
+      });
+    });
+  }, [id]);
+
   const remove = useCallback(() => {
     setStatus(null);
     setCopied(false);
@@ -357,6 +369,7 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
         onUndo={undo}
         onCopy={copy}
         onSave={saveAs}
+        onEdit={edit}
         onClose={close}
         onReveal={() => {
           // After "Save as…" show the file that was just written, not the original screenshot.
@@ -365,6 +378,7 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
         }}
         onRetry={() => {
           if (status?.kind === "error" && status.retry === "save") saveAs();
+          else if (status?.kind === "error" && status.retry === "edit") edit();
           else copy();
         }}
         onTip={showTip}

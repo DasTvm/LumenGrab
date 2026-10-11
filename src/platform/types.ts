@@ -101,9 +101,23 @@ export interface DocumentInfo {
   fileName: string;
   /** The folder, as shown to the user. */
   folder: string;
+  /**
+   * `file`: a `.lumengrab` on disk (Save writes to it). `capture`: a screenshot opened for editing, not
+   * a document yet (the first Save asks where). `recovered`: unsaved work from the last session.
+   */
+  kind: "file" | "capture" | "recovered";
 }
 
-export type SaveFormat = "png" | "lumengrab";
+export type SaveFormat = "png" | "jpg" | "webp" | "lumengrab";
+
+/** Work the editor's autosave left behind (design: Recover unsaved work). */
+export interface Recoverable {
+  id: string;
+  name: string;
+  /** Milliseconds since 1970 when the copy was last written. */
+  modifiedMs: number;
+  bytes: number;
+}
 
 /** A place the user picked in a save dialog, good for one write (`writeGrantedFile`). */
 export interface SaveTarget {
@@ -230,6 +244,26 @@ export interface Platform {
   }): Promise<SaveTarget | null>;
   /** Writes bytes (atomically) to a place `pickSaveTarget` granted. */
   writeGrantedFile(token: string, bytes: Uint8Array): Promise<void>;
+  /** Saves the document to the `.lumengrab` file its window was opened from (atomically). */
+  saveDocument(label: string, bytes: Uint8Array): Promise<void>;
+  /** After a Save As of an untitled document: the window is that file from now on (`token` of the write). */
+  bindSavedDocument(label: string, token: string): Promise<void>;
+  /** Tells the native side whether the window has unsaved changes (closing it then asks first). */
+  setDocumentDirty(label: string, dirty: boolean): Promise<void>;
+  /** Calls `listener` when the user tries to close this window while it has unsaved changes. */
+  onDocumentCloseRequested(label: string, listener: () => void): Promise<() => void>;
+  /** Puts a PNG on the clipboard. */
+  copyPngToClipboard(png: Uint8Array): Promise<void>;
+  /** "Edit" on a Quick Access card: opens the screenshot in the editor. */
+  quickAccessEdit(id: string): Promise<void>;
+  /** Writes the recovery copy of a document (`id` = its document id). */
+  recoveryWrite(id: string, bytes: Uint8Array, name: string): Promise<void>;
+  recoveryList(): Promise<Recoverable[]>;
+  recoveryRead(id: string): Promise<Uint8Array>;
+  recoveryDelete(ids: string[]): Promise<void>;
+  /** Opens the chosen recovery copies in editor windows and closes the recovery window. */
+  recoveryOpen(ids: string[]): Promise<void>;
+  closeRecoveryWindow(): Promise<void>;
   /** Opens the Releases page in the default browser (the only address the native side allows). */
   openUrl(url: string): Promise<void>;
   getSettingsInfo(): Promise<SettingsInfo>;
