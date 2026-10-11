@@ -8,11 +8,21 @@ No app backend, account, private token in a browser, or second repository is req
 Edit `docs/website-roadmap.json`. Status is explicitly `done`, `building`, `next`,
 or `planned`. Mark each task's `done` boolean after verification. A completed
 milestone needs all tasks complete and `finishedAt` in YYYY-MM-DD format.
-Completion is never inferred from commit messages. The initial task states come
-from the approved Pencil website design; they are not an automatic audit of code.
+Completion is never inferred from commit messages. Update task states and milestone
+status in the same commit as the implemented or verified work. Outstanding native
+and manual checks remain explicit incomplete tasks.
 
 Run `node scripts/website/roadmap-markdown.mjs` after editing. It regenerates
 `docs/ROADMAP.md`, so the machine-readable file and repository documentation agree.
+CI validates the feed model and runs the generator with `--check` on every pull
+request and main push. This detects inconsistent roadmap files; agents still need
+to record actual implementation and verification progress in the JSON.
+
+The October 11, 2026 reconciliation records M1's real multi-monitor/mixed-DPI
+verification confirmed by the maintainer, M2's Quick Access Edit integration,
+and M3's implemented document format. M4's core editor tasks are implemented and
+covered by automated tests; the native/manual acceptance checklist is still
+tracked separately before closing M4. See `docs/CAPTURE_TEST_CHECKLIST.md` section 6e.
 
 ## Changelog editing
 
@@ -42,5 +52,6 @@ Never put private information or credentials in roadmap text, commits, or this f
 ```sh
 node --test scripts/website/project-data-model.test.mjs
 node scripts/website/roadmap-markdown.mjs
+node scripts/website/roadmap-markdown.mjs --check
 node scripts/website/sync-feed.mjs /tmp/project-feed.json
 ```
