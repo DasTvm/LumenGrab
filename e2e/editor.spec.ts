@@ -772,3 +772,71 @@ test.describe("text (browser mock)", () => {
     });
   });
 });
+
+test.describe("what you see is what you export (browser mock)", () => {
+  test("the editor's canvas and the exported picture show the same pixels, redactions and annotations included", async ({
+    page,
+  }) => {
+    await open(page, "stack");
+    await ready(page);
+    const result = await page.evaluate(async () => {
+      const load = async <T>(path: string): Promise<T> =>
+        (await import(/* @vite-ignore */ path)) as T;
+      const { editor, ui } = window.__lumengrabEditor ?? {};
+      if (!editor || !ui) throw new Error("editor not ready");
+      // 100 %, the picture's corner at (-50, -100) on the canvas: image pixel (x, y) is at (x - 50, y - 100).
+      ui.getState().setView({ zoom: 1, x: -50, y: -100 });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const { editorCodec } = await load<typeof import("../src/editor/draw/codec")>(
+        "/src/editor/draw/codec.ts",
+      );
+      const { flattenProject } = await load<typeof import("../src/document/render/flatten")>(
+        "/src/document/render/flatten.ts",
+      );
+      const { canvasCodec } = await load<typeof import("../src/document/render/canvas-codec")>(
+        "/src/document/render/canvas-codec.ts",
+      );
+      const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="editor-canvas"]');
+      const ctx = canvas?.getContext("2d");
+      if (!canvas || !ctx) throw new Error("no canvas");
+
+      // The source picture from the mock capture, flattened through the export pipeline.
+      const source = await (await fetch("/src/platform/mock/sample-capture.png")).arrayBuffer();
+      const flat = await flattenProject(
+        await canvasCodec.decode(new Uint8Array(source)),
+        editor.getState().project,
+        editorCodec,
+      );
+      // A window of the picture that holds the pixelated mask, the counter, the callout and part of the frame.
+      const [x0, y0, w, h] = [60, 220, 620, 520];
+      const shown = ctx.getImageData(x0 - 50, y0 - 100, w, h).data;
+      let different = 0;
+      const cells: Record<string, number> = {};
+      for (let y = 0; y < h; y += 1) {
+        for (let x = 0; x < w; x += 1) {
+          const a = (y * w + x) * 4;
+          const b = ((y0 + y) * flat.width + x0 + x) * 4;
+          for (let c = 0; c < 3; c += 1) {
+            if (Math.abs((shown[a + c] ?? 0) - (flat.data[b + c] ?? 0)) > 64) {
+              different += 1;
+              cells[`${String(Math.floor(x / 50) * 50)},${String(Math.floor(y / 50) * 50)}`] =
+                (cells[`${String(Math.floor(x / 50) * 50)},${String(Math.floor(y / 50) * 50)}`] ??
+                  0) + 1;
+              break;
+            }
+          }
+        }
+      }
+      return { different, total: w * h, cells };
+    });
+    // Shapes, the pixelated mask and the arrow are identical. The glyph edges of the text may differ a little: the
+    // editor's canvas is rasterised by the GPU path and the export's by the CPU path, which anti-alias text differently.
+    expect(result.different / result.total).toBeLessThan(0.001);
+    for (const cell of Object.keys(result.cells)) {
+      const [cx, cy] = cell.split(",").map(Number);
+      // Everything that differs is in the part of the window with text (the counter's digit and "Wrong total?").
+      expect((cx ?? 0) < 60 || (cy ?? 0) >= 400).toBe(true);
+    }
+  });
+});
