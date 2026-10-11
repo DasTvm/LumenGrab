@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T15:27:42.766Z",
+  "generatedAt": "2026-10-11T15:29:00.004Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -485,6 +485,13 @@
       "category": "new",
       "title": "save, Save As, export dialog (PNG/JPG/WebP/.lumengrab), copy, unsaved-changes guard, autosave and recovery, Quick Access Edit",
       "url": "https://github.com/DasTvm/LumenGrab/commit/610f62a216b9dd1d723be5f75a51d6fb31ab50b3"
+    },
+    {
+      "id": "3cb8e0bae67625b116ba16f824b8b7ef6a2bf775",
+      "date": "2026-10-11T15:28:49Z",
+      "category": "internal",
+      "title": "canvas codec without a needless cast",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/3cb8e0bae67625b116ba16f824b8b7ef6a2bf775"
     }
   ],
   "releases": [],
@@ -557,7 +564,8 @@
     "ffe1e3b12697c79d3b9b26e794f19c89c1389197",
     "4f31874900a5d4675d71793bf28af5bbbd34cafe",
     "db461938015a65df63bf77f4441b19fc4f582661",
-    "610f62a216b9dd1d723be5f75a51d6fb31ab50b3"
+    "610f62a216b9dd1d723be5f75a51d6fb31ab50b3",
+    "3cb8e0bae67625b116ba16f824b8b7ef6a2bf775"
   ],
   "roadmap": {
     "schemaVersion": 1,
