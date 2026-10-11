@@ -63,7 +63,7 @@ Do not add a dependency without checking: license, maintenance status, and bundl
 │  └─ ROADMAP.md
 ├─ src/                  # React app
 │  ├─ app/               # windows: overlay, editor, settings, history, pin
-│  ├─ editor/            # Konva editor, tools, layers
+│  ├─ editor/            # editor: model (store, tree, geometry), draw (shared drawing code), ui (canvas, panels, dialogs)
 │  ├─ presentation/      # background tool, frames, presets
 │  ├─ document/          # document model, zod schemas, migrations, (de)serialization
 │  ├─ platform/          # typed wrappers around Tauri commands + browser mocks
@@ -108,7 +108,7 @@ The full spec is in `docs/FORMAT.md`. That file is the **source of truth**. Rule
 
 - Design source of truth: **Figma** (use the Figma MCP when a link is provided). Implement from the design, do not invent a generic look.
   The current design lives in the **Pencil** file `LumenGrab.pen` (Pencil MCP: read with `execute`, never open the `.pen` file directly). Tokens in `src/ui/tokens` come from its variables; the dark theme is derived (the design has none yet) and needs a designer's review.
-  Screens built so far: Capture Overlay (with bar, quick pick, second display), Settings (General incl. After capture, Hotkeys), Onboarding Permission, Quick Access (compact, large, notices, first-start hint), "Screen Recording is turned off" dialog. Dev galleries: `?window=design` (components) and `?window=quick-access-states` (Quick Access states) in `pnpm dev:web`.
+  Screens built so far: Capture Overlay (with bar, quick pick, second display), Settings (General incl. After capture, Hotkeys), Onboarding Permission, Quick Access (compact, large, notices, first-start hint), "Screen Recording is turned off" dialog, the Editor (Annotate mode: tool options, selection, text, crop, layers, Export / Unsaved / Recover / error dialogs; the Presentation tab and Share are designed but not built yet). Dev galleries: `?window=design` (components) and `?window=quick-access-states` (Quick Access states) in `pnpm dev:web`.
 - UI fonts: the design uses **Inter** (UI) and **Outfit** (wordmark), bundled with `@fontsource` (SIL OFL-1.1, listed in `THIRD_PARTY_LICENSES`). This deliberately deviates from "system fonts" below; system fonts stay the fallback.
 - Use design tokens (colors, radius, spacing, type) from one place (`src/ui/tokens`). No hard-coded colors in components.
 - Light and dark mode from day one. Respect system setting.
