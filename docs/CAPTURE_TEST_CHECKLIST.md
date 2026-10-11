@@ -134,6 +134,11 @@ Open it with Quick Access **Edit** (a new capture), by double-clicking a `.lumen
 - **Unsaved changes:** change something, close the window (red button / Cmd+W): "Save changes to …?" with Save, Don't save, Cancel. Cancel keeps the window; a failed save keeps it open with "Could not save" and Retry / Save elsewhere….
 - **Recovery:** change something, wait 4 seconds, kill the app (`kill -9`), start it again: "Recover unsaved work" lists the document with its time and what changed; Recover opens it as unsaved; Discard all deletes the copies. Tray menu **Recover Unsaved Work…** opens the same window. A saved document leaves no recovery copy.
 - **Windows only:** shortcuts use Ctrl, the Export and Unsaved dialogs are readable at 150 % and 200 % scale, WebP and JPG export work, dragging handles feels the same on a 125 % monitor.
+- **Dock and Cmd+Tab (macOS):** while an editor, Settings or the recovery window is open, LumenGrab shows in the Dock and in Cmd+Tab (with its windows in the Window menu); when the last of them is closed it goes back to a menu bar app
+  without a Dock icon. The capture overlays and Quick Access cards never make the Dock icon appear. (Windows lists the windows in the taskbar and Alt+Tab as before.)
+- **Colour picker:** "+" in any swatch row opens LumenGrab's own picker (square, hue, hex field; the eyedropper only where the WebView has one, e.g. Windows). Save a colour, close and reopen the editor: it is in every swatch row.
+- **Fonts:** the text panel lists the eight fonts that ship with LumenGrab and every font installed on the device (search). Pick an installed font, save the `.lumengrab`, open it on a device without that font: Inter is used and a notice says so.
+  Type the font size (50, Enter) instead of clicking.
 - Dark mode (derived, not designed): all of the above is readable; the lime handles are visible on the picture.
 - Not covered by automated tests: IME text input (Japanese, Chinese) in the text field, very large pictures (5K): drawing a blur over one should stay smooth.
 

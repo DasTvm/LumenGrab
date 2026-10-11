@@ -208,6 +208,7 @@ pub fn show(app: &AppHandle) {
     .build();
     match result {
         Ok(window) => {
+            crate::platform::update_dock_presence(app, None);
             let _ = window.set_focus();
         }
         Err(e) => eprintln!("failed to open the recovery window: {e}"),

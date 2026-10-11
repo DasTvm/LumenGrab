@@ -2,7 +2,7 @@ import { strFromU8 } from "fflate";
 import { readContainer } from "./container";
 import { DocumentError } from "./errors";
 import { sha256Hex } from "./hash";
-import { BUNDLED_FONT_IDS, FORMAT_VERSION, LIMITS, type Limits } from "./limits";
+import { BUNDLED_FONT_IDS, FORMAT_VERSION, isSystemFontId, LIMITS, type Limits } from "./limits";
 import { countLayers, walkLayers } from "./layers";
 import { migrateToLatest } from "./migrations";
 import { readPngSize } from "./png";
@@ -165,7 +165,8 @@ export async function openDocument(
       });
     }
     for (const fontId of textFonts(project)) {
-      if (!BUNDLED_FONT_IDS.includes(fontId)) {
+      // A `system:` font is checked by the editor, which can ask the device whether it is installed.
+      if (!BUNDLED_FONT_IDS.includes(fontId) && !isSystemFontId(fontId)) {
         warnings.push({
           code: "unknown-font",
           message: `The font “${fontId}” is not available. The default font is used.`,

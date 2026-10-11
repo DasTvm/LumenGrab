@@ -1,7 +1,9 @@
-import { useRef, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Minus, Plus, Slash } from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { cn } from "@/ui/lib/utils";
+import { ColorPicker } from "./ColorPicker";
+import { useSavedColors } from "./saved-colors";
 
 /** A labelled group of controls with the current value on the right (design: "Section Header"). */
 export function Section({
@@ -31,85 +33,110 @@ interface SwatchRowProps {
   onChange: (color: string | null) => void;
   /** Offer a "None" swatch first (a fill or a background can be off). */
   none?: boolean;
+  /** Dragging in the colour picker is one undo step: these frame it. */
+  onStart?: () => void;
+  onEnd?: () => void;
 }
 
 const sameColor = (a: string | null, b: string | null) =>
   (a ?? "").toLowerCase() === (b ?? "").toLowerCase();
 
-/** The swatch row: optionally None, the palette of the design, and a custom colour (the "+"). */
-export function SwatchRow({ label, value, colors, onChange, none }: SwatchRowProps) {
-  const input = useRef<HTMLInputElement>(null);
+/**
+ * The swatch row: optionally None, the palette of the design, the user's saved colours, and "+" which opens
+ * the colour picker (`ColorPicker`).
+ */
+export function SwatchRow({
+  label,
+  value,
+  colors,
+  onChange,
+  none,
+  onStart,
+  onEnd,
+}: SwatchRowProps) {
+  const [open, setOpen] = useState(false);
+  const saved = useSavedColors();
+  const extra = saved.filter((c) => !colors.some((p) => sameColor(p, c)));
   const custom = value !== null && !colors.some((c) => sameColor(c, value));
+  const swatch = (color: string, title: string = color) => (
+    <button
+      key={color}
+      type="button"
+      role="radio"
+      aria-checked={sameColor(value, color)}
+      aria-label={`${label}: ${color}`}
+      title={title}
+      className={cn(
+        "size-7 rounded-md border border-black/10",
+        sameColor(value, color) && "ring-2 ring-primary ring-offset-1 ring-offset-card",
+      )}
+      style={{ background: color }}
+      onClick={() => {
+        onChange(color.toUpperCase());
+      }}
+    />
+  );
   return (
-    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
-      {none ? (
+    <div className="relative">
+      <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
+        {none ? (
+          <button
+            type="button"
+            role="radio"
+            aria-checked={value === null}
+            aria-label={`${label}: none`}
+            className={cn(
+              "flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground",
+              value === null && "ring-2 ring-primary ring-offset-1 ring-offset-card",
+            )}
+            onClick={() => {
+              onChange(null);
+            }}
+          >
+            <Slash aria-hidden className="size-4" />
+          </button>
+        ) : null}
+        {colors.map((color) => swatch(color))}
+        {extra.map((color) => swatch(color, `${color} (saved)`))}
         <button
           type="button"
           role="radio"
-          aria-checked={value === null}
-          aria-label={`${label}: none`}
+          aria-checked={custom && !extra.some((c) => sameColor(c, value))}
+          aria-label={`${label}: custom colour`}
+          aria-expanded={open}
+          title="Custom colour"
           className={cn(
-            "flex size-7 items-center justify-center rounded-md border border-border bg-background text-muted-foreground",
-            value === null && "ring-2 ring-primary ring-offset-1 ring-offset-card",
+            "flex size-7 items-center justify-center rounded-md border border-black/10 text-white",
+            custom &&
+              !extra.some((c) => sameColor(c, value)) &&
+              "ring-2 ring-primary ring-offset-1 ring-offset-card",
           )}
+          style={{
+            background:
+              custom && value && !extra.some((c) => sameColor(c, value))
+                ? value
+                : "conic-gradient(from 0deg, #ef4444, #facc15, #16a34a, #2563eb, #c026d3, #ef4444)",
+          }}
           onClick={() => {
-            onChange(null);
+            setOpen(!open);
           }}
         >
-          <Slash aria-hidden className="size-4" />
+          <Plus aria-hidden className="size-3.5 drop-shadow" />
         </button>
-      ) : null}
-      {colors.map((color) => (
-        <button
-          key={color}
-          type="button"
-          role="radio"
-          aria-checked={sameColor(value, color)}
-          aria-label={`${label}: ${color}`}
-          title={color}
-          className={cn(
-            "size-7 rounded-md border border-black/10",
-            sameColor(value, color) && "ring-2 ring-primary ring-offset-1 ring-offset-card",
-          )}
-          style={{ background: color }}
-          onClick={() => {
-            onChange(color.toUpperCase());
+      </div>
+      {open ? (
+        <ColorPicker
+          value={value ?? "#000000"}
+          onChange={(hex) => {
+            onChange(hex);
+          }}
+          {...(onStart ? { onStart } : {})}
+          {...(onEnd ? { onEnd } : {})}
+          onClose={() => {
+            setOpen(false);
           }}
         />
-      ))}
-      <button
-        type="button"
-        role="radio"
-        aria-checked={custom}
-        aria-label={`${label}: custom colour`}
-        title="Custom colour"
-        className={cn(
-          "flex size-7 items-center justify-center rounded-md border border-black/10 text-white",
-          custom && "ring-2 ring-primary ring-offset-1 ring-offset-card",
-        )}
-        style={{
-          background:
-            custom && value
-              ? value
-              : "conic-gradient(from 0deg, #ef4444, #facc15, #16a34a, #2563eb, #c026d3, #ef4444)",
-        }}
-        onClick={() => {
-          input.current?.click();
-        }}
-      >
-        <Plus aria-hidden className="size-3.5 drop-shadow" />
-      </button>
-      <input
-        ref={input}
-        type="color"
-        aria-label={`${label}: pick a colour`}
-        tabIndex={-1}
-        className="pointer-events-none absolute size-0 opacity-0"
-        value={(value ?? "#000000").slice(0, 7)}
-        onChange={(e) => {
-          onChange(e.target.value.toUpperCase());
-        }}
-      />
+      ) : null}
     </div>
   );
 }
@@ -167,16 +194,20 @@ interface StepperProps {
   onChange: (value: number) => void;
 }
 
-/** Minus, the value and plus (design: Text > Size). */
+/**
+ * Minus, the value and plus (design: Text > Size). The value is a field: type 50 and press Enter (or leave
+ * the field) instead of clicking up to it; Up and Down arrows step. Out-of-range numbers are pulled in.
+ */
 export function Stepper({ label, value, min, max, step = 1, unit = "px", onChange }: StepperProps) {
+  const clampStep = (next: number) => Math.max(min, Math.min(max, Math.round(next)));
   const set = (next: number) => {
-    onChange(Math.max(min, Math.min(max, next)));
+    onChange(clampStep(next));
   };
   return (
     <div
       role="group"
       aria-label={label}
-      className="flex h-9 items-center rounded-md border border-border bg-background"
+      className="flex h-9 items-center rounded-md border border-border bg-background focus-within:ring-2 focus-within:ring-ring"
     >
       <Button
         variant="ghost"
@@ -190,8 +221,39 @@ export function Stepper({ label, value, min, max, step = 1, unit = "px", onChang
       >
         <Minus aria-hidden />
       </Button>
-      <span className="flex-1 text-center text-[13px] tabular-nums" aria-live="polite">
-        {`${String(value)} ${unit}`}
+      <span className="flex flex-1 items-center justify-center gap-1 text-[13px]">
+        <input
+          aria-label={label}
+          inputMode="numeric"
+          // Re-keyed by the value: the field follows the buttons, while typing is committed on Enter or blur.
+          key={value}
+          defaultValue={value}
+          className="w-12 bg-transparent text-right tabular-nums outline-none"
+          onFocus={(e) => {
+            e.currentTarget.select();
+          }}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") e.currentTarget.blur();
+            else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+              e.preventDefault();
+              const base = Number(e.currentTarget.value);
+              set((Number.isFinite(base) ? base : value) + (e.key === "ArrowUp" ? step : -step));
+            }
+          }}
+          onBlur={(e) => {
+            const typed = Number(e.currentTarget.value.replace(",", "."));
+            const next =
+              Number.isFinite(typed) && e.currentTarget.value.trim() !== ""
+                ? clampStep(typed)
+                : value;
+            e.currentTarget.value = String(next); // what was typed is shown as what it became (500 -> 200)
+            if (next !== value) onChange(next);
+          }}
+        />
+        <span aria-hidden className="text-muted-foreground">
+          {unit}
+        </span>
       </span>
       <Button
         variant="ghost"

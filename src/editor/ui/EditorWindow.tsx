@@ -20,6 +20,9 @@ import { DocumentSession, type Dialog, type Meta } from "./session";
 import { startEditText } from "./text-edit";
 import { createEditorStore, type EditorStoreApi } from "../model/store";
 import { findLayer } from "../model/tree";
+import { walkLayers } from "@/document/layers";
+import { isSystemFontId, systemFontFamily } from "@/document/limits";
+import { installedFonts } from "./FontPicker";
 
 declare global {
   interface Window {
@@ -70,6 +73,19 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
     [label, doc, source, info, app, editor, ui],
   );
   const [webp, setWebp] = useState(true);
+  // Text in a font installed on the device that made the file: say so if this device does not have it.
+  const [missingFonts, setMissingFonts] = useState<string[]>([]);
+  useEffect(() => {
+    const used = new Set<string>();
+    walkLayers(project.layers, (layer) => {
+      const id = layer.type === "text" ? layer["fontId"] : null;
+      if (typeof id === "string" && isSystemFontId(id)) used.add(systemFontFamily(id));
+    });
+    if (used.size === 0) return;
+    void installedFonts().then((have) => {
+      setMissingFonts([...used].filter((family) => !have.includes(family)));
+    });
+  }, [project]);
 
   useEffect(() => {
     void session.webpAvailable().then(setWebp);
@@ -154,7 +170,7 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
             void session.copy();
           }}
         />
-        {warnings.length > 0 ? (
+        {warnings.length + missingFonts.length > 0 ? (
           <ul aria-label="Notices" className="flex flex-col gap-2 border-b border-border px-6 py-2">
             {warnings.map((w) => (
               <li
@@ -164,6 +180,16 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
               >
                 <TriangleAlert aria-hidden className="size-4 shrink-0 text-warning" />
                 {w.message}
+              </li>
+            ))}
+            {missingFonts.map((family) => (
+              <li
+                key={family}
+                role="status"
+                className="flex items-center gap-2 rounded-md border border-warning-border bg-warning-soft px-3 py-1.5 text-[13px]"
+              >
+                <TriangleAlert aria-hidden className="size-4 shrink-0 text-warning" />
+                {`The font “${family}” is not installed on this device. Inter is used instead.`}
               </li>
             ))}
           </ul>

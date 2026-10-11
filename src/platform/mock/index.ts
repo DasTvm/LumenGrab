@@ -466,6 +466,26 @@ export const mockPlatform: Platform = {
     return new Uint8Array(await blob.arrayBuffer());
   },
 
+  /** A few families, like a Mac has; `?fonts=none` pretends there are none (a device without the font). */
+  listSystemFonts(): Promise<string[]> {
+    if (new URLSearchParams(window.location.search).get("fonts") === "none")
+      return Promise.resolve([]);
+    return Promise.resolve([
+      "American Typewriter",
+      "Arial",
+      "Avenir Next",
+      "Courier New",
+      "Futura",
+      "Georgia",
+      "Helvetica Neue",
+      "Menlo",
+      "Optima",
+      "Palatino",
+      "Times New Roman",
+      "Trebuchet MS",
+    ]);
+  },
+
   copyPngToClipboard(png: Uint8Array): Promise<void> {
     record({ kind: "copyPng", size: png.length });
     const log = (window.__lumengrabMock ??= { submissions: [] });

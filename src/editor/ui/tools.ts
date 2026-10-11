@@ -84,7 +84,8 @@ export interface ToolOptions {
   rect: { stroke: string; fill: string | null; strokeWidth: number; radius: number };
   ellipse: { stroke: string; fill: string | null; strokeWidth: number };
   text: {
-    fontId: "inter" | "jetbrains-mono";
+    /** A bundled font id or `system:<family>` (docs/FORMAT.md section 8). */
+    fontId: string;
     size: number;
     weight: number;
     color: string;

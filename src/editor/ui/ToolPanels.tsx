@@ -15,6 +15,7 @@ import { applyOptions, layerIsOf, optionsFromLayer, type StyleTool } from "../mo
 import { nextCounterValue } from "../model/geometry";
 import { findLayer } from "../model/tree";
 import { Pills, Section, Slider, Stepper, SwatchRow } from "./controls";
+import { FontPicker, fontLabel } from "./FontPicker";
 import { useEditor, useStores, useUi } from "./context";
 import { SWATCHES, type ToolOptions } from "./tools";
 import type { Layer } from "@/document/schema";
@@ -142,6 +143,8 @@ export function ArrowPanel() {
       </Section>
       <Section label="Color" value={s.values.color}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Color"
           value={s.values.color}
           colors={SWATCHES.stroke}
@@ -173,6 +176,8 @@ export function LinePanel() {
     <>
       <Section label="Color" value={s.values.color}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Color"
           value={s.values.color}
           colors={SWATCHES.stroke}
@@ -217,6 +222,8 @@ export function RectPanel() {
     <>
       <Section label="Stroke" value={s.values.stroke}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Stroke"
           value={s.values.stroke}
           colors={SWATCHES.stroke}
@@ -227,6 +234,8 @@ export function RectPanel() {
       </Section>
       <Section label="Fill" value={s.values.fill ?? "None"}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Fill"
           none
           value={s.values.fill}
@@ -272,6 +281,8 @@ export function EllipsePanel() {
     <>
       <Section label="Stroke" value={s.values.stroke}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Stroke"
           value={s.values.stroke}
           colors={SWATCHES.stroke}
@@ -282,6 +293,8 @@ export function EllipsePanel() {
       </Section>
       <Section label="Fill" value={s.values.fill ?? "None"}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Fill"
           none
           value={s.values.fill}
@@ -318,14 +331,9 @@ export function TextPanel() {
   const s = useToolStyle("text");
   return (
     <>
-      <Section label="Font">
-        <Pills
-          label="Font"
+      <Section label="Font" value={fontLabel(s.values.fontId)}>
+        <FontPicker
           value={s.values.fontId}
-          options={[
-            { value: "inter", label: "Inter" },
-            { value: "jetbrains-mono", label: "JetBrains Mono" },
-          ]}
           onChange={(fontId) => {
             s.set({ fontId });
           }}
@@ -359,6 +367,8 @@ export function TextPanel() {
       </Section>
       <Section label="Color" value={s.values.color}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Color"
           value={s.values.color}
           colors={SWATCHES.textColor}
@@ -369,6 +379,8 @@ export function TextPanel() {
       </Section>
       <Section label="Background" value={s.values.background ?? "None"}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Background"
           none
           value={s.values.background}
@@ -407,6 +419,8 @@ export function CounterPanel() {
     <>
       <Section label="Color" value={s.values.color}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Color"
           value={s.values.color}
           colors={SWATCHES.stroke}
@@ -461,6 +475,8 @@ export function HighlighterPanel() {
     <>
       <Section label="Color" value={s.values.color}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Color"
           value={s.values.color}
           colors={SWATCHES.highlighter}
@@ -502,6 +518,8 @@ export function PencilPanel() {
     <>
       <Section label="Color" value={s.values.color}>
         <SwatchRow
+          onStart={s.start}
+          onEnd={s.end}
           label="Color"
           value={s.values.color}
           colors={SWATCHES.stroke}
@@ -611,6 +629,8 @@ export function RedactPanel() {
       {s.values.mode === "solid" ? (
         <Section label="Color" value={s.values.color}>
           <SwatchRow
+            onStart={s.start}
+            onEnd={s.end}
             label="Color"
             value={s.values.color}
             colors={SWATCHES.solid}

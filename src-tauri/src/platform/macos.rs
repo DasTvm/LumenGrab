@@ -19,6 +19,29 @@ pub fn setup_app(app: &mut tauri::App) {
     app.set_activation_policy(ActivationPolicy::Accessory);
 }
 
+/// Windows the user works in: they make the app a normal one (Dock icon, Cmd+Tab) while any is open.
+/// Overlays, Quick Access cards and the permission dialogs do not: they come and go without the Dock jumping.
+fn is_workspace_window(label: &str) -> bool {
+    label == "settings" || label == "recover" || label.starts_with("doc-")
+}
+
+/// A menu bar app has no Dock icon and cannot be reached with Cmd+Tab, which is wrong while an editor or
+/// settings window is open: it should be a normal window of a normal app. Call after a window was opened
+/// and when one is closing (`closing` names it, it may still be listed).
+pub fn update_dock_presence(app: &AppHandle, closing: Option<&str>) {
+    use tauri::Manager;
+    let any = app
+        .webview_windows()
+        .keys()
+        .any(|label| Some(label.as_str()) != closing && is_workspace_window(label));
+    let policy = if any {
+        ActivationPolicy::Regular
+    } else {
+        ActivationPolicy::Accessory
+    };
+    let _ = app.set_activation_policy(policy);
+}
+
 /// True if this process may record the screen. Does not prompt.
 pub fn has_screen_access() -> bool {
     CGPreflightScreenCaptureAccess()

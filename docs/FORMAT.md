@@ -209,10 +209,11 @@ Autosave: editor changes autosave to a recovery location in the app data dir, no
 
 ## 8. Fonts
 
-- Only bundled, freely licensed fonts, referenced by `fontId` (e.g. `"inter"`, `"jetbrains-mono"`).
-- Unknown `fontId` falls back to the default font and shows a one-time notice.
-- Fonts are not embedded in the file in v1.
-- `inter` is the variable font Inter and `jetbrains-mono` the variable font JetBrains Mono, both bundled with the app (SIL OFL-1.1). The counter number always uses `inter`.
+- **Bundled fonts** are referenced by `fontId`: `inter`, `jetbrains-mono`, `lora`, `fraunces`, `space-grotesk`, `oswald`, `nunito`, `caveat`. They are variable fonts shipped with the app (SIL OFL-1.1), so a file looks the same on every device.
+- **Installed fonts (v2, additive).** A text layer may name a font installed on the user's device as `fontId: "system:<family name>"` (for example `system:Avenir Next`). The file stores only the name, never the font. On a device that has the font the text looks as it did; on a device without it the **default font (Inter) is used** and the editor says so once ("The font … is not installed on this device"). The text, its size and its box are kept either way, but line breaks may differ because the metrics of the fonts differ. Flat exports are made on the device that has the font and are always right.
+- An unknown `fontId` that is neither a bundled id nor a `system:` name falls back to the default font and shows a one-time notice (`unknown-font`).
+- Fonts are not embedded in the file in v1 or v2.
+- `inter` is the variable font Inter and `jetbrains-mono` the variable font JetBrains Mono. The counter number always uses `inter`.
 
 ## 9. Test requirements
 

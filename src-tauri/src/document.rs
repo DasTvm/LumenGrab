@@ -252,6 +252,7 @@ fn open_source(app: &AppHandle, source: Source) -> Result<String, String> {
     .build();
     match built {
         Ok(window) => {
+            platform::update_dock_presence(app, None);
             let _ = window.set_focus();
             Ok(label)
         }
@@ -480,6 +481,28 @@ fn encode_webp_rgba(rgba: &[u8], width: u32, height: u32, quality: u32) -> Resul
     }
     let encoded = webp::Encoder::from_rgba(rgba, width, height).encode(quality as f32);
     Ok(encoded.to_vec())
+}
+
+/// The font families installed on this device, sorted, for the text tool's font list. Read once per run
+/// (loading the system fonts takes a moment); a font installed later shows up after a restart.
+#[tauri::command]
+pub async fn list_system_fonts() -> Vec<String> {
+    static FAMILIES: std::sync::OnceLock<Vec<String>> = std::sync::OnceLock::new();
+    FAMILIES.get_or_init(system_font_families).clone()
+}
+
+fn system_font_families() -> Vec<String> {
+    let mut db = fontdb::Database::new();
+    db.load_system_fonts();
+    let mut families: Vec<String> = db
+        .faces()
+        .filter_map(|face| face.families.first().map(|(name, _)| name.clone()))
+        // Names that start with a dot are the system's private UI fonts (".SF NS"): not for the user.
+        .filter(|name| !name.is_empty() && !name.starts_with('.'))
+        .collect();
+    families.sort_by_key(|name| name.to_lowercase());
+    families.dedup();
+    families
 }
 
 /// Puts a PNG (the request body) on the clipboard: the top bar's copy button and the Export dialog's Copy.
@@ -861,6 +884,18 @@ mod tests {
         assert!(encode_webp_rgba(&rgba, 16, 9, 80).is_err(), "wrong size");
         assert!(encode_webp_rgba(&rgba, 0, 8, 80).is_err());
         assert!(encode_webp_rgba(&[], 20000, 1, 80).is_err(), "too large");
+    }
+
+    #[test]
+    fn the_installed_font_list_is_sorted_unique_and_free_of_private_fonts() {
+        let families = system_font_families();
+        let mut sorted = families.clone();
+        sorted.sort_by_key(|name| name.to_lowercase());
+        sorted.dedup();
+        assert_eq!(families, sorted);
+        assert!(families
+            .iter()
+            .all(|f| !f.starts_with('.') && !f.is_empty()));
     }
 
     #[test]

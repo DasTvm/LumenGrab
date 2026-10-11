@@ -8,7 +8,7 @@ import { createDocument, defaultProject, serializeDocument } from "../../documen
 import sampleCaptureUrl from "./sample-capture.png?url";
 
 /**
- * Documents for the browser mock, built with the real library (`?scenario=ready|redactions|annotated|stack|
+ * Documents for the browser mock, built with the real library (`?scenario=ready|redactions|annotated|stack|systemfont|
  * readonly|corrupt|truncated|warnings`), so the viewer window can be developed and tested without the app.
  */
 
@@ -111,11 +111,33 @@ const LAYER_STACK: Layer[] = [
   },
 ];
 
-async function newDocument(layers: Redaction[] | "annotation" | "stack" = []) {
+/** Text in a font that is installed on the device that made the file (`system:` id). */
+const SYSTEM_FONT_TEXT: Layer[] = [
+  {
+    id: "avenir",
+    ...base,
+    type: "text",
+    x: 200,
+    y: 200,
+    width: null,
+    text: "Set in Avenir Next",
+    fontId: "system:Avenir Next",
+    size: 48,
+    weight: 500,
+    color: "#18181B",
+    background: null,
+    align: "left",
+    rotation: 0,
+  },
+];
+
+async function newDocument(layers: Redaction[] | "annotation" | "stack" | "systemfont" = []) {
   const png = await sampleCapture();
   const doc = await createDocument(png, { scale: 2, now: NOW, createdBy: "LumenGrab 0.1.0" });
   if (!doc.project) throw new Error("a new document has a project");
-  if (layers === "stack") {
+  if (layers === "systemfont") {
+    doc.project.layers.push(...structuredClone(SYSTEM_FONT_TEXT));
+  } else if (layers === "stack") {
     doc.project.layers.push(...structuredClone(LAYER_STACK));
   } else if (layers === "annotation") {
     doc.project.layers.push({
@@ -173,6 +195,8 @@ export async function buildScenario(scenario: string): Promise<Uint8Array> {
       );
     case "stack":
       return save(await newDocument("stack"));
+    case "systemfont":
+      return save(await newDocument("systemfont"));
     case "annotated":
       return save(await newDocument("annotation"));
     case "readonly":

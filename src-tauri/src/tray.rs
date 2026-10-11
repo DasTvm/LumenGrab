@@ -119,7 +119,11 @@ pub fn show_settings(app: &AppHandle) {
     .min_inner_size(860.0, 560.0)
     .center()
     .build();
-    if let Err(err) = result {
-        eprintln!("failed to open settings window: {err}");
+    match result {
+        Ok(window) => {
+            crate::platform::update_dock_presence(app, None);
+            let _ = window.set_focus();
+        }
+        Err(err) => eprintln!("failed to open settings window: {err}"),
     }
 }

@@ -289,6 +289,10 @@ export const nativePlatform: Platform = {
     }
   },
 
+  listSystemFonts(): Promise<string[]> {
+    return call<string[]>("list_system_fonts");
+  },
+
   async copyPngToClipboard(png: Uint8Array): Promise<void> {
     try {
       await invoke("copy_png_to_clipboard", png);

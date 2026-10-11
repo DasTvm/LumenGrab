@@ -613,9 +613,10 @@ test.describe("drawing tools and the style panel (browser mock)", () => {
       await expect(page.getByRole("region", { name: control })).toBeVisible();
     }
     await pick(page, "Text");
-    await page.getByRole("radio", { name: "JetBrains Mono" }).click();
+    await page.getByTestId("font-button").click();
+    await page.getByRole("option", { name: "JetBrains Mono", exact: true }).click();
     await page.getByRole("button", { name: "Size: larger" }).click();
-    await expect(page.getByText("26 px")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Size" })).toHaveValue("26");
     await page.screenshot({
       path: "test-results/editor-text-panel-light.png",
       animations: "disabled",
@@ -737,7 +738,8 @@ test.describe("text (browser mock)", () => {
   }) => {
     await click(page, 200, 200);
     await page.keyboard.type("A long sentence that should wrap into several lines");
-    await page.getByRole("radio", { name: "JetBrains Mono" }).click(); // blurs the field: the edit ends, the text stays selected
+    await page.getByTestId("font-button").click();
+    await page.getByRole("option", { name: "JetBrains Mono", exact: true }).click(); // blurs the field: the edit ends, the text stays selected
     expect(await lastLayer(page)).toMatchObject({ fontId: "jetbrains-mono" });
     await page.getByRole("radio", { name: "Bold" }).click();
     await page.getByRole("radio", { name: "Color: #2563EB" }).click();
@@ -968,5 +970,205 @@ test.describe("crop (browser mock)", () => {
       path: "test-results/editor-cropped-light.png",
       animations: "disabled",
     });
+  });
+});
+
+test.describe("panel details (browser mock)", () => {
+  test.beforeEach(async ({ page }) => {
+    await open(page, "ready");
+    await ready(page);
+  });
+  const lastOf = async (page: Page) => (await layers(page)).at(-1) as Record<string, unknown>;
+  const pick = (page: Page, tool: string) =>
+    page.getByRole("button", { name: tool, exact: true }).click();
+
+  test("nothing in the panel is cut off at the left edge: the selected style tile and swatch keep their frame", async ({
+    page,
+  }) => {
+    await pick(page, "Arrow");
+    const panel = page.getByTestId("style-panel").locator("fieldset");
+    const edge = (await panel.boundingBox())?.x ?? 0;
+    const tile = (await page.getByRole("radio", { name: "Straight" }).boundingBox())?.x ?? 0;
+    const swatch =
+      (await page.getByRole("radio", { name: "Color: #EF4444" }).boundingBox())?.x ?? 0;
+    // The ring of a selected tile is 2 px (+1 offset): the tile must start at least that far inside the scroll area.
+    expect(tile - edge).toBeGreaterThanOrEqual(4);
+    expect(swatch - edge).toBeGreaterThanOrEqual(4);
+    await page.screenshot({
+      path: "test-results/editor-panel-edge-light.png",
+      animations: "disabled",
+    });
+  });
+
+  test("font size: type a number and press Enter, out-of-range numbers are pulled in, arrows step", async ({
+    page,
+  }) => {
+    await pick(page, "Text");
+    const size = page.getByRole("textbox", { name: "Size" });
+    await size.fill("50");
+    await size.press("Enter");
+    await expect(size).toHaveValue("50");
+    const area = await page.getByTestId("editor-canvas-area").boundingBox();
+    if (!area) throw new Error("no canvas");
+    await page.mouse.click(area.x + 200, area.y + 200);
+    await page.keyboard.type("Big");
+    await page.keyboard.press("ControlOrMeta+Enter");
+    expect(await lastOf(page)).toMatchObject({ type: "text", size: 50 });
+    await size.fill("500");
+    await size.press("Enter");
+    await expect(size).toHaveValue("200");
+    expect(await lastOf(page)).toMatchObject({ size: 200 });
+    await size.fill("abc");
+    await size.press("Enter");
+    await expect(size).toHaveValue("200");
+    await size.focus();
+    await size.press("ArrowDown");
+    await expect(size).toHaveValue("198");
+    await size.fill("3");
+    await size.press("Tab");
+    await expect(size).toHaveValue("8");
+  });
+
+  test("the colour picker: square, hue, hex, one undo step, and it also opens where the system picker did not", async ({
+    page,
+  }) => {
+    await pick(page, "Rectangle");
+    const a = await page.getByTestId("editor-canvas-area").boundingBox();
+    if (!a) throw new Error("no canvas");
+    await page.mouse.move(a.x + 200, a.y + 200);
+    await page.mouse.down();
+    await page.mouse.move(a.x + 400, a.y + 320, { steps: 4 });
+    await page.mouse.up();
+    await page.getByRole("radio", { name: "Stroke: custom colour" }).click();
+    const picker = page.getByTestId("color-picker");
+    await expect(picker).toBeVisible();
+    await page.screenshot({
+      path: "test-results/editor-color-picker-light.png",
+      animations: "disabled",
+    });
+    const hex = picker.getByRole("textbox", { name: "Hex colour" });
+    await hex.fill("#112233");
+    expect(await lastOf(page)).toMatchObject({ stroke: "#112233" });
+    await hex.fill("12"); // not a colour yet: nothing changes
+    expect(await lastOf(page)).toMatchObject({ stroke: "#112233" });
+    await hex.press("Enter");
+    await expect(hex).toHaveValue("#112233");
+
+    // Dragging over the square changes the colour as one undo step.
+    const square = page.getByTestId("color-square");
+    const box = await square.boundingBox();
+    if (!box) throw new Error("no square");
+    await page.mouse.move(box.x + 5, box.y + 5);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.6, box.y + box.height * 0.4, { steps: 6 });
+    await page.mouse.up();
+    const dragged = String((await lastOf(page))["stroke"]);
+    expect(dragged).not.toBe("#112233");
+    await page.keyboard.press("Escape");
+    await expect(picker).toHaveCount(0);
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await lastOf(page)).toMatchObject({ stroke: "#112233" }); // back to before the drag
+    await expect(page.getByRole("slider", { name: "Hue" })).toHaveCount(0);
+  });
+
+  test("saved colours: save one, it is a swatch in every row, it stays after a reload, and it can be removed", async ({
+    page,
+  }) => {
+    await pick(page, "Rectangle");
+    await page.getByRole("radio", { name: "Stroke: custom colour" }).click();
+    const picker = page.getByTestId("color-picker");
+    await expect(picker).toContainText("Colours you save stay here for every picture.");
+    await picker.getByRole("textbox", { name: "Hex colour" }).fill("#0A84FF");
+    await picker.getByRole("button", { name: "Save this colour" }).click();
+    await expect(picker.getByRole("button", { name: "Colour is saved" })).toBeDisabled();
+    await expect(picker.getByRole("button", { name: "Use #0A84FF" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("radio", { name: "Stroke: #0A84FF" })).toBeVisible();
+    await expect(page.getByRole("radio", { name: "Fill: #0A84FF" })).toBeVisible();
+
+    await page.reload();
+    await ready(page);
+    await pick(page, "Ellipse");
+    await expect(page.getByRole("radio", { name: "Stroke: #0A84FF" })).toBeVisible(); // still there
+
+    await page.getByRole("radio", { name: "Stroke: custom colour" }).click();
+    const again = page.getByTestId("color-picker");
+    await again.getByRole("button", { name: "Use #0A84FF" }).hover();
+    await again.getByRole("button", { name: "Remove #0A84FF" }).click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("radio", { name: "Stroke: #0A84FF" })).toHaveCount(0);
+  });
+
+  test("fonts: eight of ours, then the ones installed on the device; the choice lands in the text", async ({
+    page,
+  }) => {
+    await pick(page, "Text");
+    await page.getByTestId("font-button").click();
+    const list = page.getByRole("listbox", { name: "Fonts" });
+    for (const name of [
+      "Inter",
+      "JetBrains Mono",
+      "Lora",
+      "Fraunces",
+      "Space Grotesk",
+      "Oswald",
+      "Nunito",
+      "Caveat",
+    ]) {
+      await expect(list.getByRole("option", { name, exact: true })).toBeVisible();
+    }
+    await expect(page.getByText("Installed on this device")).toBeVisible();
+    await expect(list.getByRole("option", { name: "Avenir Next" })).toBeVisible();
+    await page.screenshot({
+      path: "test-results/editor-font-picker-light.png",
+      animations: "disabled",
+    });
+
+    await page.getByRole("textbox", { name: "Search fonts" }).fill("geo");
+    await expect(list.getByRole("option")).toHaveCount(1);
+    await list.getByRole("option", { name: "Georgia" }).click();
+    await expect(page.getByTestId("font-button")).toContainText("Georgia");
+
+    const area = await page.getByTestId("editor-canvas-area").boundingBox();
+    if (!area) throw new Error("no canvas");
+    await page.mouse.click(area.x + 200, area.y + 200);
+    await page.keyboard.type("Serif words");
+    await page.keyboard.press("ControlOrMeta+Enter");
+    expect(await lastOf(page)).toMatchObject({ fontId: "system:Georgia" });
+    // The picker follows the selected text; a bundled font is stored by its id.
+    await page.getByTestId("font-button").click();
+    await page
+      .getByRole("listbox", { name: "Fonts" })
+      .getByRole("option", { name: "Lora" })
+      .click();
+    expect(await lastOf(page)).toMatchObject({ fontId: "lora" });
+    // Nothing found says so.
+    await page.getByTestId("font-button").click();
+    await page.getByRole("textbox", { name: "Search fonts" }).fill("zzzz");
+    await expect(page.getByText("No installed font matches.")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("listbox", { name: "Fonts" })).toHaveCount(0);
+  });
+
+  test("a file with a font this device does not have says so and uses Inter", async ({ page }) => {
+    await page.goto("/?window=document&label=doc-1&scenario=systemfont&fonts=none");
+    await ready(page);
+    await expect(page.getByRole("list", { name: "Notices" })).toContainText(
+      "The font “Avenir Next” is not installed on this device. Inter is used instead.",
+    );
+    await page.getByRole("button", { name: "Select", exact: true }).click();
+    const area = await page.getByTestId("editor-canvas-area").boundingBox();
+    if (!area) throw new Error("no canvas");
+    const view = await page.evaluate(() => window.__lumengrabEditor?.ui.getState().view);
+    await page.mouse.click(
+      area.x + (view?.x ?? 0) + 220 * (view?.zoom ?? 1),
+      area.y + (view?.y ?? 0) + 220 * (view?.zoom ?? 1),
+    );
+    await expect(page.getByTestId("font-button")).toContainText("Avenir Next");
+    await expect(page.getByText("Inter is shown instead.")).toBeVisible();
+    // With the font present there is no notice.
+    await page.goto("/?window=document&label=doc-1&scenario=systemfont");
+    await ready(page);
+    await expect(page.getByRole("list", { name: "Notices" })).toHaveCount(0);
   });
 });

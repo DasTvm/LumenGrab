@@ -96,7 +96,7 @@ The full spec is in `docs/FORMAT.md`. That file is the **source of truth**. Rule
 5. All input is validated with Zod. Corrupt or malicious files must produce a friendly error, never a crash. Guard against zip-slip, oversized entries and decompression bombs.
 6. Writes are **atomic** (write to temp file, then rename).
 7. The **original image is never modified.** Crop, annotations, redactions and presentation are parameters on top of it.
-8. Fonts: only bundled, freely licensed fonts, referenced by id. No system-font dependency inside files.
+8. Fonts: the app bundles freely licensed fonts, referenced by id. A text layer may also name a font installed on the user's device (`system:<family>`); the file stores only the name, falls back to the default font where it is missing, and never embeds a font (docs/FORMAT.md section 8).
 9. Editing the format spec and the code must happen in the same change. If `docs/FORMAT.md` and the code disagree, that is a bug.
 
 ### Redaction safety (security-critical)

@@ -262,6 +262,8 @@ export interface Platform {
     height: number,
     quality: number,
   ): Promise<Uint8Array>;
+  /** The font families installed on this device, sorted (the text tool's "installed fonts"). */
+  listSystemFonts(): Promise<string[]>;
   /** Puts a PNG on the clipboard. */
   copyPngToClipboard(png: Uint8Array): Promise<void>;
   /** "Edit" on a Quick Access card: opens the screenshot in the editor. */

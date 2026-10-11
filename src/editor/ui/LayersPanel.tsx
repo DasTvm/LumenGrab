@@ -104,7 +104,7 @@ export function LayersPanel() {
       </p>
       <ul
         aria-label="Layers"
-        className="-mx-1 flex min-h-0 flex-1 flex-col overflow-y-auto"
+        className="-mx-2 flex min-h-0 flex-1 flex-col overflow-y-auto px-2"
         onDragLeave={(e) => {
           if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOver(null);
         }}

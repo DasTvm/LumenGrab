@@ -478,6 +478,33 @@ describe("warnings: the file still opens", () => {
     expect(opened.warnings[0]?.message).toContain("comic-sans");
   });
 
+  it("accepts the bundled fonts and a font installed on the device without a warning", async () => {
+    for (const fontId of ["lora", "caveat", "system:Avenir Next"]) {
+      const project = goodProject();
+      (project["layers"] as unknown[]) = [
+        {
+          id: "t",
+          type: "text",
+          visible: true,
+          locked: false,
+          x: 0,
+          y: 0,
+          width: null,
+          text: "hi",
+          fontId,
+          size: 12,
+          weight: 400,
+          color: "#000000",
+          background: null,
+          align: "left",
+          rotation: 0,
+        },
+      ];
+      const opened = await openDocument(await rawFile({ project }));
+      expect(opened.warnings, fontId).toEqual([]);
+    }
+  });
+
   it("does not trust an asset name that tries to leave the assets folder", async () => {
     const project = goodProject();
     (project["presentation"] as Record<string, unknown>)["background"] = {

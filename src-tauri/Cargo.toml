@@ -37,6 +37,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock"] }
 drag = "2"
 tauri-plugin-single-instance = "2"
 webp = "0.3.1"
+fontdb = "0.24.0"
 
 # macOS: ScreenCaptureKit (macOS 14+) for capture; objc2 for window level and window z-order.
 [target.'cfg(target_os = "macos")'.dependencies]

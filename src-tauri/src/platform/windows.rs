@@ -5,6 +5,9 @@ use tauri::{AppHandle, WebviewWindow};
 
 pub fn setup_app(_app: &mut tauri::App) {}
 
+/// Windows lists every window in the taskbar and Alt+Tab already: nothing to do.
+pub fn update_dock_presence(_app: &AppHandle, _closing: Option<&str>) {}
+
 /// Cursor in native units (physical pixels, virtual desktop, y down).
 pub fn cursor_position(app: &AppHandle) -> Option<(f64, f64)> {
     app.cursor_position().ok().map(|p| (p.x, p.y))

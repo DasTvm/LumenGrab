@@ -1,4 +1,4 @@
-import { DEFAULT_FONT_ID } from "@/document/limits";
+import { isSystemFontId, systemFontFamily } from "@/document/limits";
 
 /**
  * Text layout (docs/FORMAT.md "Rendering rules"), independent of the canvas: it gets a function that
@@ -81,14 +81,51 @@ export function layoutText(input: TextInput, measure: MeasureWidth): TextLayout 
   return { lines, width, height: rows.length * input.size * LINE_HEIGHT };
 }
 
-/** Bundled fonts by `fontId`; an unknown id uses the default (docs/FORMAT.md section 8). */
-const FAMILIES: Record<string, string> = {
-  inter: '"Inter Variable", Inter, system-ui, sans-serif',
-  "jetbrains-mono": '"JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace',
-};
+/** The fonts that ship with the app (docs/FORMAT.md section 8), by `fontId`. */
+export const BUNDLED_FONTS: readonly {
+  id: string;
+  label: string;
+  family: string;
+  fallback: string;
+}[] = [
+  {
+    id: "inter",
+    label: "Inter",
+    family: "Inter Variable",
+    fallback: "Inter, system-ui, sans-serif",
+  },
+  {
+    id: "jetbrains-mono",
+    label: "JetBrains Mono",
+    family: "JetBrains Mono Variable",
+    fallback: '"JetBrains Mono", ui-monospace, monospace',
+  },
+  { id: "lora", label: "Lora", family: "Lora Variable", fallback: "Georgia, serif" },
+  { id: "fraunces", label: "Fraunces", family: "Fraunces Variable", fallback: "Georgia, serif" },
+  {
+    id: "space-grotesk",
+    label: "Space Grotesk",
+    family: "Space Grotesk Variable",
+    fallback: "system-ui, sans-serif",
+  },
+  { id: "oswald", label: "Oswald", family: "Oswald Variable", fallback: "Impact, sans-serif" },
+  { id: "nunito", label: "Nunito", family: "Nunito Variable", fallback: "system-ui, sans-serif" },
+  { id: "caveat", label: "Caveat", family: "Caveat Variable", fallback: "cursive" },
+];
 
+const DEFAULT_STACK = '"Inter Variable", Inter, system-ui, sans-serif';
+
+/**
+ * The CSS font stack of a `fontId`. A bundled id maps to its font; `system:Family` names a font installed on
+ * the device and falls back to the default font where it is missing; an unknown id is the default font.
+ */
 export function fontFamily(fontId: string): string {
-  return FAMILIES[fontId] ?? (FAMILIES[DEFAULT_FONT_ID] as string);
+  if (isSystemFontId(fontId)) {
+    const family = systemFontFamily(fontId).replace(/["\\]/g, "");
+    return `"${family}", ${DEFAULT_STACK}`;
+  }
+  const bundled = BUNDLED_FONTS.find((f) => f.id === fontId);
+  return bundled ? `"${bundled.family}", ${bundled.fallback}` : DEFAULT_STACK;
 }
 
 export function fontString(fontId: string, weight: number, size: number): string {

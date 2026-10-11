@@ -91,6 +91,7 @@ pub fn run() {
             document::document_set_dirty,
             document::copy_png_to_clipboard,
             document::encode_webp,
+            document::list_system_fonts,
             quick_access::commands::quick_access_edit,
             recovery::recovery_write,
             recovery::recovery_set_name,
@@ -106,6 +107,7 @@ pub fn run() {
                 WindowEvent::Destroyed => {
                     overlay::on_destroyed(window.app_handle(), window.label());
                     document::on_destroyed(window.app_handle(), window.label());
+                    platform::update_dock_presence(window.app_handle(), Some(window.label()));
                 }
                 // A document with unsaved changes asks before it closes.
                 WindowEvent::CloseRequested { api, .. } => {

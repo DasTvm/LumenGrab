@@ -35,7 +35,8 @@ export function StylePanel({ readOnly }: { readOnly: boolean }) {
           <PanelTitle tool={shown} selected={picked.length > 0} count={picked.length} />
           <fieldset
             disabled={readOnly}
-            className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pt-4 pb-2"
+            // The side padding is room for the selection rings: a scroll container clips whatever sticks out of it.
+            className="-mx-2 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2 pt-4 pb-2"
           >
             <ToolPanelBody tool={shown} />
           </fieldset>
