@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Download, FolderSearch, Lock, TriangleAlert } from "lucide-react";
 import { DocumentError } from "@/document/errors";
 import { openDocument } from "@/document/read";
-import { canvasCodec } from "@/document/render/canvas-codec";
-import { hasAnnotations, renderFlat, renderPreview } from "@/document/render/flatten";
+import { renderFlat, renderPreview } from "@/document/render/flatten";
+import { editorCodec } from "@/editor/draw/codec";
 import type { OpenedDocument } from "@/document/types";
 import { platform, type DocumentInfo, type Os } from "@/platform";
 import { Badge } from "@/ui/components/badge";
@@ -64,7 +64,7 @@ export function DocumentWindow() {
         // its pixels could include what a newer redaction was meant to hide.
         const preview =
           opened.doc.preview ??
-          (opened.doc.project ? await renderPreview(opened.doc, canvasCodec) : null);
+          (opened.doc.project ? await renderPreview(opened.doc, editorCodec) : null);
         if (!guard.cancelled) setState({ phase: "ready", opened, info, preview });
       } catch (error) {
         if (!guard.cancelled) setState({ phase: "error", ...describeFailure(error) });
@@ -153,13 +153,8 @@ function Viewer({
   );
 
   const layers = doc.project?.layers.length ?? 0;
-  // Annotations are not drawn into an export before the editor (M4): exporting would silently leave them out.
-  const exportBlocked =
-    readOnly === null && doc.project !== null && hasAnnotations(doc.project)
-      ? "This file has annotations. Exporting them comes with the editor."
-      : null;
   const exportLabel = readOnly ? "Export preview as PNG" : "Export as PNG";
-  const canExport = readOnly ? preview !== null : exportBlocked === null;
+  const canExport = readOnly ? preview !== null : true;
 
   const exportPng = async () => {
     setBusy(true);
@@ -173,7 +168,7 @@ function Viewer({
       if (!target) return;
       // A read-only file is exported as its own preview (already flat, made by the newer version);
       // an editable one is rendered at full resolution with redactions baked in.
-      const bytes = readOnly ? preview : await renderFlat(doc, canvasCodec);
+      const bytes = readOnly ? preview : await renderFlat(doc, editorCodec);
       if (!bytes) return;
       await platform.writeGrantedFile(target.token, bytes);
       setNotice({ ok: true, text: `Saved ${target.fileName} to ${target.folder}.` });
@@ -262,7 +257,7 @@ function Viewer({
             notice?.ok === false ? "text-sm text-destructive" : "text-sm text-muted-foreground"
           }
         >
-          {notice?.text ?? exportBlocked ?? ""}
+          {notice?.text ?? ""}
         </p>
         <div className="ml-auto flex gap-2">
           <Button variant="outline" onClick={onReveal}>

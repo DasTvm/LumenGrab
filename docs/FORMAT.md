@@ -138,6 +138,27 @@ Notes:
 - New layer types and fields are added by bumping `version` (see section 5).
 - `pencil.points` is a flat `[x0, y0, x1, y1, ...]` array.
 
+## 4a. Rendering rules (normative)
+
+The schema says *what* a layer is; these rules say *how it looks*. An old file must look the same in every later version, so a change to anything below is a format change (section 5). All lengths are source-image pixels; the editor, the preview, the export and the clipboard use the same drawing code (`src/editor/draw/`).
+
+**Order.** (1) Visible redactions are applied to the pixels of the **full** source image, in z-order (section 7). (2) Visible annotation layers are drawn over the result in z-order, depth first through groups; an annotation is therefore always on top of a redaction, whatever their order in the file. (3) The crop is taken last, so annotations outside the crop are cut away. (4) Exports may scale the result (an export option; the document never changes).
+
+**Colours** are `#RRGGBB` or `#RRGGBBAA` (the alpha multiplies with any layer opacity). **Hidden** layers and everything in a hidden group are not drawn.
+
+**Boxes and rotation.** `rect`, `ellipse`, `text`, `highlighter`, `spotlight` and `redaction` are boxes with a top-left corner. `rect`, `ellipse` and `text` may be rotated by `rotation` degrees, **clockwise** on screen, around the centre of their box. A `counter` has its centre at `x, y` and a diameter of `size`.
+
+- **rect**: rounded by `radius` (at most half the shorter side). Fill first, then the stroke, centred on the edge; no stroke if `stroke` is null or `strokeWidth` is 0. Corners are mitred, or round if `radius > 0`.
+- **ellipse**: fills the box; fill, then stroke as for `rect`.
+- **line**: round caps, `width` thick; `dash` is the on/off pattern in pixels (absent or empty = solid).
+- **arrow**: the head is a triangle with its tip on `to` (and on `from` for `double`); its length is `max(4 x width, 12)`, at most half the arrow (a third for `double`), and half its width is 0.5 x its length. The shaft stops 0.2 x head length inside the head. `curved` bends the shaft as a quadratic Bézier from `from` through the control point `curve` to `to`; without `curve` the control point is the middle of the arrow pushed sideways by a fifth of its length (`(mx - dy x 0.2, my + dx x 0.2)`). A head points along the tangent at its end. `straight` and `curved` have a solid head, `outlined` a head that is stroked in the colour and filled white, `double` has a solid head at each end. Round caps and joins.
+- **text**: the line height is 1.3 x `size`. `width: null` never wraps (only explicit line breaks); otherwise lines wrap at spaces, and a word wider than `width` is cut by characters. The text block is `width` wide (or as wide as its longest line); `align` places every line inside it. A `background` fills the block plus 0.3 x `size` on every side. Lines are centred vertically in their line box. Fonts: section 8.
+- **counter**: a filled circle of `color`; the `value` is centred inside it in Inter 700, black or white, whichever contrasts better with `color`; the font size is 0.55 x `size` for one digit, 0.45 for two and 0.36 for more.
+- **pencil**: `round(smoothing x 6)` smoothing passes (every inner point becomes 1/4 previous + 1/2 itself + 1/4 next; the end points stay), then a round-capped stroke through the middles of the segments with the points as control points. One point is a dot of diameter `width`.
+- **highlighter**: the rectangle is filled with `color` at `opacity` using the **multiply** blend, so text underneath stays readable.
+- **spotlight**: everything in the whole picture **outside** the shape (`rect` or the ellipse in the box) is darkened with black at `dimOpacity`. Several spotlights each darken for themselves.
+- **group**: draws its children in order. **redaction** is never drawn (it is already in the pixels). A layer type this version does not know is skipped.
+
 ## 5. Versioning and migrations (mandatory process)
 
 1. `manifest.formatVersion` and `project.version` are integers that start at 1. **v2** added the `group` layer. Every v1 project is a valid v2 project, so the migration `v1 -> v2` changes nothing but the version. New files are written with `formatVersion 2` and `minReaderVersion 2`: a v1 reader would see a group as an unknown layer, not draw its children and so export a redaction inside it unredacted, so it must not open such a file for editing.
@@ -182,7 +203,7 @@ Autosave: editor changes autosave to a recovery location in the app data dir, no
   - Pixelate uses block randomization seeded by `seed` so it cannot be reversed.
 - Never execute or evaluate anything from the file. It is data only.
 - **A flat export or preview must never contain the pixels under a visible redaction**, whatever the layer order. Redactions are applied to the full source image first, then the crop is taken. Blur has a minimum strength so it cannot be a no-op; solid is always opaque; pixelate uses seeded random noise per block.
-- "Export as PNG" of a document that has annotation layers is only offered once annotations can be drawn (M4); before that it is offered only for documents without annotation layers.
+- A renderer that cannot draw annotations must refuse a document with visible annotations instead of exporting it without them.
 - Validate every path, size, and number (clamp NaN/Infinity, absurd coordinates).
 - No network access is ever triggered by opening a file.
 
@@ -191,6 +212,7 @@ Autosave: editor changes autosave to a recovery location in the app data dir, no
 - Only bundled, freely licensed fonts, referenced by `fontId` (e.g. `"inter"`, `"jetbrains-mono"`).
 - Unknown `fontId` falls back to the default font and shows a one-time notice.
 - Fonts are not embedded in the file in v1.
+- `inter` is the variable font Inter and `jetbrains-mono` the variable font JetBrains Mono, both bundled with the app (SIL OFL-1.1). The counter number always uses `inter`.
 
 ## 9. Test requirements
 

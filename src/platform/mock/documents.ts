@@ -1,8 +1,8 @@
 import { strToU8 } from "fflate";
 import { writeContainer, type ContainerEntry } from "../../document/container";
 import { sha256Hex } from "../../document/hash";
-import { canvasCodec } from "../../document/render/canvas-codec";
 import { renderPreview } from "../../document/render/flatten";
+import { editorCodec } from "../../editor/draw/codec";
 import type { Redaction } from "../../document/schema";
 import { createDocument, defaultProject, serializeDocument } from "../../document/write";
 import sampleCaptureUrl from "./sample-capture.png?url";
@@ -57,7 +57,7 @@ async function newDocument(layers: Redaction[] | "annotation" = []) {
 }
 
 async function save(doc: Awaited<ReturnType<typeof newDocument>>): Promise<Uint8Array> {
-  return serializeDocument(doc, await renderPreview(doc, canvasCodec), { now: NOW });
+  return serializeDocument(doc, await renderPreview(doc, editorCodec), { now: NOW });
 }
 
 const json = (value: unknown) => strToU8(`${JSON.stringify(value, null, 2)}\n`);
@@ -68,7 +68,7 @@ async function entriesOf(
   extra: ContainerEntry[] = [],
 ): Promise<Uint8Array> {
   const doc = await newDocument();
-  const preview = await renderPreview(doc, canvasCodec);
+  const preview = await renderPreview(doc, editorCodec);
   return writeContainer([
     {
       name: "manifest.json",

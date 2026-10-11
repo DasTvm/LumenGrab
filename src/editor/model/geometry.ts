@@ -645,3 +645,28 @@ export function resizeCrop(
   const y = hy === 1 ? anchorY : hy === -1 ? anchorY - height : anchorY - height / 2;
   return { x, y, width, height };
 }
+
+// ---- pencil -------------------------------------------------------------------------------------
+
+/**
+ * Smooths a pencil stroke (docs/FORMAT.md "Rendering rules"): `round(smoothing x 6)` passes in which every
+ * inner point moves to 1/4 previous + 1/2 itself + 1/4 next. The first and last point stay, so the stroke
+ * still starts and ends where the pen did. 0 leaves the points as they are.
+ */
+export function smoothPoints(points: readonly Point[], smoothing: number): Point[] {
+  let current = points.map((p) => ({ ...p }));
+  const passes = Math.round(Math.max(0, Math.min(1, smoothing)) * 6);
+  for (let pass = 0; pass < passes && current.length > 2; pass += 1) {
+    const previous = current;
+    current = previous.map((p, i) => {
+      const before = previous[i - 1];
+      const after = previous[i + 1];
+      if (!before || !after) return p;
+      return {
+        x: 0.25 * before.x + 0.5 * p.x + 0.25 * after.x,
+        y: 0.25 * before.y + 0.5 * p.y + 0.25 * after.y,
+      };
+    });
+  }
+  return current;
+}

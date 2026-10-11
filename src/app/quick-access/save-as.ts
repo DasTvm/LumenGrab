@@ -1,6 +1,6 @@
 import { createDocument, serializeDocument } from "@/document/write";
-import { canvasCodec } from "@/document/render/canvas-codec";
 import { renderPreview } from "@/document/render/flatten";
+import { editorCodec } from "@/editor/draw/codec";
 import { platform } from "@/platform";
 
 /** Where "Save as…" put the file. `token` lets "Show" reveal exactly that file. */
@@ -36,7 +36,7 @@ export async function saveScreenshotAs(card: {
       scale: Math.max(1, Math.round(window.devicePixelRatio * 2) / 2),
       createdBy: `${app.name} ${app.version}`,
     });
-    bytes = serializeDocument(doc, await renderPreview(doc, canvasCodec));
+    bytes = serializeDocument(doc, await renderPreview(doc, editorCodec));
   }
   await platform.writeGrantedFile(target.token, bytes);
   return { folder: target.folder, fileName: target.fileName, token: target.token };

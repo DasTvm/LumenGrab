@@ -66,13 +66,12 @@ test.describe("document window (browser mock)", () => {
     await expect(page.getByText("The folder is not writable.")).toBeVisible();
   });
 
-  test("a document with annotations cannot be exported yet, and says why", async ({ page }) => {
+  test("a document with annotations exports with them drawn in", async ({ page }) => {
     await open(page, "scenario=annotated");
     await expect(page.getByTestId("doc-layers")).toHaveText("1 layer");
-    await expect(page.getByRole("button", { name: "Export as PNG" })).toBeDisabled();
-    await expect(
-      page.getByText("This file has annotations. Exporting them comes with the editor."),
-    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Export as PNG" })).toBeEnabled();
+    await page.getByRole("button", { name: "Export as PNG" }).click();
+    await expect(page.getByText(/^Saved .*\.png to /)).toBeVisible();
   });
 
   test("warnings are shown as notices and the file still opens", async ({ page }) => {
