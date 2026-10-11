@@ -104,10 +104,7 @@ describe("text editing", () => {
   });
 
   it("only edits text layers that are not locked", () => {
-    const s = setup([
-      { ...text("t", "x"), locked: true } as Layer,
-      projectWith([]).layers[0] as never,
-    ]);
+    const s = setup([{ ...text("t", "x"), locked: true }, projectWith([]).layers[0] as never]);
     expect(startEditText(s.editor, s.ui, "t")).toBe(false);
     expect(startEditText(s.editor, s.ui, "nope")).toBe(false);
     expect(s.ui.getState().editing).toBeNull();
