@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T08:52:56.625Z",
+  "generatedAt": "2026-10-11T14:10:31.907Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -429,6 +429,13 @@
       "category": "new",
       "title": "layer tree operations, patch-based undo/redo store and geometry with tests",
       "url": "https://github.com/DasTvm/LumenGrab/commit/80a8017328ae557c71904ba642c7c117b76d00ed"
+    },
+    {
+      "id": "82d845671cc035603fd98b5dbd6e4a35103c801a",
+      "date": "2026-10-11T14:10:16Z",
+      "category": "new",
+      "title": "one drawing code for all layer types, annotations in preview and export, rendering rules in FORMAT.md",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/82d845671cc035603fd98b5dbd6e4a35103c801a"
     }
   ],
   "releases": [],
@@ -493,7 +500,8 @@
     "8f6554ab2b343bc7e65c638a0d041e3d7f39da3d",
     "0e8592ef67bd8580c2c0ac999a119fb470bd2c61",
     "fdd2af3d8c6921dba367b00cc1e98e85d4782c1d",
-    "80a8017328ae557c71904ba642c7c117b76d00ed"
+    "80a8017328ae557c71904ba642c7c117b76d00ed",
+    "82d845671cc035603fd98b5dbd6e4a35103c801a"
   ],
   "roadmap": {
     "schemaVersion": 1,
