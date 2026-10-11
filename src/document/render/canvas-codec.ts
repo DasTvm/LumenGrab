@@ -16,8 +16,10 @@ function makeCanvas(width: number, height: number): Canvas2d {
 }
 
 function context(canvas: Canvas2d): OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D {
-  const ctx = canvas.getContext("2d", { willReadFrequently: true }) as
-    OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null;
+  const ctx =
+    canvas instanceof HTMLCanvasElement
+      ? canvas.getContext("2d", { willReadFrequently: true })
+      : canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("This system cannot process images in the browser engine.");
   return ctx;
 }
