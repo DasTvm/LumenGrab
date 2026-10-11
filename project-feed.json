@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T19:32:40.265Z",
+  "generatedAt": "2026-10-11T19:32:57.521Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -499,6 +499,13 @@
       "category": "new",
       "title": "native WebP encoding (libwebp) for the macOS WebView, docs (ADR 0005, test checklist, README), licenses",
       "url": "https://github.com/DasTvm/LumenGrab/commit/2ddd491e080f682d46351dffdf0fc1b14c845f36"
+    },
+    {
+      "id": "48eb86241ba4f29a6c80686867273f2a9dfec572",
+      "date": "2026-10-11T19:32:45Z",
+      "category": "internal",
+      "title": "AGENTS.md layout and screens list for the editor",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/48eb86241ba4f29a6c80686867273f2a9dfec572"
     }
   ],
   "releases": [],
@@ -573,7 +580,8 @@
     "db461938015a65df63bf77f4441b19fc4f582661",
     "610f62a216b9dd1d723be5f75a51d6fb31ab50b3",
     "3cb8e0bae67625b116ba16f824b8b7ef6a2bf775",
-    "2ddd491e080f682d46351dffdf0fc1b14c845f36"
+    "2ddd491e080f682d46351dffdf0fc1b14c845f36",
+    "48eb86241ba4f29a6c80686867273f2a9dfec572"
   ],
   "roadmap": {
     "schemaVersion": 1,
