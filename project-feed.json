@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T20:40:25.837Z",
+  "generatedAt": "2026-10-11T20:44:42.240Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -520,6 +520,13 @@
       "category": "fixed",
       "title": "reconcile roadmap with implemented editor milestones (#2)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/8621951bf21bd8ef126c5590c0b6bdd9761a923f"
+    },
+    {
+      "id": "36f1b9f5a8405468946d93e1b409b4a74d59c1c8",
+      "date": "2026-10-11T20:44:31Z",
+      "category": "fixed",
+      "title": "reorder layers with pointer events (HTML5 drag and drop does not work in the system WebViews)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/36f1b9f5a8405468946d93e1b409b4a74d59c1c8"
     }
   ],
   "releases": [],
@@ -597,7 +604,8 @@
     "2ddd491e080f682d46351dffdf0fc1b14c845f36",
     "48eb86241ba4f29a6c80686867273f2a9dfec572",
     "419002fd88514d982e58e638f9e91cf23bd4aaf5",
-    "8621951bf21bd8ef126c5590c0b6bdd9761a923f"
+    "8621951bf21bd8ef126c5590c0b6bdd9761a923f",
+    "36f1b9f5a8405468946d93e1b409b4a74d59c1c8"
   ],
   "roadmap": {
     "schemaVersion": 1,
