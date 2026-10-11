@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T14:33:16.339Z",
+  "generatedAt": "2026-10-11T14:43:13.890Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -443,6 +443,13 @@
       "category": "new",
       "title": "editor window with tool rail, canvas, zoom, selection, layers panel (groups, rename, reorder) and tests",
       "url": "https://github.com/DasTvm/LumenGrab/commit/d6cf00861592635cdd370fccf6e50df2bc0ba704"
+    },
+    {
+      "id": "c9bffc4a2028ec6410d01367e005bc1f298486cb",
+      "date": "2026-10-11T14:43:02Z",
+      "category": "new",
+      "title": "drawing tools (rectangle, ellipse, line, arrow, pencil, highlighter, spotlight, redaction, counter) and the style panel",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/c9bffc4a2028ec6410d01367e005bc1f298486cb"
     }
   ],
   "releases": [],
@@ -509,7 +516,8 @@
     "fdd2af3d8c6921dba367b00cc1e98e85d4782c1d",
     "80a8017328ae557c71904ba642c7c117b76d00ed",
     "82d845671cc035603fd98b5dbd6e4a35103c801a",
-    "d6cf00861592635cdd370fccf6e50df2bc0ba704"
+    "d6cf00861592635cdd370fccf6e50df2bc0ba704",
+    "c9bffc4a2028ec6410d01367e005bc1f298486cb"
   ],
   "roadmap": {
     "schemaVersion": 1,
