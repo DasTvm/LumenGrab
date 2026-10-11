@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-11T20:32:06.739Z",
+  "generatedAt": "2026-10-11T20:40:25.837Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -513,6 +513,13 @@
       "category": "new",
       "title": "own colour picker with saved colours, eight bundled fonts plus installed fonts, typed font size, panel edge fix, Dock and Cmd+Tab presence on macOS",
       "url": "https://github.com/DasTvm/LumenGrab/commit/419002fd88514d982e58e638f9e91cf23bd4aaf5"
+    },
+    {
+      "id": "8621951bf21bd8ef126c5590c0b6bdd9761a923f",
+      "date": "2026-10-11T20:40:16Z",
+      "category": "fixed",
+      "title": "reconcile roadmap with implemented editor milestones (#2)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/8621951bf21bd8ef126c5590c0b6bdd9761a923f"
     }
   ],
   "releases": [],
@@ -589,7 +596,8 @@
     "3cb8e0bae67625b116ba16f824b8b7ef6a2bf775",
     "2ddd491e080f682d46351dffdf0fc1b14c845f36",
     "48eb86241ba4f29a6c80686867273f2a9dfec572",
-    "419002fd88514d982e58e638f9e91cf23bd4aaf5"
+    "419002fd88514d982e58e638f9e91cf23bd4aaf5",
+    "8621951bf21bd8ef126c5590c0b6bdd9761a923f"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -632,7 +640,7 @@
         "id": "M1",
         "title": "Capture MVP",
         "description": "Hotkey, area, window and fullscreen, save and clipboard, multi-monitor.",
-        "status": "building",
+        "status": "done",
         "tasks": [
           {
             "id": "task-1",
@@ -657,15 +665,16 @@
           {
             "id": "task-5",
             "title": "Multi-monitor and mixed DPI, tested on real setups",
-            "done": false
+            "done": true
           }
-        ]
+        ],
+        "finishedAt": "2026-10-11"
       },
       {
         "id": "M2",
         "title": "Quick Access overlay",
         "description": "Copy, save, edit, drag out, auto-close.",
-        "status": "building",
+        "status": "done",
         "tasks": [
           {
             "id": "task-1",
@@ -689,73 +698,80 @@
           },
           {
             "id": "task-5",
-            "title": "Edit opens the editor, arrives with M4",
-            "done": false
+            "title": "Edit opens the editor",
+            "done": true
           }
-        ]
+        ],
+        "finishedAt": "2026-10-11"
       },
       {
         "id": "M3",
         "title": "Document and .lumengrab format",
         "description": "Schemas, read and write, migrations, file association.",
-        "status": "next",
+        "status": "done",
         "tasks": [
           {
             "id": "task-1",
             "title": "Document schemas and ZIP container",
-            "done": false
+            "done": true
           },
           {
             "id": "task-2",
             "title": "Read and write with validation",
-            "done": false
+            "done": true
           },
           {
             "id": "task-3",
             "title": "Migrations and golden fixtures",
-            "done": false
+            "done": true
           },
           {
             "id": "task-4",
             "title": "Preview rendering",
-            "done": false
+            "done": true
           },
           {
             "id": "task-5",
             "title": "File association",
-            "done": false
+            "done": true
           }
-        ]
+        ],
+        "finishedAt": "2026-10-10"
       },
       {
         "id": "M4",
         "title": "Editor",
         "description": "Crop, annotations, redactions, undo and export.",
-        "status": "planned",
+        "status": "building",
         "tasks": [
           {
             "id": "task-1",
             "title": "Crop and resize",
-            "done": false
+            "done": true
           },
           {
             "id": "task-2",
             "title": "Annotation tools",
-            "done": false
+            "done": true
           },
           {
             "id": "task-3",
             "title": "Permanent redactions in flat exports",
-            "done": false
+            "done": true
           },
           {
             "id": "task-4",
             "title": "Undo and redo",
-            "done": false
+            "done": true
           },
           {
             "id": "task-5",
             "title": "PNG, JPG and WebP export",
+            "done": true
+          },
+          {
+            "id": "task-6",
+            "title": "Complete native editor acceptance checks on macOS and Windows",
             "done": false
           }
         ]
@@ -764,7 +780,7 @@
         "id": "M5",
         "title": "Presentation",
         "description": "Backgrounds, padding, shadows and window frames.",
-        "status": "planned",
+        "status": "next",
         "tasks": [
           {
             "id": "task-1",
