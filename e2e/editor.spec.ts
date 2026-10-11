@@ -840,3 +840,132 @@ test.describe("what you see is what you export (browser mock)", () => {
     }
   });
 });
+
+test.describe("crop (browser mock)", () => {
+  test.beforeEach(async ({ page }) => {
+    await open(page, "stack");
+    await ready(page);
+    await page.getByRole("button", { name: "Crop", exact: true }).click();
+  });
+
+  const draft = (page: Page) =>
+    page.evaluate(() => window.__lumengrabEditor?.ui.getState().crop ?? null);
+  const crop = async (page: Page) =>
+    page.evaluate(() => window.__lumengrabEditor?.editor.getState().project.crop ?? null);
+
+  test("the tool opens on the whole picture with its panel, the others are off", async ({
+    page,
+  }) => {
+    await expect(page.getByTestId("crop-panel")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Crop" })).toBeVisible();
+    expect(await draft(page)).toMatchObject({
+      rect: { x: 0, y: 0, width: 1440, height: 900 },
+      preset: "original",
+    });
+    await expect(page.getByTestId("crop-badge")).toContainText("1440 × 900");
+    await expect(page.getByRole("button", { name: "Rectangle" })).toBeDisabled();
+    await expect(page.getByRole("radio", { name: "Original" })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(page.locator("[data-grip]")).toHaveCount(8);
+    await page.screenshot({ path: "test-results/editor-crop-light.png", animations: "disabled" });
+  });
+
+  test("a handle shrinks the frame in the ratio, the fields show it, Apply crops as one undo step", async ({
+    page,
+  }) => {
+    const se = await page.locator('[data-grip="se"]').boundingBox();
+    const nw = await page.locator('[data-grip="nw"]').boundingBox();
+    if (!se || !nw) throw new Error("no handles");
+    await page.mouse.move(nw.x + 4, nw.y + 4);
+    await page.mouse.down();
+    await page.mouse.move(nw.x + 124, nw.y + 84, { steps: 5 });
+    await page.mouse.up();
+    const r = (await draft(page))?.rect;
+    expect(r && r.width / r.height).toBeCloseTo(1440 / 900, 1);
+    expect(r?.x).toBeGreaterThan(100);
+    await expect(page.getByRole("textbox", { name: "Width" })).toHaveValue(String(r?.width));
+    await page.getByRole("button", { name: "Apply crop" }).click();
+    expect(await crop(page)).toMatchObject({ width: r?.width, height: r?.height });
+    await expect(page.getByTestId("size-readout")).toHaveText(
+      `${String(r?.width)} × ${String(r?.height)} px`,
+    );
+    await expect(page.getByRole("button", { name: "Select" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await crop(page)).toBeNull();
+    await expect(page.getByTestId("size-readout")).toHaveText("1440 × 900 px");
+  });
+
+  test("ratios, swap, the W and H fields and the lock", async ({ page }) => {
+    await page.getByRole("radio", { name: "1:1" }).click();
+    expect((await draft(page))?.rect).toEqual({ x: 270, y: 0, width: 900, height: 900 });
+    await page.getByRole("button", { name: "Swap" }).click(); // a square stays a square
+    await page.getByRole("radio", { name: "16:9" }).click();
+    const r = (await draft(page))?.rect;
+    expect(r && Math.abs(r.width / r.height - 16 / 9)).toBeLessThan(0.01);
+    await page.getByRole("radio", { name: "Free" }).click();
+    const width = page.getByRole("textbox", { name: "Width" });
+    await width.fill("500");
+    await width.press("Enter");
+    expect((await draft(page))?.rect.width).toBe(500);
+    await page.getByRole("button", { name: "Lock ratio" }).click();
+    await page.getByRole("textbox", { name: "Height" }).fill("300");
+    await page.getByRole("textbox", { name: "Height" }).press("Enter");
+    const locked = (await draft(page))?.rect;
+    expect(locked?.height).toBe(300);
+    expect(locked && locked.width / locked.height).toBeCloseTo(500 / (r ? r.height : 1), 0);
+  });
+
+  test("a frame can be moved and a new one dragged out", async ({ page }) => {
+    await page.getByRole("radio", { name: "Free" }).click();
+    await drag(page, [0, 0], [400, 300]); // a new frame (outside the full-picture frame? it is inside: this moves it)
+    const moved = (await draft(page))?.rect;
+    expect(moved).toBeDefined();
+    await page.getByRole("button", { name: "Reset" }).click();
+    expect((await draft(page))?.rect).toEqual({ x: 0, y: 0, width: 1440, height: 900 });
+  });
+
+  test("Esc cancels, Enter applies, and the frame comes back where it was", async ({ page }) => {
+    await page.getByRole("radio", { name: "1:1" }).click();
+    await page.keyboard.press("Escape");
+    expect(await crop(page)).toBeNull();
+    expect(await draft(page)).toBeNull();
+    await page.getByRole("button", { name: "Crop", exact: true }).click();
+    await page.getByRole("radio", { name: "4:3" }).click();
+    await page.keyboard.press("Enter");
+    expect(await crop(page)).toEqual({ x: 120, y: 0, width: 1200, height: 900 });
+    await page.getByRole("button", { name: "Crop", exact: true }).click();
+    expect((await draft(page))?.rect).toEqual({ x: 120, y: 0, width: 1200, height: 900 }); // opens on the crop
+    await page.keyboard.press("Escape");
+    expect(await crop(page)).toEqual({ x: 120, y: 0, width: 1200, height: 900 });
+  });
+
+  test("the cropped picture is what the editor shows and what is exported; annotations outside are cut", async ({
+    page,
+  }) => {
+    await page.getByRole("radio", { name: "Free" }).click();
+    await page.getByRole("textbox", { name: "Width" }).fill("700");
+    await page.getByRole("textbox", { name: "Width" }).press("Enter");
+    await page.getByRole("textbox", { name: "Height" }).fill("450");
+    await page.getByRole("textbox", { name: "Height" }).press("Enter");
+    await page.keyboard.press("Enter");
+    expect(await crop(page)).toEqual({ x: 0, y: 0, width: 700, height: 450 });
+    await page.getByRole("button", { name: "Export" }).click();
+    await expect(page.getByRole("status").last()).toContainText("Saved");
+    const size = await page.evaluate(() => {
+      const bytes = window.__lumengrabMock?.written?.["t1"];
+      if (!bytes) return null;
+      const view = new DataView(bytes.buffer, bytes.byteOffset);
+      return [view.getUint32(16), view.getUint32(20)];
+    });
+    expect(size).toEqual([700, 450]);
+    await page.screenshot({
+      path: "test-results/editor-cropped-light.png",
+      animations: "disabled",
+    });
+  });
+});

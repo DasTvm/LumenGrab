@@ -12,6 +12,8 @@ import { measureTextLayer } from "../draw/text-measure";
 import { isGroup } from "@/document/layers";
 import { hitTest } from "../model/geometry";
 import type { Layer } from "@/document/schema";
+import { CropController } from "./crop-tool";
+import { CropOverlay } from "./CropOverlay";
 import { DrawController } from "./draw-tool";
 import { SelectController, type PointerInfo } from "./select-tool";
 import { fitView, toImage, wheelZoom, zoomAt } from "./view";
@@ -51,13 +53,19 @@ export function EditorCanvas({ base }: Props) {
     () => new DrawController(editor, ui, controller, measureTextLayer),
     [editor, ui, controller],
   );
-  /** The controller of the active tool; `null` for tools that have none yet (crop). */
+  const cropper = useMemo(() => new CropController(ui), [ui]);
+  /** The controller of the active tool. */
   const current = useCallback(() => {
     const t = ui.getState().tool;
     if (t === "select") return controller;
-    return t === "crop" ? null : drawing;
-  }, [ui, controller, drawing]);
-  const content: Rect = project.crop ?? { x: 0, y: 0, width: base.width, height: base.height };
+    return t === "crop" ? cropper : drawing;
+  }, [ui, controller, drawing, cropper]);
+  const cropping = tool === "crop";
+  // While the crop tool is open the whole picture is shown, with the frame on it.
+  const content: Rect =
+    !cropping && project.crop
+      ? project.crop
+      : { x: 0, y: 0, width: base.width, height: base.height };
 
   // Measure the area.
   useEffect(() => {
@@ -211,7 +219,7 @@ export function EditorCanvas({ base }: Props) {
     // A press on the picture ends the text being typed (the field's own blur does too).
     finishEditing(editor, ui);
     const pointer = info(e);
-    if (pointer) current()?.down(pointer);
+    if (pointer) current().down(pointer);
     redrawOverlay();
   };
 
@@ -244,7 +252,7 @@ export function EditorCanvas({ base }: Props) {
     }
     const pointer = info(e);
     const active = current();
-    if (!pointer || !active) return;
+    if (!pointer) return;
     if (active.active) {
       active.move(pointer);
       redrawOverlay();
@@ -262,16 +270,17 @@ export function EditorCanvas({ base }: Props) {
       return;
     }
     const pointer = info(e);
-    if (pointer) current()?.up(pointer);
+    if (pointer) current().up(pointer);
     redrawOverlay();
   };
 
   // Esc cancels a drag in progress.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && (controller.active || drawing.active)) {
+      if (e.key === "Escape" && (controller.active || drawing.active || cropper.active)) {
         controller.cancel();
         drawing.cancel();
+        cropper.cancel();
         redrawOverlay();
       }
     };
@@ -279,15 +288,13 @@ export function EditorCanvas({ base }: Props) {
     return () => {
       window.removeEventListener("keydown", onKey);
     };
-  }, [controller, drawing]);
+  }, [controller, drawing, cropper]);
 
   const shownCursor = panning
     ? "grab"
     : tool === "select" || cursor !== "default"
       ? cursor
-      : tool === "crop"
-        ? "default"
-        : "crosshair";
+      : "crosshair";
 
   return (
     <div
@@ -316,6 +323,7 @@ export function EditorCanvas({ base }: Props) {
           fontRev={fontRev}
         />
       ) : null}
+      {view && cropping ? <CropOverlay view={view} size={size} /> : null}
       {view ? <TextEditor view={view} /> : null}
       <ZoomBar area={size} />
     </div>

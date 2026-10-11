@@ -13,6 +13,7 @@ import { TopBar } from "./TopBar";
 import { createUiStore, type UiStoreApi } from "./ui-store";
 import { createEditorStore, type EditorStoreApi } from "../model/store";
 import { findLayer } from "../model/tree";
+import { applyCrop, cancelCrop } from "./crop-mode";
 import { startEditText } from "./text-edit";
 
 interface Props {
@@ -58,6 +59,17 @@ export function EditorWindow({ doc, source, fileName, warnings, busy, notice, on
       if (e.code === "Space" && !e.repeat) {
         e.preventDefault();
         ui.getState().setPanning(true);
+        return;
+      }
+      if (ui.getState().crop) {
+        // The crop tool: Enter applies, Esc cancels, the other tools are off.
+        if (e.key === "Enter") {
+          e.preventDefault();
+          applyCrop(editor, ui);
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          cancelCrop(editor, ui);
+        }
         return;
       }
       if (e.key === "Enter" && !e.metaKey && !e.ctrlKey && !e.altKey) {

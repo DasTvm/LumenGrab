@@ -1,6 +1,7 @@
 import { isStyleTool, layerIsOf } from "../model/bindings";
 import type { EditorStoreApi } from "../model/store";
 import { findLayer } from "../model/tree";
+import { startCrop } from "./crop-mode";
 import type { ToolId } from "./tools";
 import type { EditorCommand } from "./shortcuts";
 import type { UiStoreApi } from "./ui-store";
@@ -27,6 +28,7 @@ export function chooseTool(editor: EditorStoreApi, ui: UiStoreApi, tool: ToolId)
     if (!mine) editor.getState().select([]);
   }
   ui.getState().setTool(tool);
+  if (tool === "crop") startCrop(editor, ui);
 }
 
 /** Runs a command. Shortcuts, menus and buttons all end up here, so they cannot disagree. */
@@ -77,7 +79,11 @@ export function runCommand(command: EditorCommand, env: CommandEnv): void {
       const view = ui.getState().view;
       if (!view) return;
       const { area } = ui.getState();
-      const content = state.project.crop ?? { x: 0, y: 0, ...ui.getState().imageSize };
+      const content = (ui.getState().crop ? null : state.project.crop) ?? {
+        x: 0,
+        y: 0,
+        ...ui.getState().imageSize,
+      };
       if (command.type === "fit") ui.getState().setView(fitView(area, content), true);
       else if (command.type === "zoom100") ui.getState().setView(centerView(area, content, 1));
       else {

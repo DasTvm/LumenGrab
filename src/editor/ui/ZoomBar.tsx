@@ -17,9 +17,12 @@ export function ZoomBar({ area }: Props) {
   const view = useUi((s) => s.view);
   const fit = useUi((s) => s.fit);
   const imageSize = useUi((s) => s.imageSize);
-  const crop = useEditor((s) => s.project.crop);
+  const saved = useEditor((s) => s.project.crop);
+  const draft = useUi((s) => s.crop);
+  const crop = draft?.rect ?? saved;
 
-  const content = () => editor.getState().project.crop ?? { x: 0, y: 0, ...imageSize };
+  const content = () =>
+    (ui.getState().crop ? null : editor.getState().project.crop) ?? { x: 0, y: 0, ...imageSize };
   const zoomTo = (zoom: number) => {
     const v = ui.getState().view;
     if (v) ui.getState().setView(zoomAt(v, { x: area.width / 2, y: area.height / 2 }, zoom));

@@ -2,6 +2,17 @@ import { createStore, type StoreApi } from "zustand/vanilla";
 import { DEFAULT_OPTIONS, type ToolId, type ToolOptions } from "./tools";
 import type { View } from "./view";
 
+/** The aspect choices of the crop panel. `custom` is a ratio taken from the lock button. */
+export type CropPreset = "free" | "original" | "1:1" | "4:3" | "16:9" | "custom";
+
+/** The crop frame while the crop tool is open (image pixels). Nothing is written to the document until Apply. */
+export interface CropDraft {
+  rect: { x: number; y: number; width: number; height: number };
+  preset: CropPreset;
+  /** `width / height` the frame is held to, or `null` for a free frame. */
+  ratio: number | null;
+}
+
 export type PanelTab = "style" | "layers";
 
 /** Short feedback in the top bar (design: Title bar states). */
@@ -22,6 +33,8 @@ export interface UiState {
   feedback: Feedback;
   /** Layers collapsed in the layers panel (group ids). */
   collapsed: string[];
+  /** The open crop frame, `null` unless the crop tool is active. */
+  crop: CropDraft | null;
   /** The text layer being typed in; `isNew` while it is a fresh box that is removed again if it stays empty. */
   editing: { id: string; isNew: boolean } | null;
   /** The number the counter tool places next after "Restart at 1"; `null` = one above the highest in the document. */
@@ -42,6 +55,7 @@ export interface UiActions {
   setPanning(panning: boolean): void;
   setCounterNext(value: number | null): void;
   setEditing(editing: { id: string; isNew: boolean } | null): void;
+  setCrop(crop: CropDraft | null): void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -61,6 +75,7 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     panning: false,
     counterNext: null,
     editing: null,
+    crop: null,
 
     setTool: (tool) => {
       set({ tool });
@@ -97,6 +112,9 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setEditing: (editing) => {
       set({ editing });
+    },
+    setCrop: (crop) => {
+      set({ crop });
     },
   }));
 }
