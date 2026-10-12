@@ -242,6 +242,8 @@ export interface Platform {
     suggestedName: string;
     formats: SaveFormat[];
   }): Promise<SaveTarget | null>;
+  /** A dialog to pick a picture (PNG, JPEG or WebP, up to 20 MB) for a background: its bytes, or `null` if cancelled. */
+  pickImage(): Promise<Uint8Array | null>;
   /** Writes bytes (atomically) to a place `pickSaveTarget` granted. */
   writeGrantedFile(token: string, bytes: Uint8Array): Promise<void>;
   /** Saves the document to the `.lumengrab` file its window was opened from (atomically). */

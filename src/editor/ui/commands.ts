@@ -2,6 +2,7 @@ import { isStyleTool, layerIsOf } from "../model/bindings";
 import type { EditorStoreApi } from "../model/store";
 import { findLayer } from "../model/tree";
 import { startCrop } from "./crop-mode";
+import { switchMode } from "./mode";
 import type { ToolId } from "./tools";
 import type { EditorCommand } from "./shortcuts";
 import type { UiStoreApi } from "./ui-store";
@@ -31,11 +32,30 @@ export function chooseTool(editor: EditorStoreApi, ui: UiStoreApi, tool: ToolId)
   if (tool === "crop") startCrop(editor, ui);
 }
 
+/** What still works in Presentation mode: history, the view and everything that leaves the editor. */
+const PRESENTATION_COMMANDS: ReadonlySet<EditorCommand["type"]> = new Set([
+  "undo",
+  "redo",
+  "fit",
+  "zoom100",
+  "zoomIn",
+  "zoomOut",
+  "save",
+  "saveAs",
+  "export",
+  "copy",
+  "toggleMode",
+]);
+
 /** Runs a command. Shortcuts, menus and buttons all end up here, so they cannot disagree. */
 export function runCommand(command: EditorCommand, env: CommandEnv): void {
   const { editor, ui } = env;
   const state = editor.getState();
+  if (ui.getState().mode === "presentation" && !PRESENTATION_COMMANDS.has(command.type)) return;
   switch (command.type) {
+    case "toggleMode":
+      switchMode(editor, ui, ui.getState().mode === "annotate" ? "presentation" : "annotate");
+      return;
     case "undo":
       state.undo();
       return;
@@ -79,11 +99,12 @@ export function runCommand(command: EditorCommand, env: CommandEnv): void {
       const view = ui.getState().view;
       if (!view) return;
       const { area } = ui.getState();
-      const content = (ui.getState().crop ? null : state.project.crop) ?? {
-        x: 0,
-        y: 0,
-        ...ui.getState().imageSize,
-      };
+      const content = ui.getState().stage ??
+        (ui.getState().crop ? null : state.project.crop) ?? {
+          x: 0,
+          y: 0,
+          ...ui.getState().imageSize,
+        };
       if (command.type === "fit") ui.getState().setView(fitView(area, content), true);
       else if (command.type === "zoom100") ui.getState().setView(centerView(area, content, 1));
       else {

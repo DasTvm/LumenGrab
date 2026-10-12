@@ -17,6 +17,11 @@ import { CropOverlay } from "./CropOverlay";
 import { DrawController } from "./draw-tool";
 import { SelectController, type PointerInfo } from "./select-tool";
 import { fitView, toImage, wheelZoom, zoomAt } from "./view";
+import { computeLayout } from "@/presentation/compose";
+import { drawComposition, ensureFrameFonts } from "@/presentation/draw-presentation";
+import { useBackgroundBitmap } from "./background-image";
+import { renderPicture } from "./picture";
+import { SafeAreaOverlay } from "./SafeAreaOverlay";
 
 interface Props {
   base: BaseImage;
@@ -30,8 +35,9 @@ const isMac = typeof navigator !== "undefined" && /mac/i.test(navigator.platform
  * selection handles are an SVG on top (`SelectionOverlay`).
  */
 export function EditorCanvas({ base }: Props) {
-  const { editor, ui } = useStores();
+  const { editor, ui, session } = useStores();
   const project = useEditor((s) => s.project);
+  const mode = useUi((s) => s.mode);
   const view = useUi((s) => s.view);
   const tool = useUi((s) => s.tool);
   const panning = useUi((s) => s.panning);
@@ -60,12 +66,25 @@ export function EditorCanvas({ base }: Props) {
     if (t === "select") return controller;
     return t === "crop" ? cropper : drawing;
   }, [ui, controller, drawing, cropper]);
-  const cropping = tool === "crop";
+  const cropping = tool === "crop" && mode === "annotate";
+  // Presentation mode shows the finished composition; there is nothing to select or draw in it.
+  const presenting = mode === "presentation" && project.presentation.enabled;
+  const picture = project.crop ?? { x: 0, y: 0, width: base.width, height: base.height };
+  const layout = useMemo(
+    () => (presenting ? computeLayout(picture, project.presentation) : null),
+    [presenting, picture.width, picture.height, project.presentation], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   // While the crop tool is open the whole picture is shown, with the frame on it.
-  const content: Rect =
-    !cropping && project.crop
+  const content: Rect = layout
+    ? { x: 0, y: 0, width: layout.canvas.width, height: layout.canvas.height }
+    : !cropping && project.crop
       ? project.crop
       : { x: 0, y: 0, width: base.width, height: base.height };
+  const background = useBackgroundBitmap(session.assets, project.presentation.background);
+  const pictureCanvas = useMemo(
+    () => (presenting ? renderPicture(base, project.layers, project.crop) : null),
+    [presenting, base, project.layers, project.crop, fontRev], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   // Measure the area.
   useEffect(() => {
@@ -83,6 +102,23 @@ export function EditorCanvas({ base }: Props) {
       observer.disconnect();
     };
   }, [ui]);
+
+  // What Fit and 100 % centre on.
+  useEffect(() => {
+    ui.getState().setStage(layout ? content : null);
+  }, [ui, layout, content.width, content.height]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The frame's title bar text needs its fonts.
+  useEffect(() => {
+    if (!presenting) return;
+    let current = true;
+    void ensureFrameFonts(project.presentation.frame).then(() => {
+      if (current) bumpFonts();
+    });
+    return () => {
+      current = false;
+    };
+  }, [presenting, project.presentation.frame]);
 
   // Fit until the user zooms or pans.
   useEffect(() => {
@@ -117,6 +153,18 @@ export function EditorCanvas({ base }: Props) {
     }
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    if (layout && pictureCanvas) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.setTransform(1, 0, 0, 1, dpr * view.x, dpr * view.y);
+      drawComposition(
+        ctx,
+        { content: pictureCanvas, presentation: project.presentation, backgroundImage: background },
+        layout,
+        dpr * view.zoom,
+      );
+      return;
+    }
     base.update(project.layers);
     // The text being typed in is the text field, not drawn twice.
     const shown = editing ? withoutLayer(project.layers, editing.id) : project.layers;
@@ -156,6 +204,10 @@ export function EditorCanvas({ base }: Props) {
     content.height,
     fontRev,
     editing,
+    layout,
+    pictureCanvas,
+    background,
+    project.presentation,
   ]);
 
   const toArea = useCallback((clientX: number, clientY: number): Point => {
@@ -216,6 +268,7 @@ export function EditorCanvas({ base }: Props) {
       setCursor("grabbing");
       return;
     }
+    if (ui.getState().mode === "presentation") return; // only panning in Presentation mode
     // A press on the picture ends the text being typed (the field's own blur does too).
     finishEditing(editor, ui);
     const pointer = info(e);
@@ -225,6 +278,7 @@ export function EditorCanvas({ base }: Props) {
 
   /** Double-click on a text edits it, with any tool. */
   const onDoubleClick = (e: React.MouseEvent) => {
+    if (ui.getState().mode === "presentation") return;
     const pointer = info(e);
     if (!pointer) return;
     const hit = hitTest(
@@ -250,6 +304,7 @@ export function EditorCanvas({ base }: Props) {
       });
       return;
     }
+    if (ui.getState().mode === "presentation") return;
     const pointer = info(e);
     const active = current();
     if (!pointer) return;
@@ -269,6 +324,7 @@ export function EditorCanvas({ base }: Props) {
       setCursor(ui.getState().panning ? "grab" : "default");
       return;
     }
+    if (ui.getState().mode === "presentation") return;
     const pointer = info(e);
     if (pointer) current().up(pointer);
     redrawOverlay();
@@ -290,11 +346,13 @@ export function EditorCanvas({ base }: Props) {
     };
   }, [controller, drawing, cropper]);
 
-  const shownCursor = panning
-    ? "grab"
-    : tool === "select" || cursor !== "default"
-      ? cursor
-      : "crosshair";
+  const shownCursor = presenting
+    ? "default"
+    : panning
+      ? "grab"
+      : tool === "select" || cursor !== "default"
+        ? cursor
+        : "crosshair";
 
   return (
     <div
@@ -311,10 +369,10 @@ export function EditorCanvas({ base }: Props) {
       <canvas
         ref={canvasRef}
         data-testid="editor-canvas"
-        aria-label="Picture with annotations"
+        aria-label={presenting ? "Presentation" : "Picture with annotations"}
         className="absolute inset-0 size-full"
       />
-      {view ? (
+      {view && mode === "annotate" ? (
         <SelectionOverlay
           view={view}
           size={size}
@@ -324,7 +382,8 @@ export function EditorCanvas({ base }: Props) {
         />
       ) : null}
       {view && cropping ? <CropOverlay view={view} size={size} /> : null}
-      {view ? <TextEditor view={view} /> : null}
+      {view && mode === "annotate" ? <TextEditor view={view} /> : null}
+      {view && layout ? <SafeAreaOverlay view={view} layout={layout} /> : null}
       <ZoomBar area={size} />
     </div>
   );

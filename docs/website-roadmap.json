@@ -189,22 +189,22 @@
         {
           "id": "task-2",
           "title": "Backgrounds: solid, gradient, mesh, own image and blurred screenshot",
-          "done": false
+          "done": true
         },
         {
           "id": "task-3",
           "title": "Padding, auto-balance, corner radius and shadows",
-          "done": false
+          "done": true
         },
         {
           "id": "task-4",
           "title": "Window frames: macOS, Windows, browser, minimal and terminal",
-          "done": false
+          "done": true
         },
         {
           "id": "task-5",
           "title": "Aspect ratios and social media formats",
-          "done": false
+          "done": true
         },
         {
           "id": "task-6",

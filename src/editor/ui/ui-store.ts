@@ -15,6 +15,9 @@ export interface CropDraft {
 
 export type PanelTab = "style" | "layers";
 
+/** The two modes of the editor (top bar tabs): drawing on the picture, or composing the presentation around it. */
+export type EditorMode = "annotate" | "presentation";
+
 /** Short feedback in the top bar (design: Title bar states). */
 export type Feedback = { kind: "saved" | "copied"; at: number } | null;
 
@@ -30,6 +33,11 @@ export interface UiState {
   /** The view follows the window size (Fit) until the user zooms or pans. */
   fit: boolean;
   tab: PanelTab;
+  mode: EditorMode;
+  /** What Fit and 100 % centre on: the picture (or crop), or the whole composition in Presentation mode. Set by the canvas. */
+  stage: { x: number; y: number; width: number; height: number } | null;
+  /** Presentation mode: shade the zones a social app covers with its own buttons. */
+  safeArea: boolean;
   feedback: Feedback;
   /** Layers collapsed in the layers panel (group ids). */
   collapsed: string[];
@@ -50,6 +58,9 @@ export interface UiActions {
   setView(view: View, fit?: boolean): void;
   setFit(fit: boolean): void;
   setTab(tab: PanelTab): void;
+  setMode(mode: EditorMode): void;
+  setStage(stage: UiState["stage"]): void;
+  setSafeArea(on: boolean): void;
   flash(kind: "saved" | "copied"): void;
   clearFeedback(at: number): void;
   toggleCollapsed(id: string): void;
@@ -71,6 +82,9 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     view: null,
     fit: true,
     tab: "style",
+    mode: "annotate",
+    stage: null,
+    safeArea: false,
     feedback: null,
     collapsed: [],
     panning: false,
@@ -95,6 +109,15 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setTab: (tab) => {
       set({ tab });
+    },
+    setMode: (mode) => {
+      set({ mode, fit: true, stage: null });
+    },
+    setStage: (stage) => {
+      set({ stage });
+    },
+    setSafeArea: (safeArea) => {
+      set({ safeArea });
     },
     flash: (kind) => {
       set({ feedback: { kind, at: Date.now() } });

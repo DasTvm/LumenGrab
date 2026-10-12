@@ -1,4 +1,4 @@
-import { flattenProject, PREVIEW_MAX_EDGE } from "@/document/render/flatten";
+import { presentProject, PREVIEW_MAX_EDGE } from "@/document/render/flatten";
 import { downscaleImage, type RgbaImage } from "@/document/render/pixels";
 import type { Project } from "@/document/schema";
 import { platform } from "@/platform";
@@ -6,8 +6,8 @@ import { editorCodec } from "./draw/codec";
 import { MIME, type ImageFormat, type Size } from "./export-model";
 
 /**
- * Rendering the picture for export: redactions burned in, annotations drawn, crop taken (the same
- * `flattenProject` as the preview), then an optional resize and the encoder of the chosen format. Needs
+ * Rendering the picture for export: redactions burned in, annotations drawn, crop taken, the presentation
+ * put around it (the same `presentProject` as the preview), then an optional resize and the encoder of the chosen format. Needs
  * a browser engine (canvas); the numbers it uses are in `export-model.ts`.
  */
 
@@ -21,9 +21,16 @@ function context(canvas: OffscreenCanvas): OffscreenCanvasRenderingContext2D {
   return ctx;
 }
 
-/** The picture of a document as it is exported (before resizing). */
-export function flatten(source: RgbaImage, project: Project): Promise<RgbaImage> {
-  return flattenProject(source, project, editorCodec);
+/** Files of the document (the background image of a presentation). */
+export type Assets = Readonly<Record<string, Uint8Array>>;
+
+/** The picture of a document as it is exported (before resizing): with its presentation when that is on. */
+export function flatten(
+  source: RgbaImage,
+  project: Project,
+  assets: Assets = {},
+): Promise<RgbaImage> {
+  return presentProject(source, project, editorCodec, assets);
 }
 
 /** Smooth resampling to `size` (the Export dialog's 0.5×, 2× or a custom size). */
@@ -136,17 +143,29 @@ export async function renderExport(
   source: RgbaImage,
   project: Project,
   request: ExportRequest,
+  assets: Assets = {},
 ): Promise<Uint8Array> {
-  const flat = await flatten(source, project);
+  const flat = await flatten(source, project, assets);
   return encodeImage(resizeImage(flat, request.size), request.format, request.quality);
 }
 
 /** The flat PNG for the clipboard. */
-export async function renderPng(source: RgbaImage, project: Project): Promise<Uint8Array> {
-  return encodeImage(await flatten(source, project), "png");
+export async function renderPng(
+  source: RgbaImage,
+  project: Project,
+  assets: Assets = {},
+): Promise<Uint8Array> {
+  return encodeImage(await flatten(source, project, assets), "png");
 }
 
 /** `preview.png` for a saved file: the flat picture, longest edge at most 1024 px (docs/FORMAT.md section 2). */
-export async function renderPreviewPng(source: RgbaImage, project: Project): Promise<Uint8Array> {
-  return encodeImage(downscaleImage(await flatten(source, project), PREVIEW_MAX_EDGE), "png");
+export async function renderPreviewPng(
+  source: RgbaImage,
+  project: Project,
+  assets: Assets = {},
+): Promise<Uint8Array> {
+  return encodeImage(
+    downscaleImage(await flatten(source, project, assets), PREVIEW_MAX_EDGE),
+    "png",
+  );
 }

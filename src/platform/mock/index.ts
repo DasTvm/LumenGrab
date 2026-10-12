@@ -65,6 +65,7 @@ export interface MockSubmission {
     | "recoveryOpen"
     | "recoveryClose"
     | "pickSave"
+    | "pickImage"
     | "writeFile"
     | "openUrl"
     | "quit"
@@ -410,6 +411,21 @@ export const mockPlatform: Platform = {
       fileName: `${base}.${format}`,
       format,
     });
+  },
+
+  /** A 96 x 64 test picture (pink to orange); `?cancel=1` cancels the dialog. */
+  async pickImage(): Promise<Uint8Array | null> {
+    record({ kind: "pickImage" });
+    if (new URLSearchParams(window.location.search).get("cancel") === "1") return null;
+    const canvas = new OffscreenCanvas(96, 64);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    const g = ctx.createLinearGradient(0, 0, 96, 64);
+    g.addColorStop(0, "#ec4899");
+    g.addColorStop(1, "#f97316");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 96, 64);
+    return new Uint8Array(await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer());
   },
 
   writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {

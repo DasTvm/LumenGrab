@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useStore } from "zustand";
 import { TriangleAlert } from "lucide-react";
 import type { RgbaImage } from "@/document/render/pixels";
 import type { DocumentFile, DocumentWarning } from "@/document/types";
@@ -72,6 +73,7 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
       }),
     [label, doc, source, info, app, editor, ui],
   );
+  const mode = useStore(ui, (s) => s.mode);
   const [webp, setWebp] = useState(true);
   // Text in a font installed on the device that made the file: say so if this device does not have it.
   const [missingFonts, setMissingFonts] = useState<string[]>([]);
@@ -158,7 +160,7 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
   }, [editor, ui, session]);
 
   return (
-    <EditorProvider editor={editor} ui={ui}>
+    <EditorProvider editor={editor} ui={ui} session={session}>
       <div className="flex h-screen flex-col bg-background text-foreground">
         <TopBar
           fileName={meta.fileName}
@@ -195,7 +197,7 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
           </ul>
         ) : null}
         <div className="flex min-h-0 flex-1">
-          <ToolRail readOnly={false} />
+          {mode === "annotate" ? <ToolRail readOnly={false} /> : null}
           <EditorCanvas base={base} />
           <RightPanel readOnly={false} />
         </div>

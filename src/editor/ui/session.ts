@@ -1,4 +1,5 @@
 import type { RgbaImage } from "@/document/render/pixels";
+import { assetNameOf, pruneAssets } from "@/presentation/assets";
 import type { DocumentFile } from "@/document/types";
 import { serializeDocument } from "@/document/write";
 import { platform, type DocumentInfo, type SaveTarget } from "@/platform";
@@ -97,8 +98,25 @@ export class DocumentSession {
 
   private async bytes(): Promise<Uint8Array> {
     const project = this.project;
-    const preview = await renderPreviewPng(this.d.source, project);
-    return serializeDocument({ ...this.d.doc, project }, preview);
+    const preview = await renderPreviewPng(this.d.source, project, this.d.doc.assets);
+    // Only the pictures the presentation still uses are written (an old background no longer costs space).
+    const assets = pruneAssets(this.d.doc.assets, project);
+    return serializeDocument({ ...this.d.doc, project, assets }, preview);
+  }
+
+  /** The files of the document (a background picture), by asset name. */
+  get assets(): Readonly<Record<string, Uint8Array>> {
+    return this.d.doc.assets;
+  }
+
+  /**
+   * Keeps a picture inside the document (`assets/<sha256>.<ext>`) and returns its asset name. The same
+   * bytes give the same name, so choosing a picture twice stores it once.
+   */
+  async addAsset(bytes: Uint8Array): Promise<{ name: string } | { error: string }> {
+    const named = await assetNameOf(bytes);
+    if ("name" in named) this.d.doc.assets[named.name] = bytes;
+    return named;
   }
 
   /** Cmd/Ctrl+S: a file saves in place; a new capture asks where (through the Export dialog, which warns about redactions). */
@@ -169,7 +187,7 @@ export class DocumentSession {
   private flattened(): Promise<RgbaImage> {
     const project = this.project;
     if (this.flat?.project !== project) {
-      this.flat = { project, image: flatten(this.d.source, project) };
+      this.flat = { project, image: flatten(this.d.source, project, this.d.doc.assets) };
     }
     return this.flat.image;
   }
@@ -221,11 +239,12 @@ export class DocumentSession {
     choice: ExportChoice,
   ): Promise<void> {
     try {
-      const bytes = await renderExport(this.d.source, this.project, {
-        format,
-        size: choice.size,
-        quality: choice.quality,
-      });
+      const bytes = await renderExport(
+        this.d.source,
+        this.project,
+        { format, size: choice.size, quality: choice.quality },
+        this.d.doc.assets,
+      );
       await platform.writeGrantedFile(target.token, bytes);
     } catch (error) {
       const why = explain(error, "export");
@@ -250,7 +269,7 @@ export class DocumentSession {
       const png =
         size && (size.width !== this.content.width || size.height !== this.content.height)
           ? await encodeImage(resizeImage(await this.flattened(), size), "png")
-          : await renderPng(this.d.source, this.project);
+          : await renderPng(this.d.source, this.project, this.d.doc.assets);
       await platform.copyPngToClipboard(png);
     } catch (error) {
       const why = explain(error, "export");

@@ -22,7 +22,8 @@ export type EditorCommand =
   | { type: "save" }
   | { type: "saveAs" }
   | { type: "export" }
-  | { type: "copy" };
+  | { type: "copy" }
+  | { type: "toggleMode" };
 
 export interface KeyInfo {
   key: string;
@@ -54,6 +55,7 @@ export function commandForKey(e: KeyInfo, mac: boolean): EditorCommand | null {
     if (key === "s") return e.shiftKey ? { type: "saveAs" } : { type: "save" };
     if (key === "e") return { type: "export" };
     if (key === "c" && e.shiftKey) return { type: "copy" };
+    if (key === "p" && e.shiftKey) return { type: "toggleMode" };
     if (e.code === "BracketRight") return e.shiftKey ? { type: "front" } : { type: "forward" };
     if (e.code === "BracketLeft") return e.shiftKey ? { type: "back" } : { type: "backward" };
     if (key === "0") return { type: "fit" };

@@ -10,7 +10,7 @@ already had a `presentation` object (v1), but it could not say what the designs 
 - **Format v3, migration `v2 -> v3` is the identity.** New background types (`source-blur`), gradient `kind`, mesh `smoothness` and `points`,
   image `blur` and `dim`, frames `minimal` and `terminal` with a `theme`, and `aspect.size` / `aspect.preset`. Everything has a default when absent,
   so every older project is a valid v3 project. A v2 reader would reject an unknown background type, so new files are `formatVersion 3,
-  minReaderVersion 3`. Fixtures: `v3-presentation`, `v3-source-blur`, `v3-image-background`, `v3-radial-gradient`.
+minReaderVersion 3`. Fixtures: `v3-presentation`, `v3-source-blur`, `v3-image-background`, `v3-radial-gradient`.
 - **The rendering rules are part of the format (section 4b).** Canvas size, window placement, shadow, gradient geometry, mesh weights and frame metrics
   are written down in numbers, so an old file looks the same later and the editor, the export and `preview.png` cannot drift apart.
 - **One drawing code, `src/presentation/`.** Pure parts (layout, gradient geometry, mesh field, blur) are tested in Node; the canvas parts

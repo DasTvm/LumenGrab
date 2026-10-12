@@ -1,11 +1,14 @@
 import { createContext, useContext, type ReactNode } from "react";
 import { useStore } from "zustand";
 import type { EditorStore, EditorStoreApi } from "../model/store";
+import type { DocumentSession } from "./session";
 import type { UiStore, UiStoreApi } from "./ui-store";
 
 interface EditorContextValue {
   editor: EditorStoreApi;
   ui: UiStoreApi;
+  /** Saving, exporting and the pictures inside the document. */
+  session: DocumentSession;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
@@ -13,9 +16,12 @@ const EditorContext = createContext<EditorContextValue | null>(null);
 export function EditorProvider({
   editor,
   ui,
+  session,
   children,
 }: EditorContextValue & { children: ReactNode }) {
-  return <EditorContext.Provider value={{ editor, ui }}>{children}</EditorContext.Provider>;
+  return (
+    <EditorContext.Provider value={{ editor, ui, session }}>{children}</EditorContext.Provider>
+  );
 }
 
 function useCtx(): EditorContextValue {

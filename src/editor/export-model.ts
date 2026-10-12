@@ -1,5 +1,6 @@
 import { walkLayers } from "@/document/layers";
 import type { Project } from "@/document/schema";
+import { computeLayout } from "@/presentation/compose";
 
 /** The numbers and words of the Export dialog, as pure functions (tested in Node). */
 
@@ -11,11 +12,18 @@ export interface Size {
   height: number;
 }
 
-/** The picture that gets exported: the crop, or the whole source. */
-export function contentSize(project: Project, source: Size): Size {
+/** The picture of the crop, or the whole source: what the presentation is put around. */
+export function pictureSize(project: Project, source: Size): Size {
   return project.crop
     ? { width: Math.round(project.crop.width), height: Math.round(project.crop.height) }
     : { width: source.width, height: source.height };
+}
+
+/** The picture that gets exported: the crop, or the whole source, or the finished presentation around it. */
+export function contentSize(project: Project, source: Size): Size {
+  const picture = pictureSize(project, source);
+  if (!project.presentation.enabled) return picture;
+  return computeLayout(picture, project.presentation).output;
 }
 
 /** The size at a scale factor (0.5×, 1×, 2×), at least one pixel each way. */

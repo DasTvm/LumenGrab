@@ -3,6 +3,7 @@ import { useEditor, useStores, useUi } from "./context";
 import { CropPanel } from "./CropPanel";
 import { LayersPanel } from "./LayersPanel";
 import { StylePanel } from "./StylePanel";
+import { PresentationPanel } from "./presentation/PresentationPanel";
 import type { PanelTab } from "./ui-store";
 
 /** The right panel (design): the Style and Layers tabs, or the crop panel while the crop tool is open. */
@@ -11,6 +12,7 @@ export function RightPanel({ readOnly }: { readOnly: boolean }) {
   const tab = useUi((s) => s.tab);
   const layerCount = useEditor((s) => s.project.layers.length);
   const cropping = useUi((s) => s.crop !== null);
+  const mode = useUi((s) => s.mode);
   const tabs: { id: PanelTab; label: string }[] = [
     { id: "style", label: "Style" },
     { id: "layers", label: layerCount > 0 ? `Layers · ${String(layerCount)}` : "Layers" },
@@ -20,7 +22,9 @@ export function RightPanel({ readOnly }: { readOnly: boolean }) {
       aria-label="Inspector"
       className="flex w-80 shrink-0 flex-col gap-3 border-l border-border bg-card p-4"
     >
-      {cropping ? (
+      {mode === "presentation" ? (
+        <PresentationPanel />
+      ) : cropping ? (
         <CropPanel />
       ) : (
         <>

@@ -43,10 +43,10 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
 - [ ] **M5 Presentation**: Backgrounds, padding, shadows, window frames, social formats and a default look for every new screenshot.
   - Status: building.
   - [x] File format v3 and fixed rendering rules for presentation
-  - [ ] Backgrounds: solid, gradient, mesh, own image and blurred screenshot
-  - [ ] Padding, auto-balance, corner radius and shadows
-  - [ ] Window frames: macOS, Windows, browser, minimal and terminal
-  - [ ] Aspect ratios and social media formats
+  - [x] Backgrounds: solid, gradient, mesh, own image and blurred screenshot
+  - [x] Padding, auto-balance, corner radius and shadows
+  - [x] Window frames: macOS, Windows, browser, minimal and terminal
+  - [x] Aspect ratios and social media formats
   - [ ] Looks: built-in gallery and your own saved looks
   - [ ] Default look for every new screenshot, set in Settings
   - [ ] Complete native presentation acceptance checks on macOS and Windows

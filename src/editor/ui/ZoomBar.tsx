@@ -1,6 +1,7 @@
 import { Maximize2, Minus, Plus, Ruler } from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { cn } from "@/ui/lib/utils";
+import { computeLayout } from "@/presentation/compose";
 import { useEditor, useStores, useUi } from "./context";
 import { centerView, fitView, stepZoom, zoomAt, zoomLabel, type Size } from "./view";
 
@@ -21,14 +22,23 @@ export function ZoomBar({ area }: Props) {
   const draft = useUi((s) => s.crop);
   const crop = draft?.rect ?? saved;
 
+  const mode = useUi((s) => s.mode);
+  const output = useEditor((s) => (s.project.presentation.enabled ? s.project.presentation : null));
   const content = () =>
+    ui.getState().stage ??
     (ui.getState().crop ? null : editor.getState().project.crop) ?? { x: 0, y: 0, ...imageSize };
   const zoomTo = (zoom: number) => {
     const v = ui.getState().view;
     if (v) ui.getState().setView(zoomAt(v, { x: area.width / 2, y: area.height / 2 }, zoom));
   };
-  const text = `${String(Math.round(crop?.width ?? imageSize.width))} × ${String(Math.round(crop?.height ?? imageSize.height))} px`;
-  const SizeIcon = crop ? Maximize2 : Ruler;
+  const picture = {
+    width: Math.round(crop?.width ?? imageSize.width),
+    height: Math.round(crop?.height ?? imageSize.height),
+  };
+  // In Presentation mode the readout is the size of the finished picture.
+  const shown = mode === "presentation" && output ? computeLayout(picture, output).output : picture;
+  const text = `${String(shown.width)} × ${String(shown.height)} px`;
+  const SizeIcon = crop && mode === "annotate" ? Maximize2 : Ruler;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-4 flex justify-center">

@@ -84,6 +84,7 @@ pub fn run() {
             document::reveal_written_file,
             document::document_pick_open,
             document::pick_save_target,
+            document::pick_image,
             document::write_granted_file,
             document::open_url,
             document::document_save,

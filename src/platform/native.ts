@@ -238,6 +238,15 @@ export const nativePlatform: Platform = {
     return call<SaveTarget | null>("pick_save_target", { options });
   },
 
+  async pickImage(): Promise<Uint8Array | null> {
+    try {
+      const bytes = new Uint8Array(await invoke<ArrayBuffer>("pick_image"));
+      return bytes.length > 0 ? bytes : null;
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The picture could not be read.");
+    }
+  },
+
   async writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {
     try {
       // The body is the raw file; the token says which granted place it goes to.

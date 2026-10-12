@@ -33,6 +33,16 @@ describe("export sizes", () => {
       width: 800,
       height: 500,
     });
+    const presented = {
+      ...project([]),
+      presentation: {
+        ...defaultProject().presentation,
+        enabled: true,
+        padding: { top: 10, right: 10, bottom: 10, left: 10 },
+      },
+    };
+    // With the presentation on, the exported picture is the finished composition.
+    expect(contentSize(presented, content)).toEqual({ width: 1620, height: 1020 });
     expect(sizeForScale(content, 0.5)).toEqual({ width: 800, height: 500 });
     expect(sizeForScale(content, 2)).toEqual({ width: 3200, height: 2000 });
     expect(sizeForScale({ width: 1, height: 1 }, 0.5)).toEqual({ width: 1, height: 1 });

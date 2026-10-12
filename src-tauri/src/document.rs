@@ -31,6 +31,8 @@ const EXTENSION: &str = "lumengrab";
 const WINDOW_PREFIX: &str = "doc-";
 /// 512 MB of content (docs/FORMAT.md) plus the container's own overhead.
 const MAX_DOCUMENT_BYTES: u64 = 600 * 1024 * 1024;
+/// The largest picture accepted as a presentation background.
+const MAX_IMAGE_BYTES: u64 = 20 * 1024 * 1024;
 /// Open save grants at once. A page that asks for more loses the oldest.
 const MAX_GRANTS: usize = 16;
 /// The only web address the app opens for the page ("Check for updates" of the read-only dialog).
@@ -530,6 +532,39 @@ pub async fn document_pick_open(app: AppHandle) -> Result<bool, String> {
         Some(path) => open(&app, &path).map(|_| true),
         None => Ok(false),
     }
+}
+
+/// A dialog to pick a picture for a presentation background. The reply is the file's bytes as raw binary,
+/// or an empty body if the user cancelled. The page never learns the path; it decodes and stores the
+/// bytes inside the document. Dev builds can skip the dialog with `LUMENGRAB_DEV_IMAGE`.
+#[tauri::command]
+pub async fn pick_image(app: AppHandle) -> Result<Response, String> {
+    #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+    let dev_image = std::env::var("LUMENGRAB_DEV_IMAGE").ok().map(PathBuf::from);
+    #[cfg(not(any(debug_assertions, feature = "dev-hooks")))]
+    let dev_image: Option<PathBuf> = None;
+    let path = match dev_image {
+        Some(path) => path,
+        None => {
+            let picked = app
+                .dialog()
+                .file()
+                .add_filter("Picture", &["png", "jpg", "jpeg", "webp"])
+                .blocking_pick_file();
+            match picked.and_then(|p| p.into_path().ok()) {
+                Some(path) => path,
+                None => return Ok(Response::new(Vec::new())),
+            }
+        }
+    };
+    let size = std::fs::metadata(&path)
+        .map_err(|e| format!("{}: {e}", path.display()))?
+        .len();
+    if size > MAX_IMAGE_BYTES {
+        return Err("This picture is larger than 20 MB.".into());
+    }
+    let bytes = std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok(Response::new(bytes))
 }
 
 #[derive(Serialize)]

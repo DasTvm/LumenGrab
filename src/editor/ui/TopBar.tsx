@@ -1,8 +1,10 @@
 import { useEffect } from "react";
 import { Check, Copy, Download, Image as ImageIcon, Redo2, Undo2 } from "lucide-react";
 import { Button } from "@/ui/components/button";
+import { Segmented } from "@/ui/components/segmented";
 import { Tooltip } from "@/ui/components/tooltip";
 import { useEditor, useStores, useUi } from "./context";
+import { switchMode } from "./mode";
 
 interface Props {
   fileName: string;
@@ -15,8 +17,8 @@ const isMac = typeof navigator !== "undefined" && /mac/i.test(navigator.platform
 const MOD = isMac ? "⌘" : "Ctrl+";
 
 /**
- * The top bar (design): file name with the dot for unsaved changes, undo and redo, and Export. The
- * Presentation tab and Share are not here yet (M5 and later); the copy button comes with saving.
+ * The top bar (design): file name with the dot for unsaved changes, undo and redo, the Annotate and
+ * Presentation tabs, copy and Export. Share is not here yet (later).
  */
 export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
   const { editor } = useStores();
@@ -24,6 +26,7 @@ export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
   const canUndo = useEditor((s) => s.canUndo);
   const canRedo = useEditor((s) => s.canRedo);
   const feedback = useUi((s) => s.feedback);
+  const mode = useUi((s) => s.mode);
   const { ui } = useStores();
   // "Saved" and "Copied" fade after two seconds (design: Title bar states).
   const at = feedback?.at;
@@ -85,6 +88,27 @@ export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
         </Tooltip>
       </div>
       <span className="flex-1" />
+      {readOnly ? null : (
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <Tooltip
+            label="Switch between Annotate and Presentation"
+            shortcut={`${isMac ? "⇧⌘" : "Ctrl+Shift+"}P`}
+            side="bottom"
+          >
+            <Segmented
+              label="Mode"
+              value={mode}
+              options={[
+                { value: "annotate", label: "Annotate" },
+                { value: "presentation", label: "Presentation" },
+              ]}
+              onValueChange={(next) => {
+                switchMode(editor, ui, next);
+              }}
+            />
+          </Tooltip>
+        </div>
+      )}
       <Tooltip label="Copy image" shortcut={isMac ? "⇧⌘C" : "Ctrl+Shift+C"} side="bottom">
         <Button
           variant="ghost"
