@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-12T17:56:08.457Z",
+  "generatedAt": "2026-10-12T17:56:45.487Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -534,6 +534,13 @@
       "category": "new",
       "title": "format v3 with fixed rendering rules, layout, backgrounds, frames and the drawing code (M5 stages 0-2)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/826f31474301e64df570b69cb91943345a5d808e"
+    },
+    {
+      "id": "9447f197aa1124db7a30e78fe87e855d08569237",
+      "date": "2026-10-12T17:56:34Z",
+      "category": "new",
+      "title": "Presentation mode in the editor (M5 stages 3-4)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/9447f197aa1124db7a30e78fe87e855d08569237"
     }
   ],
   "releases": [],
@@ -613,7 +620,8 @@
     "419002fd88514d982e58e638f9e91cf23bd4aaf5",
     "8621951bf21bd8ef126c5590c0b6bdd9761a923f",
     "36f1b9f5a8405468946d93e1b409b4a74d59c1c8",
-    "826f31474301e64df570b69cb91943345a5d808e"
+    "826f31474301e64df570b69cb91943345a5d808e",
+    "9447f197aa1124db7a30e78fe87e855d08569237"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -806,22 +814,22 @@
           {
             "id": "task-2",
             "title": "Backgrounds: solid, gradient, mesh, own image and blurred screenshot",
-            "done": false
+            "done": true
           },
           {
             "id": "task-3",
             "title": "Padding, auto-balance, corner radius and shadows",
-            "done": false
+            "done": true
           },
           {
             "id": "task-4",
             "title": "Window frames: macOS, Windows, browser, minimal and terminal",
-            "done": false
+            "done": true
           },
           {
             "id": "task-5",
             "title": "Aspect ratios and social media formats",
-            "done": false
+            "done": true
           },
           {
             "id": "task-6",
