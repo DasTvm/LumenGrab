@@ -72,6 +72,17 @@ impl Default for QuickAccessSettings {
     }
 }
 
+/// Presentation (M5): what happens to new screenshots. The look itself lives in `looks.json`
+/// (docs/adr/0007); the native side only needs to know whether to ask the page to apply it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct PresentationSettings {
+    /// Put the default look on every new screenshot (saved file, clipboard, drag-out, Quick Access).
+    pub auto: bool,
+    /// A new capture opens in the editor's Presentation tab instead of Annotate.
+    pub open_in_presentation: bool,
+}
+
 /// Everything the user can change. Every field has a default, so an older or partial file still loads.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -80,6 +91,7 @@ pub struct Settings {
     /// Copy every new screenshot to the clipboard (it is always saved as a file).
     pub copy_to_clipboard: bool,
     pub quick_access: QuickAccessSettings,
+    pub presentation: PresentationSettings,
     /// The Windows first-start hint was shown (or dismissed).
     pub seen_intro: bool,
 }
@@ -90,6 +102,7 @@ impl Default for Settings {
             default_mode: DefaultMode::Area,
             copy_to_clipboard: true,
             quick_access: QuickAccessSettings::default(),
+            presentation: PresentationSettings::default(),
             seen_intro: false,
         }
     }
@@ -204,6 +217,11 @@ mod tests {
             }
         );
         assert!(!s.seen_intro);
+        assert_eq!(s.presentation, PresentationSettings::default());
+        assert!(
+            !s.presentation.auto,
+            "the look is applied only when the user turns it on"
+        );
     }
 
     #[test]
@@ -225,6 +243,8 @@ mod tests {
                 s.quick_access.style = QuickAccessStyle::Large;
                 s.quick_access.corner = Corner::TopLeft;
                 s.quick_access.auto_close_secs = 10;
+                s.presentation.auto = true;
+                s.presentation.open_in_presentation = true;
             })
             .unwrap();
         let again = SettingsStore::load(path).get();
@@ -233,6 +253,7 @@ mod tests {
         assert_eq!(again.quick_access.style, QuickAccessStyle::Large);
         assert_eq!(again.quick_access.corner, Corner::TopLeft);
         assert_eq!(again.quick_access.auto_close_secs, 10);
+        assert!(again.presentation.auto && again.presentation.open_in_presentation);
     }
 
     #[test]
@@ -245,6 +266,7 @@ mod tests {
         assert_eq!(s.default_mode, DefaultMode::Window);
         assert!(s.copy_to_clipboard);
         assert_eq!(s.quick_access, QuickAccessSettings::default());
+        assert_eq!(s.presentation, PresentationSettings::default());
     }
 
     #[test]

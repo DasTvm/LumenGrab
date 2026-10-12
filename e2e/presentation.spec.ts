@@ -410,4 +410,20 @@ test.describe("presentation mode (browser mock)", () => {
     ).looks.find((l) => l.name === "Photo");
     expect(photo?.parts["background"]).toBeUndefined();
   });
+
+  test("a new capture opens in the Presentation tab when Settings say so, a file does not", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "lumengrab.mock.settings",
+        JSON.stringify({ presentation: { auto: false, openInPresentation: true } }),
+      );
+    });
+    await page.goto("/?window=document&label=doc-1&kind=capture");
+    await expect(page.getByTestId("presentation-panel")).toBeVisible();
+    await page.goto("/?window=document&label=doc-1&scenario=stack");
+    await expect(page.getByTestId("editor-canvas")).toBeVisible();
+    await expect(page.getByTestId("presentation-panel")).toHaveCount(0);
+  });
 });

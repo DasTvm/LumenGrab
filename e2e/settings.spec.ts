@@ -82,6 +82,7 @@ test.describe("settings (browser mock)", () => {
       defaultMode: "area",
       copyToClipboard: false,
       quickAccess: { enabled: true, style: "large", autoCloseSecs: 10, corner: "topLeft" },
+      presentation: { auto: false, openInPresentation: false },
       seenIntro: false,
     });
     await page.screenshot({
@@ -196,5 +197,79 @@ test.describe("settings (browser mock)", () => {
       path: "test-results/settings-hotkeys-light.png",
       animations: "disabled",
     });
+  });
+
+  test("Presentation page: pick the default look, switch the automatic look on, choose the editor mode and the aspect ratio", async ({
+    page,
+  }) => {
+    await page.goto("/?window=settings");
+    await page.getByRole("button", { name: "Presentation" }).click();
+    await expect(page.getByRole("heading", { name: "Presentation", level: 1 })).toBeVisible();
+    await expect(page.getByTestId("default-preview")).toBeVisible();
+    // Midnight is the default until the user picks another look.
+    await expect(page.getByRole("button", { name: "Midnight", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await page.getByRole("button", { name: "Sunset", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Sunset", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    type Stored = { defaultLook: { name: string; parts: { aspect?: { size?: number[] } } } };
+    const stored = () =>
+      page.evaluate(
+        () => JSON.parse(window.localStorage.getItem("lumengrab.mock.looks") ?? "{}") as Stored,
+      );
+    expect((await stored()).defaultLook.name).toBe("Sunset");
+
+    const auto = page.getByRole("switch", { name: "Apply the default look automatically" });
+    await expect(auto).toHaveAttribute("aria-checked", "false");
+    await auto.click();
+    await page.getByRole("radio", { name: "Presentation" }).click();
+    await page.getByLabel("Default aspect ratio").selectOption("instagram-story");
+    await expect
+      .poll(async () => (await stored()).defaultLook.parts.aspect?.size)
+      .toEqual([1080, 1920]);
+    await page.getByLabel("Default aspect ratio").selectOption("auto");
+    await expect.poll(async () => (await stored()).defaultLook.parts.aspect).toBeUndefined();
+
+    const log = await submissions(page);
+    expect(log.filter((e) => e.kind === "settings").at(-1)?.settings?.presentation).toEqual({
+      auto: true,
+      openInPresentation: true,
+    });
+    await page.screenshot({
+      path: "test-results/settings-presentation-light.png",
+      animations: "disabled",
+    });
+  });
+
+  test("Presentation page: my looks can be renamed and deleted, and an empty list explains itself", async ({
+    page,
+  }) => {
+    await page.goto("/?window=settings");
+    await page.getByRole("button", { name: "Presentation" }).click();
+    await expect(page.getByText("You have not saved a look yet")).toBeVisible();
+    await page.evaluate(() => {
+      window.localStorage.setItem(
+        "lumengrab.mock.looks",
+        JSON.stringify({
+          version: 1,
+          looks: [{ id: "a", name: "Client demo", parts: { cornerRadius: 20 } }],
+          defaultLook: null,
+        }),
+      );
+    });
+    await page.reload();
+    await page.getByRole("button", { name: "Presentation" }).click();
+    await page.getByRole("button", { name: "Rename Client demo" }).click();
+    const input = page.getByLabel("Look name");
+    await input.fill("Docs");
+    await input.press("Enter");
+    await expect(page.getByRole("button", { name: "Delete Docs" })).toBeVisible();
+    await page.getByRole("button", { name: "Delete Docs" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByText("You have not saved a look yet")).toBeVisible();
   });
 });

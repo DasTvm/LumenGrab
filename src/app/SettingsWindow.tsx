@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { Folder, Keyboard, SlidersHorizontal } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Folder, Frame, Keyboard, SlidersHorizontal } from "lucide-react";
 import { formatKey, spokenShortcut } from "@/platform/keys";
 import {
   DEFAULT_SETTINGS,
@@ -19,9 +19,11 @@ import { Keycap } from "@/ui/components/keycap";
 import { NavItem } from "@/ui/components/nav-item";
 import { Segmented } from "@/ui/components/segmented";
 import { Switch } from "@/ui/components/switch";
+import { Divider, Row, Section } from "./settings-parts";
+import { PresentationPage } from "./SettingsPresentation";
 import { readThemePreference, saveThemePreference, type ThemePreference } from "@/ui/theme";
 
-type Page = "general" | "hotkeys";
+type Page = "general" | "presentation" | "hotkeys";
 
 const HOTKEY_TEXT: Record<HotkeyInfo["id"], { title: string; description: string }> = {
   capture: {
@@ -108,6 +110,15 @@ export function SettingsWindow() {
           General
         </NavItem>
         <NavItem
+          icon={<Frame />}
+          active={page === "presentation"}
+          onClick={() => {
+            setPage("presentation");
+          }}
+        >
+          Presentation
+        </NavItem>
+        <NavItem
           icon={<Keyboard />}
           active={page === "hotkeys"}
           onClick={() => {
@@ -125,6 +136,8 @@ export function SettingsWindow() {
           </p>
         ) : page === "general" ? (
           <GeneralPage info={info} settings={settings} onChange={change} saveError={saveError} />
+        ) : page === "presentation" ? (
+          <PresentationPage settings={settings} onChange={change} saveError={saveError} />
         ) : (
           <HotkeysPage info={info} app={app} />
         )}
@@ -132,39 +145,6 @@ export function SettingsWindow() {
     </div>
   );
 }
-
-function Row({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-6">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-base font-medium">{title}</span>
-        {description ? <span className="text-xs text-muted-foreground">{description}</span> : null}
-      </div>
-      <div className="flex shrink-0 items-center gap-3">{children}</div>
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section aria-label={title} className="flex flex-col gap-4">
-      <h2 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
-const Divider = () => <hr className="border-border" />;
 
 function GeneralPage({
   info,

@@ -140,6 +140,7 @@ function storedSettings(): Settings {
       ...DEFAULT_SETTINGS,
       ...saved,
       quickAccess: { ...DEFAULT_SETTINGS.quickAccess, ...saved.quickAccess },
+      presentation: { ...DEFAULT_SETTINGS.presentation, ...saved.presentation },
     };
   } catch {
     return DEFAULT_SETTINGS;

@@ -161,6 +161,12 @@ export interface Settings {
     autoCloseSecs: AutoCloseSecs;
     corner: Corner;
   };
+  presentation: {
+    /** Put the default look on every new screenshot. */
+    auto: boolean;
+    /** A new capture opens in the Presentation tab of the editor. */
+    openInPresentation: boolean;
+  };
   /** The Windows first-start hint was shown. */
   seenIntro: boolean;
 }

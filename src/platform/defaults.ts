@@ -5,5 +5,6 @@ export const DEFAULT_SETTINGS: Settings = {
   defaultMode: "area",
   copyToClipboard: true,
   quickAccess: { enabled: true, style: "compact", autoCloseSecs: 5, corner: "bottomRight" },
+  presentation: { auto: false, openInPresentation: false },
   seenIntro: false,
 };

@@ -26,6 +26,8 @@ import { findLayer } from "../model/tree";
 import { walkLayers } from "@/document/layers";
 import { isSystemFontId, systemFontFamily } from "@/document/limits";
 import { installedFonts } from "./FontPicker";
+import { platform } from "@/platform";
+import { switchMode } from "./mode";
 import { looksStore } from "./presentation/looks-instance";
 
 declare global {
@@ -101,6 +103,18 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
   }, [editor, ui, session]);
 
   useEffect(() => session.start(), [session]);
+
+  // A new capture starts in the Presentation tab when the user chose that in Settings.
+  useEffect(() => {
+    if (info.kind !== "capture") return;
+    void platform.getSettingsInfo().then(
+      (loaded) => {
+        if (loaded.settings.presentation.openInPresentation)
+          switchMode(editor, ui, "presentation", session);
+      },
+      () => undefined,
+    );
+  }, [info.kind, editor, ui, session]);
 
   // The user's looks are read early, so the first switch to Presentation already knows the default look.
   useEffect(() => {
