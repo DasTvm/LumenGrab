@@ -306,6 +306,8 @@ pub struct DocumentInfo {
     /// `file` (a `.lumengrab` on disk), `capture` (a screenshot to edit; the first save asks where) or
     /// `recovered` (unsaved work from the last session).
     kind: &'static str,
+    /// The screenshot is a kept original (from before the automatic look): the editor puts the look on.
+    apply_look: bool,
 }
 
 fn source_of(app: &AppHandle, label: &str) -> Result<Source, String> {
@@ -344,6 +346,7 @@ pub fn document_info(app: AppHandle, label: String) -> Result<DocumentInfo, Stri
         file_name,
         folder: crate::quick_access::short_folder(path),
         kind: source.kind(),
+        apply_look: matches!(source, Source::Capture(_)) && crate::present::is_original(&app, path),
     })
 }
 

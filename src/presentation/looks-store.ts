@@ -132,7 +132,7 @@ export function createLooksStore(
   makeId: () => string = () => crypto.randomUUID().slice(0, 12),
 ): LooksStoreApi {
   return createStore<LooksStore>()((set, get) => {
-    let started = false;
+    let starting: Promise<void> | null = null;
     const persist = async (next: Pick<LooksState, "looks" | "defaultLook">) => {
       set(next);
       try {
@@ -153,11 +153,13 @@ export function createLooksStore(
       defaultLook: null,
       error: null,
 
-      init: async () => {
-        if (started) return;
-        started = true;
-        await reload();
-        await backend.onChanged(() => void reload()).catch(() => undefined);
+      // Every caller waits for the same first load, so "after init" really means the looks are there.
+      init: () => {
+        starting ??= (async () => {
+          await reload();
+          await backend.onChanged(() => void reload()).catch(() => undefined);
+        })();
+        return starting;
       },
 
       saveLook: async (name, parts, options) => {

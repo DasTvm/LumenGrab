@@ -142,6 +142,22 @@ Open it with Quick Access **Edit** (a new capture), by double-clicking a `.lumen
 - Dark mode (derived, not designed): all of the above is readable; the lime handles are visible on the picture.
 - Not covered by automated tests: IME text input (Japanese, Chinese) in the text field, very large pictures (5K): drawing a blur over one should stay smooth.
 
+## 6f. Presentation (M5)
+
+Open the editor's **Presentation** tab (top bar, or Cmd/Ctrl+Shift+P). The first time on a picture it gets your default look (Midnight until you choose one).
+
+- **Looks:** click each of the six built-in looks; the canvas changes at once and Cmd/Ctrl+Z takes it back. Save the current settings with "Save as my look" (leave "Aspect ratio" unticked): it appears under My looks, survives closing and reopening LumenGrab, and can be renamed, updated with the current settings and deleted (Undo in the toast brings it back). A name that is taken asks before it replaces.
+- **Backgrounds:** solid, gradient (add a colour by clicking the bar, drag the dots, Linear / Radial, reverse, shuffle), mesh (3 x 3 and 4 x 4, drag a point, Shuffle), image (choose a PNG / JPG / WebP; a look made with it keeps the picture after a restart), blurred screenshot. Compare the editor with a PNG export: same picture.
+- **Layout:** padding (slider, four edges, Auto-balance, Balance edges), corner radius, shadow presets and colours, the six window frames (title, address, light / dark; check the title bar text in Inter and, for Terminal, JetBrains Mono).
+- **Aspect ratio:** every basic ratio, Custom (7:3), and the social formats: the export is exactly 1080 x 1920 px for Instagram Story, and "Show safe area" shades the zones. Drag a 5K capture into the editor: Export stays within 16,384 px and says so.
+- **Export, Copy and the saved `.lumengrab`'s preview** all show the presentation; the Export dialog sizes are those of the finished picture. Switch "Remove the presentation": exports are the plain picture again.
+- **Default look (Settings > Presentation):** pick a look, see the preview. Turn on "Apply the default look automatically", take a screenshot: the file in Pictures/LumenGrab, the clipboard (paste it), the Quick Access thumbnail and the drag-out all show the look. A copy of the capture without the look is in the app's `originals` folder (macOS: `~/Library/Application Support/<app id>/originals`, Windows: `%APPDATA%\<app id>\originals`) and is removed after 30 days.
+- **Edit** on such a card opens the capture without the look and puts the look on as a presentation (frame, background and shadow appear only once). With "Open the editor in: Presentation" a new capture starts in that tab.
+- **Fallback:** with the automatic look on, kill the hidden render page (or set the look to a picture and delete it from the app's `looks/assets` folder), then take a screenshot: it is saved and copied as it is, and a "Could not apply your look" card offers Try again. Nothing is lost.
+- Timing: a 5K capture should show its card in well under a second with the look on (the debug build prints "look applied ... in N ms").
+- **Windows only:** the frame fonts, the shadow, and the automatic look work on a 150 % / 200 % display and with two displays of different scale.
+- Dark mode (derived, not designed): the panel, the gallery and the dialogs are readable.
+
 ## 7. Display changes
 
 - Plug/unplug a monitor, change resolution or scale, rearrange monitors, sleep/wake, lock screen: the next capture uses the new layout, no stale or offset overlays, no crash.

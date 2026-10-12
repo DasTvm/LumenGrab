@@ -9,7 +9,8 @@
     "overlay-*",
     "qa-*",
     "doc-*",
-    "recover"
+    "recover",
+    "present"
   ],
   "permissions": [
     "core:default"

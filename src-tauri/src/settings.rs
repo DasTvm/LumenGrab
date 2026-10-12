@@ -187,8 +187,15 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
 
 /// The settings page sends the whole object; serde rejects unknown choices.
 #[tauri::command]
-pub fn settings_save(store: tauri::State<SettingsStore>, settings: Settings) -> Result<(), String> {
-    store.save(settings)
+pub fn settings_save(
+    app: AppHandle,
+    store: tauri::State<SettingsStore>,
+    settings: Settings,
+) -> Result<(), String> {
+    store.save(settings)?;
+    // The hidden page that draws the automatic look is kept ready only while that is switched on.
+    crate::present::on_settings_changed(&app, &settings);
+    Ok(())
 }
 
 #[cfg(test)]

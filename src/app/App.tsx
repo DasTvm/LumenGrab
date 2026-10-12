@@ -4,6 +4,7 @@ import { DocumentWindow } from "./DocumentWindow";
 import { HomeWindow } from "./HomeWindow";
 import { OverlayWindow } from "./OverlayWindow";
 import { PermissionWindow } from "./PermissionWindow";
+import { PresentWindow } from "./PresentWindow";
 import { QuickAccessGallery } from "./QuickAccessGallery";
 import { QuickAccessWindow } from "./QuickAccessWindow";
 import { RecoverWindow } from "./RecoverWindow";
@@ -27,6 +28,8 @@ export function App() {
       return <DialogWindow />;
     case "quick":
       return <QuickAccessWindow />;
+    case "present":
+      return <PresentWindow />;
     case "recover":
       return <RecoverWindow />;
     case "permission":

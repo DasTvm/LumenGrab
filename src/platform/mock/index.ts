@@ -66,6 +66,7 @@ export interface MockSubmission {
     | "recoveryClose"
     | "pickSave"
     | "pickImage"
+    | "presentReady"
     | "looksSave"
     | "writeFile"
     | "openUrl"
@@ -114,6 +115,10 @@ declare global {
       recovery?: Record<string, { bytes: Uint8Array; name: string }>;
       /** Pretends the user closed the window while it has unsaved changes. */
       requestClose?: () => void;
+      /** The automatic look: a test sends a capture in, the page answers into `presented`. */
+      present?: (id: number, png: Uint8Array) => void;
+      presentInput?: Record<number, Uint8Array>;
+      presented?: Record<number, { png: Uint8Array } | { error: string }>;
     };
   }
 }
@@ -364,14 +369,16 @@ export const mockPlatform: Platform = {
     return Promise.resolve();
   },
 
-  /** `?kind=capture|recovered` makes it an unsaved document; the default is a saved file. */
+  /** `?kind=capture|recovered` makes it an unsaved document; the default is a saved file. `&applylook=1`: a kept original. */
   getDocumentInfo(): Promise<DocumentInfo> {
-    const kind = new URLSearchParams(window.location.search).get("kind");
+    const q = new URLSearchParams(window.location.search);
+    const kind = q.get("kind");
     if (kind === "capture") {
       return Promise.resolve({
         fileName: "Screenshot 2026-10-09 at 14.02",
         folder: "Pictures/LumenGrab",
         kind: "capture",
+        ...(q.get("applylook") === "1" ? { applyLook: true } : {}),
       });
     }
     return Promise.resolve({
@@ -468,6 +475,35 @@ export const mockPlatform: Platform = {
     return Promise.resolve(() => {
       window.removeEventListener("storage", handler);
     });
+  },
+
+  presentReady(): Promise<void> {
+    record({ kind: "presentReady" });
+    return Promise.resolve();
+  },
+
+  /** Tests trigger a request with `window.__lumengrabMock.present(id, png)` and read the answer from `presented`. */
+  onPresentRequest(listener: (id: number) => void): Promise<() => void> {
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    const send = (id: number, png: Uint8Array) => {
+      (log.presentInput ??= {})[id] = png;
+      listener(id);
+    };
+    log.present = send;
+    return Promise.resolve(() => {
+      if (log.present === send) delete log.present;
+    });
+  },
+
+  presentTake(id: number): Promise<Uint8Array> {
+    const png = window.__lumengrabMock?.presentInput?.[id];
+    return png ? Promise.resolve(png) : Promise.reject(new PlatformError("No such request."));
+  },
+
+  presentResult(id: number, outcome: { png: Uint8Array } | { error: string }): Promise<void> {
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    (log.presented ??= {})[id] = outcome;
+    return Promise.resolve();
   },
 
   writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {

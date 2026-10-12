@@ -9,6 +9,7 @@ mod hotkeys;
 mod looks;
 mod permission;
 mod platform;
+mod present;
 mod quick_access;
 mod recovery;
 mod settings;
@@ -91,6 +92,9 @@ pub fn run() {
             looks::looks_read_asset,
             looks::looks_write_asset,
             looks::looks_prune_assets,
+            present::present_ready,
+            present::present_take,
+            present::present_result,
             document::write_granted_file,
             document::open_url,
             document::document_save,
@@ -114,6 +118,7 @@ pub fn run() {
                 WindowEvent::Destroyed => {
                     overlay::on_destroyed(window.app_handle(), window.label());
                     document::on_destroyed(window.app_handle(), window.label());
+                    present::on_destroyed(window.app_handle(), window.label());
                     platform::update_dock_presence(window.app_handle(), Some(window.label()));
                 }
                 // A document with unsaved changes asks before it closes.
@@ -137,6 +142,7 @@ pub fn run() {
             }
             overlay::warm_up(app.handle());
             quick_access::warm_up(app.handle());
+            present::init(app.handle());
             recovery::offer_at_startup(app.handle());
             // Windows has no permission window to say hello: tell the user once where the app lives.
             #[cfg(target_os = "windows")]

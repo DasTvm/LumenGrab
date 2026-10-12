@@ -48,7 +48,7 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Window frames: macOS, Windows, browser, minimal and terminal
   - [x] Aspect ratios and social media formats
   - [x] Looks: built-in gallery and your own saved looks
-  - [ ] Default look for every new screenshot, set in Settings
+  - [x] Default look for every new screenshot, set in Settings
   - [ ] Complete native presentation acceptance checks on macOS and Windows
 - [ ] **M6 History, pin and OCR**: History, pinned captures, copy text, QR, all-in-one mode.
   - Status: planned.

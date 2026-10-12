@@ -14,7 +14,7 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
 use super::{encode, geometry, pixels, CaptureMode, Frame};
-use crate::{platform, quick_access, settings::SettingsStore};
+use crate::{platform, present, quick_access, settings::SettingsStore};
 
 const FOLDER: &str = "LumenGrab";
 /// Twice the 364 px preview of the large card, so it is sharp on a 2x display.
@@ -48,8 +48,38 @@ pub fn deliver(app: &AppHandle, frame: Frame, source: CaptureMode) {
 }
 
 /// Saves the capture (into `dir`, or the screenshots folder), copies it to the clipboard if the
-/// settings say so, and shows the Quick Access card. Problems become notice cards.
+/// settings say so, and shows the Quick Access card. Problems become notice cards. With the automatic
+/// look on, the default look is put on the picture first.
 pub fn deliver_to(app: &AppHandle, frame: Frame, source: CaptureMode, dir: Option<PathBuf>) {
+    deliver_inner(app, frame, source, dir, true);
+}
+
+/// Like `deliver_to` for a picture that already has its look (a retry of a failed save).
+pub fn deliver_finished(app: &AppHandle, frame: Frame, source: CaptureMode, dir: Option<PathBuf>) {
+    deliver_inner(app, frame, source, dir, false);
+}
+
+fn deliver_inner(
+    app: &AppHandle,
+    frame: Frame,
+    source: CaptureMode,
+    dir: Option<PathBuf>,
+    apply_look: bool,
+) {
+    // The picture that is saved, copied and shown; `original` is the capture before the look.
+    let mut look_failed = false;
+    let (frame, original) = if apply_look && app.state::<SettingsStore>().get().presentation.auto {
+        match with_look(app, &frame) {
+            Ok((presented, original)) => (presented, Some(original)),
+            Err(e) => {
+                eprintln!("lumengrab: the look could not be applied: {e}");
+                look_failed = true;
+                (frame, None)
+            }
+        }
+    } else {
+        (frame, None)
+    };
     let dir = match dir.map_or_else(|| screenshot_dir(app), Ok) {
         Ok(dir) => dir,
         Err(e) => {
@@ -76,8 +106,16 @@ pub fn deliver_to(app: &AppHandle, frame: Frame, source: CaptureMode, dir: Optio
     let mut problems: Vec<String> = Vec::new();
     match saved {
         Ok(path) => {
-            if !show_quick_access(app, &path, &frame, source) {
+            // The capture as it was stays for Edit, which puts the look on as a presentation.
+            let original_path = original.and_then(|bytes| {
+                path.file_name()
+                    .and_then(|name| present::save_original(app, &bytes, name).ok())
+            });
+            if !show_quick_access(app, &path, &frame, source, original_path) {
                 announce_saved(app, &path);
+            }
+            if look_failed {
+                quick_access::notify(app, quick_access::notice::look_failed(path.clone()));
             }
             if let Err(e) = copied {
                 problems.push(format!("clipboard: {e}"));
@@ -99,6 +137,41 @@ pub fn deliver_to(app: &AppHandle, frame: Frame, source: CaptureMode, dir: Optio
     crate::dev::after_deliver(app, &problems);
 }
 
+/// The picture with the default look on, and the capture as PNG bytes for the originals folder.
+fn with_look(app: &AppHandle, frame: &Frame) -> Result<(Frame, Vec<u8>), String> {
+    #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+    let started = std::time::Instant::now();
+    let original = encode::encode_png(frame, encode::Profile::Fast).map_err(|e| e.to_string())?;
+    let finished = present::present(app, original.clone())?;
+    let presented = encode::decode_png(&finished).map_err(|e| e.to_string())?;
+    #[cfg(any(debug_assertions, feature = "dev-hooks"))]
+    eprintln!(
+        "[lumengrab:dev] look applied to {}x{} in {} ms ({}x{} out)",
+        frame.width,
+        frame.height,
+        started.elapsed().as_millis(),
+        presented.width,
+        presented.height
+    );
+    Ok((presented, original))
+}
+
+/// "Try again" of the notice: puts the look on a screenshot that was saved as it was. The file is
+/// replaced by the finished picture, the capture goes to the originals, the clipboard gets the result.
+pub fn apply_look_to_file(app: &AppHandle, path: &Path) -> Result<(), String> {
+    let original = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let finished = present::present(app, original.clone())?;
+    if let Some(name) = path.file_name() {
+        present::save_original(app, &original, name)?;
+    }
+    crate::fsutil::write_atomic(path, &finished).map_err(|e| format!("{}: {e}", path.display()))?;
+    if app.state::<SettingsStore>().get().copy_to_clipboard {
+        let frame = encode::decode_png(&finished).map_err(|e| e.to_string())?;
+        copy_to_clipboard(app, &frame)?;
+    }
+    Ok(())
+}
+
 /// The picture could not be written: it stays in memory so Retry and "Choose folder…" can save it.
 fn notify_save_failed(
     app: &AppHandle,
@@ -114,7 +187,13 @@ fn notify_save_failed(
 }
 
 /// The card in the screen corner. `false` if Quick Access is off or could not be shown.
-fn show_quick_access(app: &AppHandle, path: &Path, frame: &Frame, source: CaptureMode) -> bool {
+fn show_quick_access(
+    app: &AppHandle,
+    path: &Path,
+    frame: &Frame,
+    source: CaptureMode,
+    original: Option<PathBuf>,
+) -> bool {
     let thumb = pixels::downscale(frame, THUMB_WIDTH);
     let Ok(thumb) = encode::encode_png(&thumb, encode::Profile::Fast) else {
         return false;
@@ -128,6 +207,7 @@ fn show_quick_access(app: &AppHandle, path: &Path, frame: &Frame, source: Captur
             source,
             bytes: fs::metadata(path).map(|m| m.len()).unwrap_or(0),
             thumb,
+            original,
         },
     )
 }

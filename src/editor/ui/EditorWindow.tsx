@@ -27,7 +27,7 @@ import { walkLayers } from "@/document/layers";
 import { isSystemFontId, systemFontFamily } from "@/document/limits";
 import { installedFonts } from "./FontPicker";
 import { platform } from "@/platform";
-import { switchMode } from "./mode";
+import { applyDefaultLook, switchMode } from "./mode";
 import { looksStore } from "./presentation/looks-instance";
 
 declare global {
@@ -103,6 +103,17 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
   }, [editor, ui, session]);
 
   useEffect(() => session.start(), [session]);
+
+  // The kept original of an automatic-look capture: the look goes on as a presentation (Annotate can still edit).
+  useEffect(() => {
+    if (!info.applyLook) return;
+    void looksStore
+      .getState()
+      .init()
+      .then(() => {
+        applyDefaultLook(editor, ui, session);
+      });
+  }, [info.applyLook, editor, ui, session]);
 
   // A new capture starts in the Presentation tab when the user chose that in Settings.
   useEffect(() => {

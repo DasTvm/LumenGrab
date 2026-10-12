@@ -33,6 +33,8 @@ pub enum Handler {
     CopyAgain(PathBuf),
     /// Opens the "Save as…" dialog for a saved file.
     SaveAs(PathBuf),
+    /// Puts the default look on a screenshot that was saved without it.
+    ApplyLook(PathBuf),
     /// Selects the file in Finder / Explorer.
     Reveal(PathBuf),
     /// Saves the capture again to the same folder.
@@ -165,6 +167,21 @@ pub fn clipboard_failed(error: &str, saved: PathBuf) -> Notice {
         actions: vec![
             button("Try again", "refresh", true, Handler::CopyAgain(saved.clone())),
             button("Save instead", "download", false, Handler::SaveAs(saved)),
+        ],
+    }
+}
+
+/// The automatic look could not be drawn in time: the screenshot was delivered as it was.
+pub fn look_failed(saved: PathBuf) -> Notice {
+    Notice {
+        tone: Tone::Warning,
+        icon: "triangle-alert",
+        title: "Could not apply your look".into(),
+        body: "Your screenshot is saved and copied as it is. You can put the look on it now, or edit it later.".into(),
+        keys: Vec::new(),
+        actions: vec![
+            button("Try again", "refresh", true, Handler::ApplyLook(saved)),
+            dismiss(),
         ],
     }
 }

@@ -57,6 +57,8 @@ pub struct NewCard {
     pub bytes: u64,
     /// PNG, at most 728 px wide.
     pub thumb: Vec<u8>,
+    /// The capture before the automatic look, if one was put on (Edit opens this).
+    pub original: Option<PathBuf>,
 }
 
 struct Card {
@@ -76,6 +78,8 @@ struct Card {
     extra_top: f64,
     extra_bottom: f64,
     shown: bool,
+    /// The capture before the automatic look; `path` is the finished picture.
+    original: Option<PathBuf>,
     /// "Delete" was pressed: the file goes to the Trash when the card closes, unless Undo came first.
     pending_delete: bool,
     /// A notice card (an error or warning with buttons) instead of a screenshot; the screenshot
@@ -438,6 +442,7 @@ pub fn show(app: &AppHandle, new: NewCard) -> bool {
         extra_top: 0.0,
         extra_bottom: 0.0,
         shown: false,
+        original: new.original,
         pending_delete: false,
         notice: None,
     })
@@ -462,6 +467,7 @@ pub fn notify(app: &AppHandle, notice: Notice) -> bool {
         extra_top: 0.0,
         extra_bottom: 0.0,
         shown: false,
+        original: None,
         pending_delete: false,
         notice: Some(notice),
     })
@@ -637,6 +643,17 @@ pub fn drag_image(app: &AppHandle, id: &str) -> Option<Vec<u8>> {
     crate::capture::encode::encode_png(&small, crate::capture::encode::Profile::Fast).ok()
 }
 
+/// The capture before the automatic look, if the card has one.
+pub fn original_of(app: &AppHandle, id: &str) -> Option<PathBuf> {
+    let qa = app.state::<QuickAccess>();
+    let inner = qa.inner.lock().expect("quick access state");
+    inner
+        .cards
+        .iter()
+        .find(|c| c.id == id && c.notice.is_none())
+        .and_then(|c| c.original.clone())
+}
+
 pub fn file_of(app: &AppHandle, id: &str) -> Option<PathBuf> {
     let qa = app.state::<QuickAccess>();
     let inner = qa.inner.lock().expect("quick access state");
@@ -667,6 +684,7 @@ mod tests {
             extra_top: 0.0,
             extra_bottom: 0.0,
             shown: false,
+            original: None,
             pending_delete: false,
             notice: None,
         }

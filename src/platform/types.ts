@@ -106,6 +106,8 @@ export interface DocumentInfo {
    * a document yet (the first Save asks where). `recovered`: unsaved work from the last session.
    */
   kind: "file" | "capture" | "recovered";
+  /** The screenshot is a kept original (from before the automatic look): put the default look on as a presentation. */
+  applyLook?: boolean;
 }
 
 export type SaveFormat = "png" | "jpg" | "webp" | "lumengrab";
@@ -261,6 +263,14 @@ export interface Platform {
   looksPruneAssets(keep: string[]): Promise<void>;
   /** Calls `listener` when another window changed the looks. */
   onLooksChanged(listener: () => void): Promise<() => void>;
+  /** The hidden page of the automatic look listens: the native side may send requests. */
+  presentReady(): Promise<void>;
+  /** Calls `listener` with the id of a new request (a capture to put the default look on). */
+  onPresentRequest(listener: (id: number) => void): Promise<() => void>;
+  /** The PNG a request is about. */
+  presentTake(id: number): Promise<Uint8Array>;
+  /** Answers a request with the finished PNG, or with the reason it failed. */
+  presentResult(id: number, outcome: { png: Uint8Array } | { error: string }): Promise<void>;
   /** Writes bytes (atomically) to a place `pickSaveTarget` granted. */
   writeGrantedFile(token: string, bytes: Uint8Array): Promise<void>;
   /** Saves the document to the `.lumengrab` file its window was opened from (atomically). */

@@ -285,6 +285,28 @@ export const nativePlatform: Platform = {
     });
   },
 
+  async presentReady(): Promise<void> {
+    await call("present_ready");
+  },
+
+  async onPresentRequest(listener: (id: number) => void): Promise<() => void> {
+    return listen<number>("present-request", (event) => {
+      listener(event.payload);
+    });
+  },
+
+  async presentTake(id: number): Promise<Uint8Array> {
+    return new Uint8Array(await invoke<ArrayBuffer>("present_take", { id }));
+  },
+
+  async presentResult(id: number, outcome: { png: Uint8Array } | { error: string }): Promise<void> {
+    const headers: Record<string, string> = { id: String(id) };
+    // A header holds one line of plain text; the reason is only for the log and the notice.
+    if ("error" in outcome)
+      headers["error"] = outcome.error.replace(/[^\x20-\x7e]/g, " ").slice(0, 200);
+    await invoke("present_result", "png" in outcome ? outcome.png : new Uint8Array(0), { headers });
+  },
+
   async writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {
     try {
       // The body is the raw file; the token says which granted place it goes to.

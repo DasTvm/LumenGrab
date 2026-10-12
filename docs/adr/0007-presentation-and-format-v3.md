@@ -23,3 +23,11 @@ minReaderVersion 3`. Fixtures: `v3-presentation`, `v3-source-blur`, `v3-image-ba
 - **`autoBalance` is an editor behaviour.** While on, the editor keeps the four paddings equal; the renderer only reads `padding`. "Balance edges"
   sets the four to their mean.
 - **Not in v3:** film grain and animated (shader) backgrounds. Animated backgrounds are a later format version (M5b).
+- **Looks are a separate store, not part of the document.** A look holds only the parts it was made with (background, padding, radius, shadow, frame, aspect), lengths for a picture
+  1280 px wide and scaled to the picture it is applied to. They live in `looks.json` in the app's config folder with their pictures as files (`looks/assets/<sha256>.<ext>`); Rust only stores text and
+  bytes, TypeScript validates every look on its own (one broken look never costs the others). The default look is a copy, so deleting a saved look does not change it. A picture that a look needs is
+  copied into the document when the look is applied (and pruned from `assets/` on save when nothing uses it).
+- **The automatic look runs in a hidden page, not in Rust.** A new capture is handed to a warm hidden window (`?window=present`) that draws the default look with the editor's own code and answers with the PNG
+  (`present_request` / `present_take` / `present_result`). Rust waits at most six seconds; on any failure the capture goes out as it was, with a "Could not apply your look" card and Try again. The original is kept
+  as `originals/<same name>.png` for 30 days; Edit opens it and applies the look as a presentation, so nothing is framed twice. The page exists only while the setting is on.
+- **Settings (Rust):** `presentation.auto` and `presentation.openInPresentation`; the look itself is not in `settings.json`.

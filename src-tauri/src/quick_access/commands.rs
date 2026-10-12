@@ -10,8 +10,8 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::DialogExt;
 
 use super::{
-    card_for_label, close, drag_image, file_of, notice_handler, reserve_hint_room, resize,
-    set_pending_delete, CardPayload,
+    card_for_label, close, drag_image, file_of, notice_handler, original_of, reserve_hint_room,
+    resize, set_pending_delete, CardPayload,
 };
 use crate::{capture::encode, platform};
 
@@ -186,7 +186,12 @@ pub async fn quick_access_file_bytes(app: AppHandle, id: String) -> Result<Respo
 /// "Edit": opens the screenshot of a card in the editor (as an unsaved document) and closes the card.
 #[tauri::command]
 pub async fn quick_access_edit(app: AppHandle, id: String) -> Result<(), String> {
-    let path = file_of(&app, &id).ok_or("This screenshot is no longer available.")?;
+    // With the automatic look the card shows the finished picture; the editor opens the capture before
+    // the look and puts the look on as a presentation, so nothing is framed twice.
+    let path = original_of(&app, &id)
+        .filter(|p| p.is_file())
+        .or_else(|| file_of(&app, &id))
+        .ok_or("This screenshot is no longer available.")?;
     crate::document::open_capture(&app, &path)?;
     close(&app, &id);
     Ok(())
@@ -227,6 +232,10 @@ pub async fn quick_access_notice_action(
                 close(&app, &id);
             }
         }
+        Handler::ApplyLook(path) => {
+            crate::capture::output::apply_look_to_file(&app, &path)?;
+            close(&app, &id);
+        }
         Handler::Reveal(path) => {
             platform::reveal_file(&path);
             close(&app, &id);
@@ -234,7 +243,7 @@ pub async fn quick_access_notice_action(
         Handler::RetrySave { frame, source } => {
             close(&app, &id);
             let frame = Arc::try_unwrap(frame).unwrap_or_else(|shared| (*shared).clone());
-            crate::capture::output::deliver(&app, frame, source);
+            crate::capture::output::deliver_finished(&app, frame, source, None);
         }
         Handler::ChooseFolder { frame, source } => {
             let Some(folder) = app.dialog().file().blocking_pick_folder() else {
@@ -243,7 +252,7 @@ pub async fn quick_access_notice_action(
             let folder = folder.into_path().map_err(|e| e.to_string())?;
             close(&app, &id);
             let frame = Arc::try_unwrap(frame).unwrap_or_else(|shared| (*shared).clone());
-            crate::capture::output::deliver_to(&app, frame, source, Some(folder));
+            crate::capture::output::deliver_finished(&app, frame, source, Some(folder));
         }
     }
     Ok(())

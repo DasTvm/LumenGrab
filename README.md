@@ -5,13 +5,13 @@ presentation layer (backgrounds, padding, shadows, window frames) that turns pla
 presentation-ready visuals.
 
 > **Status: early development.** Capture, Quick Access, the `.lumengrab` format and the editor (annotate, redact, crop, export) work;
-> the presentation layer, history, OCR and recording are still planned. Details: [docs/ROADMAP.md](docs/ROADMAP.md).
+> the presentation layer (backgrounds, frames, looks) is being finished; history, OCR and recording are still planned. Details: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Planned features
 
 - Fast capture (area, window, fullscreen, later scrolling) via global hotkey
 - Editor: crop, arrows, shapes, text, counters, highlighter, spotlight, blur / pixelate / solid redaction
-- Presentation layer: gradient, solid and image backgrounds, padding, rounded corners, shadows, window frames
+- Presentation layer: gradient, mesh, image and blurred-screenshot backgrounds, padding with auto-balance, rounded corners, shadows, window frames, social media sizes, your own saved looks, and a default look for every new screenshot (animated backgrounds later)
 - Our own single-file, editable format, **`.lumengrab`**: reopen any capture later and keep editing, with only that one file
   ([format spec](docs/FORMAT.md))
 - History, pinned screenshots, local OCR (copy text, QR codes)
@@ -29,6 +29,10 @@ to open it in the editor. Files from a newer version open read-only instead of b
 **The editor** (Quick Access **Edit**, or any `.lumengrab`): arrows, lines, shapes, text, counters, highlighter, pencil, spotlight,
 blur / pixelate / solid redaction, crop, layers with groups, undo and redo. Export as PNG, JPG or WebP (at 0.5×, 1×, 2× or a custom
 size), copy to the clipboard, or save a `.lumengrab`. Your work is autosaved to a recovery copy, and after a crash LumenGrab offers it back.
+
+**Presentation** (the tab next to Annotate): a background (solid, gradient, mesh, your own picture or a blurred copy of the screenshot), padding, rounded corners, a shadow,
+a window frame and an aspect ratio (including Instagram, X, LinkedIn and other sizes at their exact pixels). Save a combination as **your look**, and choose a default look
+that every new screenshot gets automatically (the saved file, the clipboard and drag-and-drop included; the original is kept for 30 days so you can still edit it).
 
 A `.lumengrab` file contains the **unredacted original** by design (so it stays editable). Exports and previews are
 always flat, with redactions baked in and the pixels destroyed.
