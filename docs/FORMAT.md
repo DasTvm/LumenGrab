@@ -1,6 +1,6 @@
 # `.lumengrab` File Format Specification
 
-Status: **v2, implemented in `src/document/` (v1: M3, v2 adds the `group` layer: M4)** · Extension: `.lumengrab` · Source of truth for the document model.
+Status: **v3, implemented in `src/document/` (v1: M3, v2 adds the `group` layer: M4, v3 adds the presentation features: M5)** · Extension: `.lumengrab` · Source of truth for the document model.
 
 ## 1. Goals
 
@@ -57,7 +57,7 @@ Rules:
 - `createdBy` names the version that first created the file and is kept on later saves. `modifiedAt` is set on every save. Timestamps are UTC, `YYYY-MM-DDTHH:MM:SSZ`.
 - `documentId` is a random UUID v4 created with the file and kept for its lifetime.
 
-## 4. `project.json` (v2)
+## 4. `project.json` (v3)
 
 All geometry is in **source-image pixel space** (origin top-left, y down). Colors are hex `#RRGGBB` or `#RRGGBBAA`. Angles in degrees. IDs are short unique strings (1 to 64 characters).
 
@@ -68,7 +68,7 @@ Numbers must be finite. A coordinate or length beyond +-1 000 000 is **clamped**
 ```ts
 // Reference types. Implement as Zod schemas in src/document/schema.ts
 type Project = {
-  version: 2
+  version: 3
   crop: { x: number; y: number; width: number; height: number } | null   // null = full image
   layers: Layer[]                     // z-order: first = bottom
   presentation: Presentation
@@ -110,20 +110,35 @@ type Redaction = BaseLayer & {
   seed: number              // randomization seed for pixelate, so output is deterministic per export
 }
 
+// v3 added what is marked "v3". A field marked "absent = x" means that x is used when the field is not there.
 type Presentation = {
-  enabled: boolean
+  enabled: boolean                    // false: the picture is exported as it is, the rest is kept
   background:
     | { type: "solid"; color: string }
-    | { type: "gradient"; angle: number; stops: { offset: number; color: string }[] }
-    | { type: "mesh"; seed: number; colors: string[] }
-    | { type: "image"; asset: string; fit: "cover" | "contain" }   // asset = file name in assets/
+    | { type: "gradient"; kind?: "linear" | "radial" /* v3, absent = linear */; angle: number; stops: { offset: number; color: string }[] }
+    | { type: "mesh"; seed: number; colors: string[];
+        smoothness?: number           // v3, 0..1, absent = 0.7
+        points?: [number, number][] } // v3, one per colour, each 0..1 of the canvas; absent = the seeded default layout
+    | { type: "image"; asset: string; fit: "cover" | "contain";   // asset = file name in assets/
+        blur?: number; dim?: number } // v3, blur radius in pixels (absent = 0), black over it 0..1 (absent = 0)
+    | { type: "source-blur"; blur: number; zoom: number; dim: number; saturation: number }  // v3: the picture itself, enlarged and blurred
     | { type: "transparent" }
   padding: { top: number; right: number; bottom: number; left: number }
-  autoBalance: boolean
+  autoBalance: boolean                // the editor keeps the four paddings equal while on; the renderer only reads `padding`
   cornerRadius: number
   shadow: { enabled: boolean; x: number; y: number; blur: number; spread: number; color: string }
-  frame: { type: "none" | "macos-window" | "windows-window" | "browser"; title?: string; url?: string }
-  aspect: { mode: "free" | "fixed"; ratio?: [number, number] }
+  frame: {
+    type: "none" | "macos-window" | "windows-window" | "browser" | "minimal" | "terminal"  // v3 adds minimal, terminal
+    theme?: "light" | "dark"          // v3, absent = light; a terminal is always dark
+    title?: string
+    url?: string
+  }
+  aspect: {
+    mode: "free" | "fixed"
+    ratio?: [number, number]
+    size?: [number, number]           // v3: export at exactly this many pixels (a social format); its shape wins over `ratio`
+    preset?: string                   // v3: the preset the user picked (list and safe area in the editor); never used for drawing
+  }
   exportScale: number
 }
 ```
@@ -133,6 +148,7 @@ Notes:
 - `visible: false` layers are not rendered, redactions included. Everything else about a layer is preserved.
 - **Groups (v2).** A group sits in the z-order of its parent like any layer and draws its children in order at that place. A hidden group hides everything inside it, **redactions included**. A locked group locks everything inside it (the editor does not select or change those layers). Groups are not drawn themselves: they have no geometry. The limit of 5000 layers counts every layer of the tree, groups included. Nesting deeper than 8 groups is an error (the file is rejected with the path of the group, e.g. `layers.1.layers.0`).
 - **Redactions inside groups are baked like any other** (section 7): the renderer collects them depth first, skips those with a hidden layer or group around them, and applies them to the full source image before anything is drawn.
+- `source-blur` is a `zoom` of 1 to 4, a `saturation` of 0 to 3, `dim` 0 to 1 and a `blur` radius of 0 or more pixels. A `mesh` has 1 to 16 colours; `points` has none or as many entries as `colors` (otherwise the default layout is used). A `gradient` has 2 to 16 stops. `aspect.size` sides are whole numbers from 1 to 16 384.
 - A new document starts with `crop: null`, no layers, and this presentation: `enabled: false`, solid `#F4F4F5`, padding 64 on every side, `autoBalance: true`, `cornerRadius: 12`, shadow on (`x 0, y 20, blur 50, spread 0, #00000040`), frame `none`, aspect `free`, `exportScale: 1`.
 - Redactions are layers like any other but are **always rendered baked** into flat exports (see section 7).
 - New layer types and fields are added by bumping `version` (see section 5).
@@ -159,9 +175,39 @@ The schema says *what* a layer is; these rules say *how it looks*. An old file m
 - **spotlight**: everything in the whole picture **outside** the shape (`rect` or the ellipse in the box) is darkened with black at `dimOpacity`. Several spotlights each darken for themselves.
 - **group**: draws its children in order. **redaction** is never drawn (it is already in the pixels). A layer type this version does not know is skipped.
 
+## 4b. Presentation rendering rules (normative, v3)
+
+These rules say how `presentation` looks when `enabled` is true. They are as binding as 4a: a change is a format change. **All lengths are pixels of the composition, i.e. of the finished picture before it is scaled for output.** The editor, the preview, the export, `preview.png` and the automatic look use the same drawing code (`src/presentation/`).
+
+**Order.** The picture is first made exactly as in 4a (redactions, annotations, crop). Then: (1) the background fills the canvas, (2) the shadow, (3) the window (title bar and picture), clipped by the corner radius, (4) the result is scaled for output. An `enabled: false` presentation changes nothing.
+
+**Layout.** Let `W x H` be the picture. A frame adds a title bar of `bar` pixels above it (`bar = round(base x k)`, `k = clamp(W / 1280, 0.5, 4)`, `base`: macOS 40, Windows 36, browser 52, minimal 24, terminal 36, none 0). The window is `W x (H + bar)`. The canvas is the window plus the four paddings. If a shape is wanted (`aspect.size` gives it as `size[0] / size[1]`, otherwise `mode: "fixed"` gives `ratio[0] / ratio[1]`), the canvas is made wider or taller until it has that shape and is **never made smaller**; the window stays centred in the extra space (an uneven padding keeps its unevenness). The canvas size is rounded to whole pixels.
+**Output.** With `aspect.size` the output is exactly that size (the composition is scaled by `size[0] / canvas width`). Without it the output is the canvas times `exportScale`, rounded; if its longest side would exceed 16 384 pixels the scale is reduced so it does not.
+
+**Corner radius.** The window (title bar included) is clipped to a rounded rectangle; the radius is at most half the shorter side.
+
+**Shadow.** The window's rounded rectangle, grown by `spread` on each side (radius + `spread`, never negative), moved by `x, y`, filled with `color` and blurred with a gaussian of standard deviation `blur / 2` (the CSS `box-shadow` rule). Only the shadow is drawn, not the shape; the window is drawn over it.
+
+**Backgrounds.**
+- *solid*: the colour.
+- *gradient*: stops are sorted by `offset` (equal offsets keep their order) and the colours are interpolated in sRGB. `linear`: the CSS rule. 0° points up, the angle turns clockwise, the line goes through the centre of the canvas and is `|W sin a| + |H cos a|` long (the corners get the first and last colour). `radial`: a circle around the centre of the canvas that reaches the farthest corner; offset 0 is the centre. `angle` is not used by `radial`.
+- *mesh*: `n` colours sit at `n` points (`points`, or the default layout). Default layout: the colours are laid on a lattice of `cols = ceil(sqrt(n))` columns and `ceil(n / cols)` rows covering the whole canvas (`x = col / (cols - 1)`, `0.5` for one column; the same for `y`). The mulberry32 generator of the seed (the one of the pixelate redaction, `seededRandom` in `src/document/render/pixels.ts`) is asked for two numbers per point, in order; each becomes an offset in `[-1, 1]` times `0.35 / (cols - 1)` (`/ (rows - 1)` for `y`; `/ 1` for a single column or row) added to the point's `x` and `y`, except that a point on the left or right edge keeps its `x` and a point on the top or bottom edge keeps its `y`. Every sample of the field is the average of the colours weighted by `1 / (d² + 0.004)^q` with `d` the distance to the point in canvas units (0 to 1 on each axis, no aspect correction) and `q = 1 + 3 x (1 - smoothness)`. The field has `round(side / 8)` samples per side (8 to 256) and is scaled up to the canvas smoothly.
+- *image*: the asset, `cover` (fills the canvas, centred, cropped) or `contain` (fits inside, centred; the rest stays transparent). `blur` is a gaussian blur of standard deviation `blur / 2`; `dim` lays black of that opacity over it. A missing or undecodable asset gives a plain `#F4F4F5`.
+- *source-blur*: the finished picture (without frame), laid over the canvas as `cover` and enlarged by `zoom`, blurred with standard deviation `blur / 2` (edges clamped, no fade at the border), the saturation multiplied by `saturation` (luma weights 0.2126, 0.7152, 0.0722), then darkened by `dim`.
+- *transparent*: nothing is drawn; a flat export to JPG puts it on white.
+The blurs are done at a reduced size and scaled back, so they differ from an exact gaussian by a few levels; the format only promises "looks the same".
+
+**Window frames** (all lengths times `k`; colours are fixed; `light` / `dark`: title bar `#F2F2F4` / `#2A2A2E`, hairline `#D9D9DE` / `#3A3A40`, text `#4B5563` / `#A1A1AA`, address field `#FFFFFF` / `#1B1B1E`; a terminal uses `#1F1F23`, `#34343A`, `#A1A1AA`). The bar ends in a hairline of `max(1, k)` pixels.
+- *macos-window*: three dots (`#FF5F57`, `#FEBC2E`, `#28C840`), radius 6, centres at `x = 20, 40, 60`; the title centred, Inter 500, size 13, at most the width minus 160.
+- *windows-window*: the title left at 14, Inter 500, size 12; minimise, maximise and close glyphs (5 half-size, stroke `max(1, k)`) centred in three cells of 46 at the right edge.
+- *browser*: three dots of radius 5 as in macOS; an address field from `x = 96` to `W - 96`, 28 high and fully rounded, containing the `url` (or `title`) centred, Inter 400, size 13; no field if it would be narrower than 120.
+- *minimal*: three dots of radius 4, centres at `x = 14, 28, 42`, in a neutral grey (`#C7C7CC` / `#55555B`), no text.
+- *terminal*: dark whatever `theme` says; like macOS, with the title in JetBrains Mono 400, size 12.
+Text that does not fit is cut with an ellipsis. A font that cannot be loaded falls back to the system font.
+
 ## 5. Versioning and migrations (mandatory process)
 
-1. `manifest.formatVersion` and `project.version` are integers that start at 1. **v2** added the `group` layer. Every v1 project is a valid v2 project, so the migration `v1 -> v2` changes nothing but the version. New files are written with `formatVersion 2` and `minReaderVersion 2`: a v1 reader would see a group as an unknown layer, not draw its children and so export a redaction inside it unredacted, so it must not open such a file for editing.
+1. `manifest.formatVersion` and `project.version` are integers that start at 1. **v2** added the `group` layer. Every v1 project is a valid v2 project, so the migration `v1 -> v2` changes nothing but the version. A v1 reader would see a group as an unknown layer, not draw its children and so export a redaction inside it unredacted, so it must not open such a file for editing. **v3** added the presentation features (new background types, frames, social sizes, section 4b) with a default for everything that is absent; the migration `v2 -> v3` is the identity as well. A v2 reader rejects a background type it does not know, so new files are written with `formatVersion 3` and `minReaderVersion 3`.
 2. **Any** change to `project.json` or the container layout that old readers cannot handle correctly requires:
    - bump `formatVersion` and `project.version`,
    - a pure migration function `migrate_vN_to_vN+1(project)` in `src/document/migrations/`,
@@ -189,7 +235,7 @@ Warnings never stop a file from opening: `source-size`, `source-hash`, `missing-
 
 **Write:**
 1. Build all entries in memory (or a temp file).
-2. Render `preview.png` from the current state (flat, redactions baked, longest edge at most 1024 px, PNG). `preview.png` is required on write; a file without one still opens (warning) and gets a new one when saved.
+2. Render `preview.png` from the current state (the finished picture: redactions baked, annotations drawn, crop taken and, when the presentation is on, section 4b applied; longest edge at most 1024 px, PNG). `preview.png` is required on write; a file without one still opens (warning) and gets a new one when saved.
 3. Write ZIP to a temp file next to the target, `fsync`, then **atomic rename**.
 4. Keep the previous file as `.bak` until the write is confirmed (optional setting).
 
@@ -217,7 +263,7 @@ Autosave: editor changes autosave to a recovery location in the app data dir, no
 
 ## 9. Test requirements
 
-Implemented: `src/document/*.test.ts` and `fixtures/lumengrab/`. The golden fixtures are `v1-minimal`, `v1-all-layers`, `v1-redactions`, `v1-unknown-fields` (v1) and `v2-groups` (nested, hidden and locked groups, a redaction inside, an unknown field on a group), each with a `.expected.json` of what a correct reader must produce; they were written by `scripts/make-fixtures.mjs` (independent of `src/document`) and are never edited. A v1 fixture opens as a v2 project: the test expects its `.expected.json` with `version` raised to the current one.
+Implemented: `src/document/*.test.ts` and `fixtures/lumengrab/`. The golden fixtures are `v1-minimal`, `v1-all-layers`, `v1-redactions`, `v1-unknown-fields` (v1) `v2-groups` (nested, hidden and locked groups, a redaction inside, an unknown field on a group) and, for v3, `v3-presentation` (mesh with points, per-side padding, a terminal frame, a social size), `v3-source-blur` (blurred screenshot, browser frame, 1.91:1 size), `v3-image-background` (image with blur and dim, minimal frame, an unknown field) and `v3-radial-gradient` (radial gradient with a transparent stop, Windows frame), each with a `.expected.json` of what a correct reader must produce; they were written by `scripts/make-fixtures.mjs` (independent of `src/document`) and are never edited. An older fixture opens as a project of the current version: the test expects its `.expected.json` with `version` raised to the current one.
 
 - Round-trip test: create -> save -> load -> equals original (including unknown fields).
 - Golden fixtures for every released version open and migrate cleanly.

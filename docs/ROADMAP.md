@@ -40,12 +40,16 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Undo and redo
   - [x] PNG, JPG and WebP export
   - [ ] Complete native editor acceptance checks on macOS and Windows
-- [ ] **M5 Presentation**: Backgrounds, padding, shadows and window frames.
-  - Status: next.
-  - [ ] Backgrounds and saved presets
-  - [ ] Padding, radius and shadows
-  - [ ] Aspect presets
-  - [ ] Window frames
+- [ ] **M5 Presentation**: Backgrounds, padding, shadows, window frames, social formats and a default look for every new screenshot.
+  - Status: building.
+  - [x] File format v3 and fixed rendering rules for presentation
+  - [ ] Backgrounds: solid, gradient, mesh, own image and blurred screenshot
+  - [ ] Padding, auto-balance, corner radius and shadows
+  - [ ] Window frames: macOS, Windows, browser, minimal and terminal
+  - [ ] Aspect ratios and social media formats
+  - [ ] Looks: built-in gallery and your own saved looks
+  - [ ] Default look for every new screenshot, set in Settings
+  - [ ] Complete native presentation acceptance checks on macOS and Windows
 - [ ] **M6 History, pin and OCR**: History, pinned captures, copy text, QR, all-in-one mode.
   - Status: planned.
   - [ ] Capture history
@@ -63,4 +67,4 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [ ] Long-chat capture
   - [ ] Stitching and export
 
-Later: Video editor with smart zooms, Device mockups, 3D tilt, Local auto-redact, Multi-format export, Upload targets you set up.
+Later: Animated backgrounds, exported as video, Video editor with smart zooms, Device mockups, 3D tilt, Local auto-redact, Multi-format export, Upload targets you set up.

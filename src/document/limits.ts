@@ -1,5 +1,5 @@
 /** The format version this build reads and writes. Bumped with every schema change (docs/FORMAT.md section 5). */
-export const FORMAT_VERSION = 2;
+export const FORMAT_VERSION = 3;
 
 /** Hard limits for reading a file (docs/FORMAT.md sections 2 and 7). A file beyond them is rejected, never partly read. */
 export interface Limits {

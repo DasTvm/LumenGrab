@@ -224,10 +224,60 @@ describe("project schema", () => {
       { type: "mesh", seed: 7, colors: ["#FF0000", "#00FF00"] },
       { type: "image", asset: `${"a".repeat(64)}.png`, fit: "cover" },
       { type: "transparent" },
+      {
+        type: "gradient",
+        kind: "radial",
+        angle: 0,
+        stops: [
+          { offset: 0, color: "#000000" },
+          { offset: 1, color: "#FFFFFF" },
+        ],
+      },
+      {
+        type: "mesh",
+        seed: 7,
+        colors: ["#FF0000", "#00FF00"],
+        smoothness: 0.5,
+        points: [
+          [0, 0],
+          [1, 1],
+        ],
+      },
+      { type: "image", asset: `${"a".repeat(64)}.png`, fit: "contain", blur: 6, dim: 0.2 },
+      { type: "source-blur", blur: 40, zoom: 1.3, dim: 0.1, saturation: 1.1 },
     ]) {
       expect(ProjectSchema.safeParse(withBackground(background)).success).toBe(true);
     }
     expect(ProjectSchema.safeParse(withBackground({ type: "plasma" })).success).toBe(false);
+  });
+
+  it("rejects invalid v3 presentation values", () => {
+    const withPresentation = (patch: Record<string, unknown>) => ({
+      ...defaultProject(),
+      presentation: { ...defaultProject().presentation, ...patch },
+    });
+    const bad = [
+      { background: { type: "source-blur", blur: 4, zoom: 0.5, dim: 0, saturation: 1 } },
+      { background: { type: "mesh", seed: 1, colors: ["#000000"], points: [[2, 0]] } },
+      { background: { type: "gradient", kind: "conic", angle: 0, stops: [] } },
+      { frame: { type: "toolbar" } },
+      { frame: { type: "browser", theme: "sepia" } },
+      { aspect: { mode: "fixed", ratio: [1, 1], size: [0, 100] } },
+      { aspect: { mode: "fixed", ratio: [1, 1], size: [20000, 100] } },
+    ];
+    for (const patch of bad) {
+      expect(ProjectSchema.safeParse(withPresentation(patch)).success, JSON.stringify(patch)).toBe(
+        false,
+      );
+    }
+    expect(
+      ProjectSchema.safeParse(
+        withPresentation({
+          frame: { type: "terminal", theme: "dark", title: "zsh" },
+          aspect: { mode: "fixed", ratio: [9, 16], size: [1080, 1920], preset: "instagram-story" },
+        }),
+      ).success,
+    ).toBe(true);
   });
 
   it("allows a crop of null or a rectangle", () => {

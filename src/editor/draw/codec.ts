@@ -1,5 +1,7 @@
 import { canvasCodec } from "@/document/render/canvas-codec";
 import type { ImageCodec } from "@/document/render/flatten";
+import { computeLayout } from "@/presentation/compose";
+import { presentImage } from "@/presentation/draw-presentation";
 import { drawLayers } from "./draw";
 import { ensureFonts } from "./fonts";
 
@@ -22,5 +24,23 @@ export const editorCodec: ImageCodec = {
     drawLayers(ctx, layers, { width: image.width, height: image.height });
     const { data } = ctx.getImageData(0, 0, image.width, image.height);
     return { width: image.width, height: image.height, data };
+  },
+  async present(image, presentation, assets) {
+    const layout = computeLayout(image, presentation);
+    const background = presentation.background;
+    let bitmap: ImageBitmap | null = null;
+    const bytes = background.type === "image" ? assets[background.asset] : undefined;
+    if (bytes) {
+      try {
+        bitmap = await createImageBitmap(new Blob([new Uint8Array(bytes)]));
+      } catch {
+        bitmap = null;
+      }
+    }
+    try {
+      return await presentImage(image, presentation, layout, bitmap);
+    } finally {
+      bitmap?.close();
+    }
   },
 };

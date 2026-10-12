@@ -1,5 +1,5 @@
 import { walkLayers } from "../layers";
-import type { Layer, Project } from "../schema";
+import type { Layer, Presentation, Project } from "../schema";
 import type { DocumentFile } from "../types";
 import { applyRedactions, cloneImage, cropImage, downscaleImage, type RgbaImage } from "./pixels";
 
@@ -15,6 +15,15 @@ export interface ImageCodec {
    * then) and returns the result. Missing: this codec cannot render a document with annotations.
    */
   annotate?(image: RgbaImage, layers: readonly Layer[]): Promise<RgbaImage>;
+  /**
+   * Puts the finished picture on its background with padding, shadow and frame (docs/FORMAT.md section
+   * 4b) and returns the result at output size. `assets` holds the files of the document for an image background.
+   */
+  present?(
+    image: RgbaImage,
+    presentation: Presentation,
+    assets: Readonly<Record<string, Uint8Array>>,
+  ): Promise<RgbaImage>;
 }
 
 /** Longest edge of `preview.png` (docs/FORMAT.md section 2). */
@@ -83,18 +92,34 @@ export async function flattenProject(
   return cropImage(drawn, project.crop);
 }
 
+/**
+ * What leaves the app: `flattenProject`, and when the presentation is on, laid on its background
+ * (padding, shadow, frame, aspect). The order is redactions, annotations, crop, presentation.
+ */
+export async function presentProject(
+  source: RgbaImage,
+  project: Project,
+  codec: ImageCodec,
+  assets: Readonly<Record<string, Uint8Array>> = {},
+): Promise<RgbaImage> {
+  const flat = await flattenProject(source, project, codec);
+  if (!project.presentation.enabled) return flat;
+  if (!codec.present) throw new Error("This renderer cannot draw a presentation.");
+  return codec.present(flat, project.presentation, assets);
+}
+
 /** Renders a document at full resolution as PNG bytes (for "Export as PNG"). */
 export async function renderFlat(doc: DocumentFile, codec: ImageCodec): Promise<Uint8Array> {
   if (!doc.project) throw new Error("This document is open read-only and cannot be rendered.");
   const source = await codec.decode(doc.source);
-  return codec.encode(await flattenProject(source, doc.project, codec));
+  return codec.encode(await presentProject(source, doc.project, codec, doc.assets));
 }
 
-/** Renders `preview.png`: the flat picture, longest edge at most 1024 px. */
+/** Renders `preview.png`: the finished picture (with its presentation), longest edge at most 1024 px. */
 export async function renderPreview(doc: DocumentFile, codec: ImageCodec): Promise<Uint8Array> {
   if (!doc.project) throw new Error("This document is open read-only and cannot be rendered.");
   const source = await codec.decode(doc.source);
   return codec.encode(
-    downscaleImage(await flattenProject(source, doc.project, codec), PREVIEW_MAX_EDGE),
+    downscaleImage(await presentProject(source, doc.project, codec, doc.assets), PREVIEW_MAX_EDGE),
   );
 }

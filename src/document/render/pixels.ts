@@ -131,7 +131,7 @@ function applySolid(image: RgbaImage, box: PixelRect, color: string | undefined)
  * One box-blur pass along one axis over a `length` x `lines` block, edges clamped to the block (so
  * nothing outside the redaction ever flows in). `stride` steps along the axis, `lineStride` between lines.
  */
-function boxBlurAxis(
+export function boxBlurAxis(
   data: Float32Array,
   length: number,
   lines: number,

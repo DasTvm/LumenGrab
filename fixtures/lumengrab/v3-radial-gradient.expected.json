@@ -1,0 +1,74 @@
+{
+  "manifest": {
+    "format": "lumengrab",
+    "formatVersion": 3,
+    "minReaderVersion": 3,
+    "createdBy": "LumenGrab 0.1.0 (fixture)",
+    "createdAt": "2026-10-06T12:00:00Z",
+    "modifiedAt": "2026-10-06T12:05:00Z",
+    "documentId": "00000000-0000-4000-8000-000000000009",
+    "source": {
+      "file": "source.png",
+      "width": 60,
+      "height": 40,
+      "scale": 2,
+      "sha256": "fec1236b3a53c792d53b0b2be675c126ed944cbe29a82ebfedab6df3662db133"
+    }
+  },
+  "project": {
+    "version": 3,
+    "crop": null,
+    "layers": [],
+    "presentation": {
+      "enabled": true,
+      "background": {
+        "type": "gradient",
+        "kind": "radial",
+        "angle": 0,
+        "stops": [
+          {
+            "offset": 0,
+            "color": "#84CC16"
+          },
+          {
+            "offset": 0.6,
+            "color": "#84CC1699"
+          },
+          {
+            "offset": 1,
+            "color": "#052E16"
+          }
+        ]
+      },
+      "padding": {
+        "top": 64,
+        "right": 64,
+        "bottom": 64,
+        "left": 64
+      },
+      "autoBalance": true,
+      "cornerRadius": 12,
+      "shadow": {
+        "enabled": true,
+        "x": 0,
+        "y": 20,
+        "blur": 50,
+        "spread": 0,
+        "color": "#00000040"
+      },
+      "frame": {
+        "type": "windows-window",
+        "title": "Fixture",
+        "theme": "light"
+      },
+      "aspect": {
+        "mode": "free"
+      },
+      "exportScale": 1
+    }
+  },
+  "assets": [],
+  "extraEntries": [],
+  "warnings": [],
+  "readOnly": null
+}

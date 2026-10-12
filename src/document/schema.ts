@@ -250,6 +250,8 @@ const BackgroundSchema = z.discriminatedUnion("type", [
   z.looseObject({ type: z.literal("solid"), color }),
   z.looseObject({
     type: z.literal("gradient"),
+    /** v3. Absent means `linear`. */
+    kind: z.enum(["linear", "radial"]).optional(),
     angle: num,
     stops: z
       .array(z.looseObject({ offset: unit, color }))
@@ -260,12 +262,31 @@ const BackgroundSchema = z.discriminatedUnion("type", [
     type: z.literal("mesh"),
     seed: z.number().int().min(0).max(0xffffffff),
     colors: z.array(color).min(1).max(16),
+    /** v3. How softly the colours blend, 0 to 1. Absent means 0.7. */
+    smoothness: unit.optional(),
+    /** v3. One `[x, y]` (0 to 1 of the canvas) per colour; absent means the seeded default layout. */
+    points: z
+      .array(z.tuple([unit, unit]))
+      .max(16)
+      .optional(),
   }),
   z.looseObject({
     type: z.literal("image"),
     /** File name inside `assets/`: `<sha256>.<ext>`. */
     asset: z.string().max(200),
     fit: z.enum(["cover", "contain"]),
+    /** v3. Blur radius in pixels. Absent means 0. */
+    blur: size.optional(),
+    /** v3. Black laid over the image, 0 to 1. Absent means 0. */
+    dim: unit.optional(),
+  }),
+  /** v3. The picture itself, enlarged and blurred. */
+  z.looseObject({
+    type: z.literal("source-blur"),
+    blur: size,
+    zoom: z.number().min(1).max(4),
+    dim: unit,
+    saturation: z.number().min(0).max(3),
   }),
   z.looseObject({ type: z.literal("transparent") }),
 ]);
@@ -274,6 +295,7 @@ export const PresentationSchema = z.looseObject({
   enabled: z.boolean(),
   background: BackgroundSchema,
   padding: z.looseObject({ top: size, right: size, bottom: size, left: size }),
+  /** The editor keeps the four paddings equal while this is on. The renderer only reads `padding`. */
   autoBalance: z.boolean(),
   cornerRadius: size,
   shadow: z.looseObject({
@@ -285,13 +307,22 @@ export const PresentationSchema = z.looseObject({
     color,
   }),
   frame: z.looseObject({
-    type: z.enum(["none", "macos-window", "windows-window", "browser"]),
+    /** v3 adds `minimal` and `terminal`. */
+    type: z.enum(["none", "macos-window", "windows-window", "browser", "minimal", "terminal"]),
+    /** v3. Absent means `light`. A `terminal` frame is always dark. */
+    theme: z.enum(["light", "dark"]).optional(),
     title: z.string().max(500).optional(),
     url: z.string().max(2000).optional(),
   }),
   aspect: z.looseObject({
     mode: z.enum(["free", "fixed"]),
     ratio: z.tuple([z.number().positive(), z.number().positive()]).optional(),
+    /** v3. Export at exactly this many pixels (a social format); `ratio` is its shape. */
+    size: z
+      .tuple([z.number().int().min(1).max(16384), z.number().int().min(1).max(16384)])
+      .optional(),
+    /** v3. Name of the preset the user picked (for the editor's list and safe area); not used for drawing. */
+    preset: z.string().max(64).optional(),
   }),
   exportScale: z.number().min(0.1).max(16),
 });

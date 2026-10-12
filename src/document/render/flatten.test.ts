@@ -9,6 +9,7 @@ import { createDocument, serializeDocument } from "../write";
 import {
   flattenImage,
   hasAnnotations,
+  presentProject,
   PREVIEW_MAX_EDGE,
   renderFlat,
   renderPreview,
@@ -224,5 +225,43 @@ describe("hasAnnotations", () => {
     expect(full.project && hasAnnotations(full.project)).toBe(true);
     const { doc: minimal } = await fixture("v1-minimal");
     expect(minimal.project && hasAnnotations(minimal.project)).toBe(false);
+  });
+});
+
+describe("presenting", () => {
+  it("returns the flat picture when the presentation is off and calls the codec when it is on", async () => {
+    const { doc } = await fixture("v3-source-blur");
+    if (!doc.project) throw new Error("fixture has a project");
+    const source = await nodeCodec.decode(doc.source);
+    const seen: unknown[] = [];
+    const codec = {
+      ...nodeCodec,
+      present: (
+        image: { width: number; height: number },
+        presentation: unknown,
+        assets: unknown,
+      ) => {
+        seen.push([image.width, image.height], presentation, assets);
+        return Promise.resolve(
+          asImage({ width: 1, height: 1, data: new Uint8Array([1, 2, 3, 255]) }),
+        );
+      },
+    };
+    const off = { ...doc.project, presentation: { ...doc.project.presentation, enabled: false } };
+    const flat = await presentProject(source, off, codec, {});
+    expect(seen).toEqual([]);
+    expect([flat.width, flat.height]).toEqual([60, 40]); // no crop, no annotations
+
+    const on = await presentProject(source, doc.project, codec, { a: new Uint8Array(1) });
+    expect(on.width).toBe(1);
+    expect(seen[0]).toEqual([60, 40]); // the finished picture
+    expect(seen[1]).toBe(doc.project.presentation);
+  });
+
+  it("refuses to export without the presentation instead of dropping it silently", async () => {
+    const { doc } = await fixture("v3-source-blur");
+    if (!doc.project) throw new Error("fixture has a project");
+    const source = await nodeCodec.decode(doc.source);
+    await expect(presentProject(source, doc.project, nodeCodec)).rejects.toThrow(/presentation/);
   });
 });

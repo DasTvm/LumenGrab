@@ -178,27 +178,47 @@
     {
       "id": "M5",
       "title": "Presentation",
-      "description": "Backgrounds, padding, shadows and window frames.",
-      "status": "next",
+      "description": "Backgrounds, padding, shadows, window frames, social formats and a default look for every new screenshot.",
+      "status": "building",
       "tasks": [
         {
           "id": "task-1",
-          "title": "Backgrounds and saved presets",
-          "done": false
+          "title": "File format v3 and fixed rendering rules for presentation",
+          "done": true
         },
         {
           "id": "task-2",
-          "title": "Padding, radius and shadows",
+          "title": "Backgrounds: solid, gradient, mesh, own image and blurred screenshot",
           "done": false
         },
         {
           "id": "task-3",
-          "title": "Aspect presets",
+          "title": "Padding, auto-balance, corner radius and shadows",
           "done": false
         },
         {
           "id": "task-4",
-          "title": "Window frames",
+          "title": "Window frames: macOS, Windows, browser, minimal and terminal",
+          "done": false
+        },
+        {
+          "id": "task-5",
+          "title": "Aspect ratios and social media formats",
+          "done": false
+        },
+        {
+          "id": "task-6",
+          "title": "Looks: built-in gallery and your own saved looks",
+          "done": false
+        },
+        {
+          "id": "task-7",
+          "title": "Default look for every new screenshot, set in Settings",
+          "done": false
+        },
+        {
+          "id": "task-8",
+          "title": "Complete native presentation acceptance checks on macOS and Windows",
           "done": false
         }
       ]
@@ -279,6 +299,11 @@
     }
   ],
   "later": [
+    {
+      "id": "animated-backgrounds",
+      "title": "Animated backgrounds, exported as video",
+      "icon": "sparkles"
+    },
     {
       "id": "video-editor",
       "title": "Video editor with smart zooms",

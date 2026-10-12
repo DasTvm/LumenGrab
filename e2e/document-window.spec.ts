@@ -142,7 +142,7 @@ test.describe("document window (browser mock)", () => {
     const dialog = page.getByRole("alertdialog", { name: "Opened read-only" });
     await expect(dialog).toContainText("created with a newer version of LumenGrab");
     await expect(page.getByTestId("document-dialog-detail")).toHaveText(
-      "File version 4 · LumenGrab supports up to 2",
+      "File version 4 · LumenGrab supports up to 3",
     );
     await page.screenshot({
       path: "test-results/document-read-only-light.png",

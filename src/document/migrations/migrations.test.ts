@@ -3,11 +3,12 @@ import { DocumentError } from "../errors";
 import { MIGRATIONS, migrateToLatest, type Migration } from "./index";
 
 describe("migrations scaffold", () => {
-  it("upgrades a v1 project to v2 without changing it (v2 only added the group layer)", () => {
-    expect(Object.keys(MIGRATIONS)).toEqual(["1"]);
+  it("upgrades v1 and v2 projects without changing them (v2 added groups, v3 presentation features)", () => {
+    expect(Object.keys(MIGRATIONS)).toEqual(["1", "2"]);
     const project = { version: 1, layers: [{ id: "a", type: "rect" }], future: { keep: true } };
-    expect(migrateToLatest(project, 1)).toEqual({ ...project, version: 2 });
-    expect(migrateToLatest({ version: 2, layers: [] }, 2)).toEqual({ version: 2, layers: [] });
+    expect(migrateToLatest(project, 1)).toEqual({ ...project, version: 3 });
+    expect(migrateToLatest({ ...project, version: 2 }, 2)).toEqual({ ...project, version: 3 });
+    expect(migrateToLatest({ version: 3, layers: [] }, 3)).toEqual({ version: 3, layers: [] });
   });
 
   it("runs the steps in order and stamps the new version after each", () => {

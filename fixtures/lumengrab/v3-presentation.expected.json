@@ -1,0 +1,114 @@
+{
+  "manifest": {
+    "format": "lumengrab",
+    "formatVersion": 3,
+    "minReaderVersion": 3,
+    "createdBy": "LumenGrab 0.1.0 (fixture)",
+    "createdAt": "2026-10-06T12:00:00Z",
+    "modifiedAt": "2026-10-06T12:05:00Z",
+    "documentId": "00000000-0000-4000-8000-000000000006",
+    "source": {
+      "file": "source.png",
+      "width": 80,
+      "height": 50,
+      "scale": 2,
+      "sha256": "5e191f046dc62010257a035cdb9a1fa0dfa28b658feb3d69a3d90e9ff9c9a3ed"
+    }
+  },
+  "project": {
+    "version": 3,
+    "crop": {
+      "x": 4,
+      "y": 2,
+      "width": 72,
+      "height": 46
+    },
+    "layers": [
+      {
+        "id": "r1",
+        "visible": true,
+        "locked": false,
+        "type": "rect",
+        "x": 8,
+        "y": 8,
+        "width": 30,
+        "height": 16,
+        "rotation": 0,
+        "stroke": "#FFFFFF",
+        "fill": null,
+        "strokeWidth": 2,
+        "radius": 2
+      }
+    ],
+    "presentation": {
+      "enabled": true,
+      "background": {
+        "type": "mesh",
+        "seed": 4242,
+        "colors": [
+          "#0F172A",
+          "#1D4ED8",
+          "#C8FF2E",
+          "#F97316"
+        ],
+        "smoothness": 0.6,
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            0.1
+          ],
+          [
+            0.2,
+            1
+          ],
+          [
+            0.9,
+            0.9
+          ]
+        ]
+      },
+      "padding": {
+        "top": 20,
+        "right": 58,
+        "bottom": 28,
+        "left": 40
+      },
+      "autoBalance": false,
+      "cornerRadius": 10,
+      "shadow": {
+        "enabled": true,
+        "x": 2,
+        "y": 12,
+        "blur": 30,
+        "spread": -4,
+        "color": "#00000055"
+      },
+      "frame": {
+        "type": "terminal",
+        "title": "zsh",
+        "theme": "dark"
+      },
+      "aspect": {
+        "mode": "fixed",
+        "ratio": [
+          9,
+          16
+        ],
+        "size": [
+          1080,
+          1920
+        ],
+        "preset": "instagram-story"
+      },
+      "exportScale": 1
+    }
+  },
+  "assets": [],
+  "extraEntries": [],
+  "warnings": [],
+  "readOnly": null
+}

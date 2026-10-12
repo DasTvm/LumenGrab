@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Writes the golden fixtures of every format version into fixtures/lumengrab/ (v1: first run, v2: the
-// `group` layer).
+// `group` layer, v3: the presentation features of M5).
 //
 // Each fixture was written ONCE. The files are committed and must never be edited or regenerated
 // (docs/FORMAT.md section 5, rule 7): they prove that every released version keeps opening.
@@ -464,6 +464,142 @@ const fixtures = [];
         },
       ],
       presentation: presentation(),
+    },
+    entries: { "source.png": [image, 0], "preview.png": [image, 0] },
+    assets: [],
+    extraEntries: [],
+  });
+}
+
+const v3 = { formatVersion: 3, minReaderVersion: 3 };
+{
+  const source = { width: 80, height: 50 };
+  const image = gradient(source.width, source.height);
+  fixtures.push({
+    name: "v3-presentation",
+    manifest: manifest("00000000-0000-4000-8000-000000000006", source, image, v3),
+    project: {
+      version: 3,
+      crop: { x: 4, y: 2, width: 72, height: 46 },
+      layers: [
+        {
+          id: "r1",
+          ...common,
+          type: "rect",
+          x: 8,
+          y: 8,
+          width: 30,
+          height: 16,
+          rotation: 0,
+          stroke: "#FFFFFF",
+          fill: null,
+          strokeWidth: 2,
+          radius: 2,
+        },
+      ],
+      presentation: presentation({
+        enabled: true,
+        background: {
+          type: "mesh",
+          seed: 4242,
+          colors: ["#0F172A", "#1D4ED8", "#C8FF2E", "#F97316"],
+          smoothness: 0.6,
+          points: [
+            [0, 0],
+            [1, 0.1],
+            [0.2, 1],
+            [0.9, 0.9],
+          ],
+        },
+        padding: { top: 20, right: 58, bottom: 28, left: 40 },
+        autoBalance: false,
+        cornerRadius: 10,
+        shadow: { enabled: true, x: 2, y: 12, blur: 30, spread: -4, color: "#00000055" },
+        frame: { type: "terminal", title: "zsh", theme: "dark" },
+        aspect: { mode: "fixed", ratio: [9, 16], size: [1080, 1920], preset: "instagram-story" },
+        exportScale: 1,
+      }),
+    },
+    entries: { "source.png": [image, 0], "preview.png": [image, 0] },
+    assets: [],
+    extraEntries: [],
+  });
+}
+{
+  const source = { width: 60, height: 40 };
+  const image = stripes(source.width, source.height);
+  fixtures.push({
+    name: "v3-source-blur",
+    manifest: manifest("00000000-0000-4000-8000-000000000007", source, image, v3),
+    project: {
+      version: 3,
+      crop: null,
+      layers: [],
+      presentation: presentation({
+        enabled: true,
+        background: { type: "source-blur", blur: 40, zoom: 1.3, dim: 0.1, saturation: 1.1 },
+        frame: { type: "browser", title: "Checkout", url: "lumengrab.app/checkout", theme: "dark" },
+        aspect: { mode: "fixed", ratio: [1.91, 1], size: [1200, 628], preset: "linkedin-link" },
+        exportScale: 2,
+      }),
+    },
+    entries: { "source.png": [image, 0], "preview.png": [image, 0] },
+    assets: [],
+    extraEntries: [],
+  });
+}
+{
+  const source = { width: 60, height: 40 };
+  const image = gradient(source.width, source.height);
+  const asset = stripes(16, 16);
+  const assetName = `${sha256(asset)}.png`;
+  fixtures.push({
+    name: "v3-image-background",
+    manifest: manifest("00000000-0000-4000-8000-000000000008", source, image, v3),
+    project: {
+      version: 3,
+      crop: null,
+      layers: [],
+      presentation: presentation({
+        enabled: true,
+        background: { type: "image", asset: assetName, fit: "contain", blur: 6, dim: 0.2 },
+        frame: { type: "minimal" },
+        futurePresentationField: ["keep", "me"],
+      }),
+    },
+    entries: {
+      "source.png": [image, 0],
+      "preview.png": [image, 0],
+      [`assets/${assetName}`]: [asset, 0],
+    },
+    assets: [assetName],
+    extraEntries: [],
+  });
+}
+{
+  const source = { width: 60, height: 40 };
+  const image = gradient(source.width, source.height);
+  fixtures.push({
+    name: "v3-radial-gradient",
+    manifest: manifest("00000000-0000-4000-8000-000000000009", source, image, v3),
+    project: {
+      version: 3,
+      crop: null,
+      layers: [],
+      presentation: presentation({
+        enabled: true,
+        background: {
+          type: "gradient",
+          kind: "radial",
+          angle: 0,
+          stops: [
+            { offset: 0, color: "#84CC16" },
+            { offset: 0.6, color: "#84CC1699" },
+            { offset: 1, color: "#052E16" },
+          ],
+        },
+        frame: { type: "windows-window", title: "Fixture", theme: "light" },
+      }),
     },
     entries: { "source.png": [image, 0], "preview.png": [image, 0] },
     assets: [],
