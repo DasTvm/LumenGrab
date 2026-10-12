@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-12T07:22:17.223Z",
+  "generatedAt": "2026-10-12T17:38:29.166Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -527,6 +527,13 @@
       "category": "fixed",
       "title": "reorder layers with pointer events (HTML5 drag and drop does not work in the system WebViews)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/36f1b9f5a8405468946d93e1b409b4a74d59c1c8"
+    },
+    {
+      "id": "826f31474301e64df570b69cb91943345a5d808e",
+      "date": "2026-10-12T17:38:15Z",
+      "category": "new",
+      "title": "format v3 with fixed rendering rules, layout, backgrounds, frames and the drawing code (M5 stages 0-2)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/826f31474301e64df570b69cb91943345a5d808e"
     }
   ],
   "releases": [],
@@ -605,7 +612,8 @@
     "48eb86241ba4f29a6c80686867273f2a9dfec572",
     "419002fd88514d982e58e638f9e91cf23bd4aaf5",
     "8621951bf21bd8ef126c5590c0b6bdd9761a923f",
-    "36f1b9f5a8405468946d93e1b409b4a74d59c1c8"
+    "36f1b9f5a8405468946d93e1b409b4a74d59c1c8",
+    "826f31474301e64df570b69cb91943345a5d808e"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -787,27 +795,47 @@
       {
         "id": "M5",
         "title": "Presentation",
-        "description": "Backgrounds, padding, shadows and window frames.",
-        "status": "next",
+        "description": "Backgrounds, padding, shadows, window frames, social formats and a default look for every new screenshot.",
+        "status": "building",
         "tasks": [
           {
             "id": "task-1",
-            "title": "Backgrounds and saved presets",
-            "done": false
+            "title": "File format v3 and fixed rendering rules for presentation",
+            "done": true
           },
           {
             "id": "task-2",
-            "title": "Padding, radius and shadows",
+            "title": "Backgrounds: solid, gradient, mesh, own image and blurred screenshot",
             "done": false
           },
           {
             "id": "task-3",
-            "title": "Aspect presets",
+            "title": "Padding, auto-balance, corner radius and shadows",
             "done": false
           },
           {
             "id": "task-4",
-            "title": "Window frames",
+            "title": "Window frames: macOS, Windows, browser, minimal and terminal",
+            "done": false
+          },
+          {
+            "id": "task-5",
+            "title": "Aspect ratios and social media formats",
+            "done": false
+          },
+          {
+            "id": "task-6",
+            "title": "Looks: built-in gallery and your own saved looks",
+            "done": false
+          },
+          {
+            "id": "task-7",
+            "title": "Default look for every new screenshot, set in Settings",
+            "done": false
+          },
+          {
+            "id": "task-8",
+            "title": "Complete native presentation acceptance checks on macOS and Windows",
             "done": false
           }
         ]
@@ -888,6 +916,11 @@
       }
     ],
     "later": [
+      {
+        "id": "animated-backgrounds",
+        "title": "Animated backgrounds, exported as video",
+        "icon": "sparkles"
+      },
       {
         "id": "video-editor",
         "title": "Video editor with smart zooms",
