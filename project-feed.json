@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-12T22:30:03.119Z",
+  "generatedAt": "2026-10-12T22:41:35.187Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -555,6 +555,13 @@
       "category": "new",
       "title": "Settings > Presentation (M5 stage 6)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/e67ca45b9f85597a4badf54e09bc9e5888832daa"
+    },
+    {
+      "id": "a23e1b42bec9fa5f37295a326fe40d075dd1c9bd",
+      "date": "2026-10-12T22:41:25Z",
+      "category": "new",
+      "title": "the automatic look for every new screenshot (M5 stage 7)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/a23e1b42bec9fa5f37295a326fe40d075dd1c9bd"
     }
   ],
   "releases": [],
@@ -637,7 +644,8 @@
     "826f31474301e64df570b69cb91943345a5d808e",
     "9447f197aa1124db7a30e78fe87e855d08569237",
     "3784b5dc7acd2654fa409543c102bfffb2b9c98e",
-    "e67ca45b9f85597a4badf54e09bc9e5888832daa"
+    "e67ca45b9f85597a4badf54e09bc9e5888832daa",
+    "a23e1b42bec9fa5f37295a326fe40d075dd1c9bd"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -855,7 +863,7 @@
           {
             "id": "task-7",
             "title": "Default look for every new screenshot, set in Settings",
-            "done": false
+            "done": true
           },
           {
             "id": "task-8",
