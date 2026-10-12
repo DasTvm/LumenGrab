@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-12T22:24:56.919Z",
+  "generatedAt": "2026-10-12T22:30:03.119Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -548,6 +548,13 @@
       "category": "new",
       "title": "own looks, default look and background pictures that stay with a look (M5 stage 5)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/3784b5dc7acd2654fa409543c102bfffb2b9c98e"
+    },
+    {
+      "id": "e67ca45b9f85597a4badf54e09bc9e5888832daa",
+      "date": "2026-10-12T22:29:50Z",
+      "category": "new",
+      "title": "Settings > Presentation (M5 stage 6)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/e67ca45b9f85597a4badf54e09bc9e5888832daa"
     }
   ],
   "releases": [],
@@ -629,7 +636,8 @@
     "36f1b9f5a8405468946d93e1b409b4a74d59c1c8",
     "826f31474301e64df570b69cb91943345a5d808e",
     "9447f197aa1124db7a30e78fe87e855d08569237",
-    "3784b5dc7acd2654fa409543c102bfffb2b9c98e"
+    "3784b5dc7acd2654fa409543c102bfffb2b9c98e",
+    "e67ca45b9f85597a4badf54e09bc9e5888832daa"
   ],
   "roadmap": {
     "schemaVersion": 1,
