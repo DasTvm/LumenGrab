@@ -3,6 +3,7 @@ import type { EditorStoreApi } from "../model/store";
 import { findLayer } from "../model/tree";
 import { startCrop } from "./crop-mode";
 import { switchMode } from "./mode";
+import type { DocumentSession } from "./session";
 import type { ToolId } from "./tools";
 import type { EditorCommand } from "./shortcuts";
 import type { UiStoreApi } from "./ui-store";
@@ -13,6 +14,8 @@ export interface CommandEnv {
   ui: UiStoreApi;
   /** Commands that leave the editor (save, export, copy); the window supplies them. */
   outside?: Partial<Record<"save" | "saveAs" | "export" | "copy", () => void>>;
+  /** The document session, which the mode switch needs to apply a look with a picture. */
+  session?: DocumentSession;
 }
 
 /**
@@ -54,7 +57,12 @@ export function runCommand(command: EditorCommand, env: CommandEnv): void {
   if (ui.getState().mode === "presentation" && !PRESENTATION_COMMANDS.has(command.type)) return;
   switch (command.type) {
     case "toggleMode":
-      switchMode(editor, ui, ui.getState().mode === "annotate" ? "presentation" : "annotate");
+      switchMode(
+        editor,
+        ui,
+        ui.getState().mode === "annotate" ? "presentation" : "annotate",
+        env.session,
+      );
       return;
     case "undo":
       state.undo();

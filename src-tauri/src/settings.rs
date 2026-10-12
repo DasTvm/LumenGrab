@@ -158,11 +158,16 @@ fn write_atomic(path: &Path, settings: &Settings) -> Result<(), String> {
     crate::fsutil::write_atomic(path, &json).map_err(|e| format!("{}: {e}", path.display()))
 }
 
-pub fn init(app: &AppHandle) -> tauri::Result<()> {
+/// The app's config folder (dev builds can point it elsewhere with `LUMENGRAB_DEV_CONFIG_DIR`).
+pub fn config_dir(app: &AppHandle) -> tauri::Result<PathBuf> {
     let dir = app.path().app_config_dir()?;
     #[cfg(any(debug_assertions, feature = "dev-hooks"))]
     let dir = std::env::var("LUMENGRAB_DEV_CONFIG_DIR").map_or(dir, std::path::PathBuf::from);
-    let path = dir.join("settings.json");
+    Ok(dir)
+}
+
+pub fn init(app: &AppHandle) -> tauri::Result<()> {
+    let path = config_dir(app)?.join("settings.json");
     app.manage(SettingsStore::load(path));
     Ok(())
 }

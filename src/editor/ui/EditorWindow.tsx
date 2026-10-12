@@ -11,6 +11,8 @@ import { EditorCanvas } from "./EditorCanvas";
 import { RightPanel } from "./RightPanel";
 import { commandForKey } from "./shortcuts";
 import { ToolRail } from "./ToolRail";
+import { LookNoticeBanner } from "./LookNoticeBanner";
+import { ToastStack } from "./ToastStack";
 import { TopBar } from "./TopBar";
 import { createUiStore, type UiStoreApi } from "./ui-store";
 import { ExportDialog } from "./dialogs/ExportDialog";
@@ -24,6 +26,7 @@ import { findLayer } from "../model/tree";
 import { walkLayers } from "@/document/layers";
 import { isSystemFontId, systemFontFamily } from "@/document/limits";
 import { installedFonts } from "./FontPicker";
+import { looksStore } from "./presentation/looks-instance";
 
 declare global {
   interface Window {
@@ -99,6 +102,11 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
 
   useEffect(() => session.start(), [session]);
 
+  // The user's looks are read early, so the first switch to Presentation already knows the default look.
+  useEffect(() => {
+    void looksStore.getState().init();
+  }, []);
+
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTyping(e.target)) return;
@@ -132,6 +140,7 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
       runCommand(command, {
         editor,
         ui,
+        session,
         outside: {
           save: () => {
             void session.save();
@@ -196,11 +205,13 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
             ))}
           </ul>
         ) : null}
+        <LookNoticeBanner />
         <div className="flex min-h-0 flex-1">
           {mode === "annotate" ? <ToolRail readOnly={false} /> : null}
           <EditorCanvas base={base} />
           <RightPanel readOnly={false} />
         </div>
+        <ToastStack />
         {dialog?.type === "export" ? (
           <ExportDialog
             documentName={meta.fileName}

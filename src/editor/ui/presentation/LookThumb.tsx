@@ -13,12 +13,14 @@ interface Props {
   /** Size on screen in CSS pixels. */
   width: number;
   height: number;
+  /** Give the canvas the shape of the tile, so the background fills it and the window floats in the middle. */
+  fill?: boolean;
   /** A picture of the user's look with its own background image (decoded), if it has one. */
   backgroundImage?: CanvasImageSource | null;
 }
 
 /** A look on a small skeleton window, drawn by the same code as the real thing. */
-export function LookThumb({ look, width, height, backgroundImage = null }: Props) {
+export function LookThumb({ look, width, height, fill = false, backgroundImage = null }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const canvas = ref.current;
@@ -28,7 +30,10 @@ export function LookThumb({ look, width, height, backgroundImage = null }: Props
     canvas.height = Math.round(height * dpr);
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const presentation = previewPresentation(look, PICTURE.width);
+    const shown = previewPresentation(look, PICTURE.width);
+    const presentation = fill
+      ? { ...shown, aspect: { mode: "fixed" as const, ratio: [width, height] as [number, number] } }
+      : shown;
     let alive = true;
     void ensureFrameFonts(presentation.frame).then(() => {
       if (!alive) return;
@@ -49,6 +54,6 @@ export function LookThumb({ look, width, height, backgroundImage = null }: Props
     return () => {
       alive = false;
     };
-  }, [look, width, height, backgroundImage]);
+  }, [look, width, height, fill, backgroundImage]);
   return <canvas ref={ref} aria-hidden className="block rounded-md" style={{ width, height }} />;
 }

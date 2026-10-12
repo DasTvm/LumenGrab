@@ -42,10 +42,10 @@ test.describe("presentation mode (browser mock)", () => {
   test("a look applies at once and one undo takes it back", async ({ page }) => {
     await open(page);
     await toPresentation(page);
-    await page.getByRole("button", { name: "Citrus" }).click();
+    await page.getByRole("button", { name: "Citrus", exact: true }).click();
     let p = await presentation(page);
     expect(p.background).toMatchObject({ type: "gradient", angle: 150 });
-    await expect(page.getByRole("button", { name: "Citrus" })).toHaveAttribute(
+    await expect(page.getByRole("button", { name: "Citrus", exact: true })).toHaveAttribute(
       "aria-pressed",
       "true",
     );
@@ -224,7 +224,7 @@ test.describe("presentation mode (browser mock)", () => {
     await page.getByRole("button", { name: "Remove the presentation" }).click();
     expect((await presentation(page)).enabled).toBe(false);
     await expect(page.getByRole("status")).toContainText("The presentation is off");
-    await page.getByRole("button", { name: "Paper" }).click();
+    await page.getByRole("button", { name: "Paper", exact: true }).click();
     expect((await presentation(page)).enabled).toBe(true);
   });
 
@@ -238,5 +238,176 @@ test.describe("presentation mode (browser mock)", () => {
     expect(await page.evaluate(() => window.__lumengrabEditor?.ui.getState().tool)).toBe("select");
     await page.keyboard.press("ControlOrMeta+Shift+p");
     await expect(page.getByTestId("presentation-panel")).toHaveCount(0);
+  });
+
+  test("save the current settings as my look, and it is there after a reload", async ({ page }) => {
+    await open(page);
+    await toPresentation(page);
+    await expect(page.getByText("Save the current background, padding and frame")).toBeVisible();
+    await page.getByRole("button", { name: "Save as my look" }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Save as my look" });
+    await expect(dialog).toBeVisible();
+    await page.screenshot({
+      path: "test-results/presentation-save-look.png",
+      animations: "disabled",
+    });
+    await dialog.getByLabel("Name").fill("Client demo");
+    await dialog.getByRole("checkbox", { name: "Window frame" }).click(); // leave the frame out
+    await dialog.getByRole("button", { name: "Save look" }).click();
+    await expect(page.getByTestId("toasts")).toContainText("Saved as “Client demo”");
+    await expect(page.getByRole("button", { name: "Client demo", exact: true })).toBeVisible();
+    const stored = await page.evaluate(() => window.localStorage.getItem("lumengrab.mock.looks"));
+    const file = JSON.parse(stored ?? "{}") as {
+      looks: { name: string; parts: Record<string, unknown> }[];
+    };
+    expect(file.looks.map((l) => l.name)).toEqual(["Client demo"]);
+    expect(Object.keys(file.looks[0]?.parts ?? {}).sort()).toEqual([
+      "background",
+      "cornerRadius",
+      "padding",
+      "shadow",
+    ]);
+
+    await page.reload();
+    await expect(page.getByTestId("editor-canvas")).toBeVisible();
+    await toPresentation(page);
+    await expect(page.getByRole("button", { name: "Client demo", exact: true })).toBeVisible();
+  });
+
+  test("a look is applied with its own padding scaled to the picture, and a name that is taken asks first", async ({
+    page,
+  }) => {
+    await open(page);
+    await toPresentation(page);
+    await page.getByRole("slider", { name: "Padding" }).fill("128");
+    await page.getByRole("button", { name: "Save as my look" }).first().click();
+    const dialog = page.getByRole("dialog", { name: "Save as my look" });
+    await dialog.getByLabel("Name").fill("Wide");
+    await dialog.getByRole("button", { name: "Save look" }).click();
+    await page.getByRole("button", { name: "Citrus", exact: true }).click();
+    await page.getByRole("slider", { name: "Padding" }).fill("10");
+    await page.getByRole("button", { name: "Wide", exact: true }).click();
+    expect((await presentation(page)).padding.top).toBe(128);
+
+    await page.getByRole("button", { name: "Save current" }).click();
+    const again = page.getByRole("dialog", { name: "Save as my look" });
+    await again.getByLabel("Name").fill("wide");
+    await again.getByRole("button", { name: "Save look" }).click();
+    const replace = page.getByRole("dialog", { name: "Replace “wide”?" });
+    await expect(replace).toBeVisible();
+    await replace.getByRole("button", { name: "Cancel" }).click();
+    await expect(again).toBeVisible(); // back to the name
+    await again.getByRole("button", { name: "Save look" }).click();
+    await page
+      .getByRole("dialog", { name: "Replace “wide”?" })
+      .getByRole("button", { name: "Replace" })
+      .click();
+    await expect(page.getByTestId("toasts")).toContainText("Saved as “wide”");
+    const stored = await page.evaluate(() => window.localStorage.getItem("lumengrab.mock.looks"));
+    expect((JSON.parse(stored ?? "{}") as { looks: unknown[] }).looks).toHaveLength(1);
+  });
+
+  test("the menu of a look: rename, update, delete with Undo", async ({ page }) => {
+    await open(page);
+    await toPresentation(page);
+    await page.getByRole("button", { name: "Save as my look" }).first().click();
+    await page.getByRole("dialog").getByLabel("Name").fill("Docs");
+    await page.getByRole("dialog").getByRole("button", { name: "Save look" }).click();
+    const looks = async () =>
+      JSON.parse(
+        (await page.evaluate(() => window.localStorage.getItem("lumengrab.mock.looks"))) ?? "{}",
+      ) as {
+        looks: { name: string; parts: { cornerRadius?: number } }[];
+      };
+
+    await page.getByRole("button", { name: "More actions for Docs" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "Rename" }).click();
+    const rename = page.getByTestId("look-rename");
+    await rename.fill("Handbook");
+    await rename.press("Enter");
+    expect((await looks()).looks[0]?.name).toBe("Handbook");
+
+    await page.getByRole("slider", { name: "Corner radius" }).fill("44");
+    await page.getByRole("button", { name: "More actions for Handbook" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "Update with current settings" }).click();
+    // A look keeps lengths for a picture 1280 px wide; this one is wider, so 44 px is stored smaller.
+    const width = await page.evaluate(
+      () => window.__lumengrabEditor?.ui.getState().imageSize.width ?? 0,
+    );
+    await expect
+      .poll(async () => (await looks()).looks[0]?.parts.cornerRadius)
+      .toBe(Math.round(44 / (width / 1280)));
+
+    await page.getByRole("button", { name: "More actions for Handbook" }).click({ force: true });
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    const confirm = page.getByRole("dialog", { name: "Delete “Handbook”?" });
+    await confirm.getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByRole("button", { name: "Handbook", exact: true })).toHaveCount(0);
+    await page.getByTestId("toasts").getByRole("button", { name: "Undo" }).click();
+    await expect(page.getByRole("button", { name: "Handbook", exact: true })).toBeVisible();
+    // Built-in looks have no rename or delete.
+    await page.getByRole("button", { name: "More actions for Citrus" }).click({ force: true });
+    await expect(page.getByRole("menuitem", { name: "Delete" })).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: "Use as default" })).toBeVisible();
+  });
+
+  test("the default look: star, toast, badge, and a new picture starts with it", async ({
+    page,
+  }) => {
+    await open(page);
+    await toPresentation(page);
+    await page.getByRole("button", { name: "Ocean", exact: true }).click();
+    await page.getByRole("button", { name: "Use “Ocean” as default" }).click();
+    await expect(page.getByTestId("toasts")).toContainText("Ocean is now your default look");
+    await expect(page.getByRole("img", { name: "Default look" })).toHaveCount(1);
+    await expect(page.getByText("Ocean is your default look")).toBeVisible();
+    await page.getByRole("button", { name: "Paper", exact: true }).hover();
+    await page.getByRole("button", { name: "Use Paper as default" }).click();
+    await expect(page.getByTestId("toasts")).toContainText("Paper is now your default look");
+
+    // A document whose presentation is off gets the default look when its tab is opened.
+    await page.reload();
+    await expect(page.getByTestId("editor-canvas")).toBeVisible();
+    await page.getByRole("radio", { name: "Presentation" }).click();
+    await expect(page.getByTestId("presentation-panel")).toBeVisible();
+    const p = await presentation(page);
+    expect((p.background as { stops: { color: string }[] }).stops[0]?.color).toBe("#F4F4F5");
+  });
+
+  test("a look with a background picture keeps it, and says so when the picture is gone", async ({
+    page,
+  }) => {
+    await open(page);
+    await toPresentation(page);
+    await page.getByRole("radio", { name: "Image", exact: true }).click();
+    await page.getByTestId("image-drop").click();
+    await expect(page.getByAltText("Background picture")).toBeVisible();
+    await page.getByRole("button", { name: "Save as my look" }).first().click();
+    await page.getByRole("dialog").getByLabel("Name").fill("Photo");
+    await page.getByRole("dialog").getByRole("button", { name: "Save look" }).click();
+    await expect(page.getByTestId("toasts")).toContainText("Saved as “Photo”");
+    // Same page: choose another look, then the photo look again: the picture comes back.
+    await page.getByRole("button", { name: "Citrus", exact: true }).click();
+    await page.getByRole("button", { name: "Photo", exact: true }).click();
+    expect((await presentation(page)).background.type).toBe("image");
+
+    // After a reload the mock has forgotten the picture (the real app keeps it as a file).
+    await page.reload();
+    await expect(page.getByTestId("editor-canvas")).toBeVisible();
+    await toPresentation(page);
+    await page.getByRole("button", { name: "Photo", exact: true }).click();
+    const notice = page.getByRole("alert").filter({ hasText: "Could not apply your look" });
+    await expect(notice).toContainText("“Photo” uses a picture that can't be found.");
+    await page.screenshot({
+      path: "test-results/presentation-look-notice.png",
+      animations: "disabled",
+    });
+    await notice.getByRole("button", { name: "Remove image from look" }).click();
+    await expect(notice).toHaveCount(0);
+    const stored = await page.evaluate(() => window.localStorage.getItem("lumengrab.mock.looks"));
+    const photo = (
+      JSON.parse(stored ?? "{}") as { looks: { name: string; parts: Record<string, unknown> }[] }
+    ).looks.find((l) => l.name === "Photo");
+    expect(photo?.parts["background"]).toBeUndefined();
   });
 });

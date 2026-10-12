@@ -66,6 +66,7 @@ export interface MockSubmission {
     | "recoveryClose"
     | "pickSave"
     | "pickImage"
+    | "looksSave"
     | "writeFile"
     | "openUrl"
     | "quit"
@@ -127,6 +128,9 @@ async function fetchSample(): Promise<Uint8Array> {
 }
 
 const SETTINGS_KEY = "lumengrab.mock.settings";
+const LOOKS_KEY = "lumengrab.mock.looks";
+/** The background pictures of saved looks (the real app keeps them as files; the mock only for this page load). */
+const lookAssets = new Map<string, Uint8Array>();
 
 function storedSettings(): Settings {
   try {
@@ -426,6 +430,43 @@ export const mockPlatform: Platform = {
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, 96, 64);
     return new Uint8Array(await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer());
+  },
+
+  looksLoad(): Promise<string | null> {
+    return Promise.resolve(window.localStorage.getItem(LOOKS_KEY));
+  },
+
+  looksSave(json: string): Promise<void> {
+    record({ kind: "looksSave" });
+    if (new URLSearchParams(window.location.search).get("looksfail") === "1")
+      return Promise.reject(new PlatformError("The folder is not writable."));
+    window.localStorage.setItem(LOOKS_KEY, json);
+    return Promise.resolve();
+  },
+
+  looksReadAsset(name: string): Promise<Uint8Array | null> {
+    return Promise.resolve(lookAssets.get(name) ?? null);
+  },
+
+  looksWriteAsset(name: string, bytes: Uint8Array): Promise<void> {
+    lookAssets.set(name, bytes);
+    return Promise.resolve();
+  },
+
+  looksPruneAssets(keep: string[]): Promise<void> {
+    for (const name of [...lookAssets.keys()]) if (!keep.includes(name)) lookAssets.delete(name);
+    return Promise.resolve();
+  },
+
+  /** Another tab of the browser changing the looks is the closest thing to another window. */
+  onLooksChanged(listener: () => void): Promise<() => void> {
+    const handler = (e: StorageEvent) => {
+      if (e.key === LOOKS_KEY) listener();
+    };
+    window.addEventListener("storage", handler);
+    return Promise.resolve(() => {
+      window.removeEventListener("storage", handler);
+    });
   },
 
   writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {

@@ -246,7 +246,7 @@ export const LayerSchema: z.ZodType<Layer> = z.any().transform((value: unknown, 
   return z.NEVER;
 });
 
-const BackgroundSchema = z.discriminatedUnion("type", [
+export const BackgroundSchema = z.discriminatedUnion("type", [
   z.looseObject({ type: z.literal("solid"), color }),
   z.looseObject({
     type: z.literal("gradient"),

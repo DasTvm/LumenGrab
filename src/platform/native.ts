@@ -1,6 +1,7 @@
 import { getName, getVersion } from "@tauri-apps/api/app";
 import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { currentOs } from "./os";
 import {
   PlatformError,
@@ -245,6 +246,43 @@ export const nativePlatform: Platform = {
     } catch (err) {
       throw new PlatformError(typeof err === "string" ? err : "The picture could not be read.");
     }
+  },
+
+  async looksLoad(): Promise<string | null> {
+    const text = await call<string>("looks_load");
+    return text === "" ? null : text;
+  },
+
+  async looksSave(json: string): Promise<void> {
+    try {
+      await invoke("looks_save", { json, source: getCurrentWindow().label });
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "Your looks could not be saved.");
+    }
+  },
+
+  async looksReadAsset(name: string): Promise<Uint8Array | null> {
+    const bytes = new Uint8Array(await invoke<ArrayBuffer>("looks_read_asset", { name }));
+    return bytes.length > 0 ? bytes : null;
+  },
+
+  async looksWriteAsset(name: string, bytes: Uint8Array): Promise<void> {
+    try {
+      await invoke("looks_write_asset", bytes, { headers: { name } });
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The picture could not be saved.");
+    }
+  },
+
+  async looksPruneAssets(keep: string[]): Promise<void> {
+    await call("looks_prune_assets", { keep });
+  },
+
+  async onLooksChanged(listener: () => void): Promise<() => void> {
+    const mine = getCurrentWindow().label;
+    return listen<{ source: string }>("looks-changed", (event) => {
+      if (event.payload.source !== mine) listener();
+    });
   },
 
   async writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {

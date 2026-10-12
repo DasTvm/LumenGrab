@@ -18,6 +18,21 @@ export type PanelTab = "style" | "layers";
 /** The two modes of the editor (top bar tabs): drawing on the picture, or composing the presentation around it. */
 export type EditorMode = "annotate" | "presentation";
 
+/** A message at the bottom left of the editor ("Saved as “Client demo”", "Look deleted" with Undo). */
+export interface Toast {
+  id: number;
+  icon: "saved" | "default" | "deleted";
+  text: string;
+  action?: { label: string; run: () => void };
+}
+
+/** A look that could not be applied as it was saved (its background picture is gone). */
+export interface LookNotice {
+  lookId: string;
+  lookName: string;
+  message: string;
+}
+
 /** Short feedback in the top bar (design: Title bar states). */
 export type Feedback = { kind: "saved" | "copied"; at: number } | null;
 
@@ -39,6 +54,8 @@ export interface UiState {
   /** Presentation mode: shade the zones a social app covers with its own buttons. */
   safeArea: boolean;
   feedback: Feedback;
+  toasts: Toast[];
+  lookNotice: LookNotice | null;
   /** Layers collapsed in the layers panel (group ids). */
   collapsed: string[];
   /** The open crop frame, `null` unless the crop tool is active. */
@@ -62,6 +79,9 @@ export interface UiActions {
   setStage(stage: UiState["stage"]): void;
   setSafeArea(on: boolean): void;
   flash(kind: "saved" | "copied"): void;
+  pushToast(toast: Omit<Toast, "id">): void;
+  dismissToast(id: number): void;
+  setLookNotice(notice: LookNotice | null): void;
   clearFeedback(at: number): void;
   toggleCollapsed(id: string): void;
   setPanning(panning: boolean): void;
@@ -86,6 +106,8 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     stage: null,
     safeArea: false,
     feedback: null,
+    toasts: [],
+    lookNotice: null,
     collapsed: [],
     panning: false,
     counterNext: null,
@@ -118,6 +140,16 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setSafeArea: (safeArea) => {
       set({ safeArea });
+    },
+    pushToast: (toast) => {
+      const id = (get().toasts.at(-1)?.id ?? 0) + 1;
+      set({ toasts: [...get().toasts.slice(-2), { ...toast, id }] });
+    },
+    dismissToast: (id) => {
+      set({ toasts: get().toasts.filter((t) => t.id !== id) });
+    },
+    setLookNotice: (lookNotice) => {
+      set({ lookNotice });
     },
     flash: (kind) => {
       set({ feedback: { kind, at: Date.now() } });

@@ -244,6 +244,17 @@ export interface Platform {
   }): Promise<SaveTarget | null>;
   /** A dialog to pick a picture (PNG, JPEG or WebP, up to 20 MB) for a background: its bytes, or `null` if cancelled. */
   pickImage(): Promise<Uint8Array | null>;
+  /** The text of `looks.json` (the user's saved looks), or `null` if there is none yet. */
+  looksLoad(): Promise<string | null>;
+  /** Writes `looks.json` (atomically) and tells the other windows. */
+  looksSave(json: string): Promise<void>;
+  /** A background picture of a look by its asset name, or `null` if it is not there. */
+  looksReadAsset(name: string): Promise<Uint8Array | null>;
+  looksWriteAsset(name: string, bytes: Uint8Array): Promise<void>;
+  /** Deletes the pictures of looks that are not in `keep`. */
+  looksPruneAssets(keep: string[]): Promise<void>;
+  /** Calls `listener` when another window changed the looks. */
+  onLooksChanged(listener: () => void): Promise<() => void>;
   /** Writes bytes (atomically) to a place `pickSaveTarget` granted. */
   writeGrantedFile(token: string, bytes: Uint8Array): Promise<void>;
   /** Saves the document to the `.lumengrab` file its window was opened from (atomically). */

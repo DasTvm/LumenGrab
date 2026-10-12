@@ -1,6 +1,9 @@
 import { applyLook, builtinById, type Look } from "@/presentation/looks";
 import type { EditorStoreApi } from "../model/store";
 import { cancelCrop } from "./crop-mode";
+import { applyLookToDocument } from "./presentation/apply-look";
+import { looksStore } from "./presentation/looks-instance";
+import type { DocumentSession } from "./session";
 import { finishEditing } from "./text-edit";
 import type { EditorMode, UiStoreApi } from "./ui-store";
 
@@ -17,7 +20,7 @@ export function switchMode(
   editor: EditorStoreApi,
   ui: UiStoreApi,
   mode: EditorMode,
-  defaultLook: Look | null = builtinById(FACTORY_LOOK_ID),
+  session?: DocumentSession,
 ): void {
   if (ui.getState().mode === mode) return;
   if (mode === "presentation") {
@@ -25,11 +28,24 @@ export function switchMode(
     if (ui.getState().crop) cancelCrop(editor, ui);
     editor.getState().select([]);
     const { presentation, crop } = editor.getState().project;
-    if (!presentation.enabled && defaultLook) {
-      const width = crop?.width ?? ui.getState().imageSize.width;
-      editor.getState().change((p) => {
-        p.presentation = applyLook(p.presentation, defaultLook, width);
-      });
+    if (!presentation.enabled) {
+      const width = Math.round(crop?.width ?? ui.getState().imageSize.width);
+      const factory = builtinById(FACTORY_LOOK_ID);
+      const wanted: Look | null = looksStore.getState().defaultLook ?? factory;
+      if (wanted && session) {
+        // A default look with a picture is read from disk first; if it is gone the factory look is used.
+        void applyLookToDocument(wanted, { editor, ui, session, width }).then((ok) => {
+          if (!ok && factory) {
+            editor.getState().change((p) => {
+              p.presentation = applyLook(p.presentation, factory, width);
+            });
+          }
+        });
+      } else if (wanted) {
+        editor.getState().change((p) => {
+          p.presentation = applyLook(p.presentation, wanted, width);
+        });
+      }
     }
   }
   ui.getState().setMode(mode);

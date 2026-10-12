@@ -27,7 +27,7 @@ export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
   const canRedo = useEditor((s) => s.canRedo);
   const feedback = useUi((s) => s.feedback);
   const mode = useUi((s) => s.mode);
-  const { ui } = useStores();
+  const { ui, session } = useStores();
   // "Saved" and "Copied" fade after two seconds (design: Title bar states).
   const at = feedback?.at;
   useEffect(() => {
@@ -103,7 +103,7 @@ export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
                 { value: "presentation", label: "Presentation" },
               ]}
               onValueChange={(next) => {
-                switchMode(editor, ui, next);
+                switchMode(editor, ui, next, session);
               }}
             />
           </Tooltip>

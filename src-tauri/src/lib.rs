@@ -6,6 +6,7 @@ mod dev;
 mod document;
 mod fsutil;
 mod hotkeys;
+mod looks;
 mod permission;
 mod platform;
 mod quick_access;
@@ -85,6 +86,11 @@ pub fn run() {
             document::document_pick_open,
             document::pick_save_target,
             document::pick_image,
+            looks::looks_load,
+            looks::looks_save,
+            looks::looks_read_asset,
+            looks::looks_write_asset,
+            looks::looks_prune_assets,
             document::write_granted_file,
             document::open_url,
             document::document_save,
