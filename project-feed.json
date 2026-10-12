@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-12T17:56:45.487Z",
+  "generatedAt": "2026-10-12T22:24:56.919Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -541,6 +541,13 @@
       "category": "new",
       "title": "Presentation mode in the editor (M5 stages 3-4)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/9447f197aa1124db7a30e78fe87e855d08569237"
+    },
+    {
+      "id": "3784b5dc7acd2654fa409543c102bfffb2b9c98e",
+      "date": "2026-10-12T22:24:46Z",
+      "category": "new",
+      "title": "own looks, default look and background pictures that stay with a look (M5 stage 5)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/3784b5dc7acd2654fa409543c102bfffb2b9c98e"
     }
   ],
   "releases": [],
@@ -621,7 +628,8 @@
     "8621951bf21bd8ef126c5590c0b6bdd9761a923f",
     "36f1b9f5a8405468946d93e1b409b4a74d59c1c8",
     "826f31474301e64df570b69cb91943345a5d808e",
-    "9447f197aa1124db7a30e78fe87e855d08569237"
+    "9447f197aa1124db7a30e78fe87e855d08569237",
+    "3784b5dc7acd2654fa409543c102bfffb2b9c98e"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -834,7 +842,7 @@
           {
             "id": "task-6",
             "title": "Looks: built-in gallery and your own saved looks",
-            "done": false
+            "done": true
           },
           {
             "id": "task-7",
