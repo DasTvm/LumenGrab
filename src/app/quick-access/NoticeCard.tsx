@@ -5,6 +5,7 @@ import {
   Download,
   FolderOpen,
   Keyboard,
+  RefreshCw,
   RotateCw,
   ScanLine,
   Settings,
@@ -26,6 +27,7 @@ const NOTICE_ICONS: Record<string, IconComponent> = {
   keyboard: Keyboard,
   "scan-line": ScanLine,
   trash: Trash2,
+  "refresh-cw": RefreshCw,
 };
 
 const ACTION_ICONS: Record<string, IconComponent> = {
@@ -59,6 +61,7 @@ export function NoticeCardView({
   const { notice } = card;
   const Icon = NOTICE_ICONS[notice.icon] ?? TriangleAlert;
   const warning = notice.tone === "warning";
+  const update = notice.tone === "update";
   if (notice.tone === "info") {
     return (
       <WelcomeCard
@@ -87,7 +90,11 @@ export function NoticeCardView({
         <span
           className={cn(
             "flex size-9 shrink-0 items-center justify-center rounded-[10px]",
-            warning ? "bg-warning/10 text-warning" : "bg-destructive/10 text-destructive",
+            update
+              ? "bg-brand/30 text-foreground"
+              : warning
+                ? "bg-warning/10 text-warning"
+                : "bg-destructive/10 text-destructive",
           )}
         >
           <Icon aria-hidden className="size-[19px]" />
@@ -95,13 +102,37 @@ export function NoticeCardView({
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <h2 className="text-sm font-semibold">{notice.title}</h2>
           <p className="text-[13px] leading-[1.45] text-muted-foreground">{error ?? notice.body}</p>
-          <div className="flex gap-2 pt-2.5">
+          {notice.progress ? (
+            <div className="flex flex-col gap-1.5 pt-1.5">
+              <div
+                role="progressbar"
+                aria-label="Download progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                {...(notice.progress.fraction !== null
+                  ? { "aria-valuenow": Math.round(notice.progress.fraction * 100) }
+                  : {})}
+                className="h-1.5 overflow-hidden rounded-full bg-muted"
+              >
+                <div
+                  className="h-full rounded-full bg-brand"
+                  style={{
+                    width: `${String(Math.round((notice.progress.fraction ?? 0.3) * 100))}%`,
+                  }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {notice.progress.text}
+              </span>
+            </div>
+          ) : null}
+          <div className="flex flex-wrap gap-2 pt-2.5">
             {notice.actions.map((action, i) => {
               const ActionIcon = ACTION_ICONS[action.icon];
               return (
                 <Button
                   key={action.label}
-                  variant={action.primary ? "default" : "outline"}
+                  variant={action.primary ? (update ? "accent" : "default") : "outline"}
                   disabled={busy !== null}
                   className="px-4 py-2 text-sm"
                   onClick={() => onAction?.(i)}

@@ -14,6 +14,8 @@ mod quick_access;
 mod recovery;
 mod settings;
 mod tray;
+mod updater;
+mod updates_ui;
 
 use std::{borrow::Cow, sync::Arc};
 
@@ -95,6 +97,16 @@ pub fn run() {
             present::present_ready,
             present::present_take,
             present::present_result,
+            updater::update_state,
+            updater::update_check,
+            updater::update_download,
+            updater::update_cancel,
+            updater::update_skip,
+            updates_ui::update_restart,
+            updates_ui::update_restart_documents,
+            updates_ui::update_restart_confirm,
+            updates_ui::update_restart_dismiss,
+            document::document_close_cancelled,
             document::write_granted_file,
             document::open_url,
             document::document_save,
@@ -131,6 +143,9 @@ pub fn run() {
         .setup(|app| {
             platform::setup_app(app);
             settings::init(app.handle())?;
+            // The updater's state before the tray, whose entry reads it (a build with an update key crashed at start otherwise).
+            updates_ui::init(app.handle());
+            updater::init(app.handle())?;
             tray::init(app.handle())?;
             // First run (or after an update that reset it): explain the Screen Recording permission.
             #[cfg(not(any(debug_assertions, feature = "dev-hooks")))]

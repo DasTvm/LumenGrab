@@ -16,6 +16,8 @@ pub enum Tone {
     Warning,
     /// Not a problem: the first-start hint.
     Info,
+    /// A new version: a lime icon and an accent button (design: Update ready).
+    Update,
 }
 
 /// What a notice button does.
@@ -35,6 +37,16 @@ pub enum Handler {
     SaveAs(PathBuf),
     /// Puts the default look on a screenshot that was saved without it.
     ApplyLook(PathBuf),
+    /// Starts downloading the update that was announced (the card turns into the progress card).
+    UpdateDownload,
+    /// Stops the download.
+    UpdateCancel,
+    /// Installs the downloaded update and restarts (asks about unsaved documents first).
+    UpdateRestart,
+    /// Looks for an update again.
+    UpdateCheck,
+    /// Opens a web page (the release notes, the downloads) and leaves the card.
+    OpenUrl(String),
     /// Selects the file in Finder / Explorer.
     Reveal(PathBuf),
     /// Saves the capture again to the same folder.
@@ -58,6 +70,13 @@ pub struct Action {
     pub handler: Handler,
 }
 
+/// A progress bar on a card (the update download): `fraction` is `None` while the size is not known.
+#[derive(Clone, Serialize)]
+pub struct Progress {
+    pub fraction: Option<f32>,
+    pub text: String,
+}
+
 #[derive(Clone)]
 pub struct Notice {
     pub tone: Tone,
@@ -67,6 +86,7 @@ pub struct Notice {
     pub body: String,
     /// Keys to draw as keycaps under the text (the first-start hint).
     pub keys: Vec<&'static str>,
+    pub progress: Option<Progress>,
     pub actions: Vec<Action>,
 }
 
@@ -79,6 +99,8 @@ pub struct NoticePayload {
     pub title: String,
     pub body: String,
     pub keys: Vec<&'static str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub progress: Option<Progress>,
     pub actions: Vec<ActionPayload>,
 }
 
@@ -97,6 +119,7 @@ impl Notice {
             title: self.title.clone(),
             body: self.body.clone(),
             keys: self.keys.clone(),
+            progress: self.progress.clone(),
             actions: self
                 .actions
                 .iter()
@@ -135,6 +158,7 @@ pub fn save_failed(folder: &str, error: &str, frame: Arc<Frame>, source: Capture
             "The folder {folder} is not writable ({reason}). Choose another folder or try again."
         ),
         keys: Vec::new(),
+        progress: None,
         actions: vec![
             button(
                 "Retry",
@@ -164,6 +188,7 @@ pub fn clipboard_failed(error: &str, saved: PathBuf) -> Notice {
             "Another app may be blocking the clipboard ({error}). Try again in a moment or save the file instead."
         ),
         keys: Vec::new(),
+        progress: None,
         actions: vec![
             button("Try again", "refresh", true, Handler::CopyAgain(saved.clone())),
             button("Save instead", "download", false, Handler::SaveAs(saved)),
@@ -179,6 +204,7 @@ pub fn look_failed(saved: PathBuf) -> Notice {
         title: "Could not apply your look".into(),
         body: "Your screenshot is saved and copied as it is. You can put the look on it now, or edit it later.".into(),
         keys: Vec::new(),
+        progress: None,
         actions: vec![
             button("Try again", "refresh", true, Handler::ApplyLook(saved)),
             dismiss(),
@@ -195,6 +221,7 @@ pub fn shortcut_in_use(keys: &str, what: &str) -> Notice {
             "Another app has registered this shortcut, so “{what}” does not work from the keyboard. You can still start it from the menu bar icon."
         ),
         keys: Vec::new(),
+        progress: None,
         actions: vec![
             button("Open Settings", "settings", true, Handler::OpenSettings),
             dismiss(),
@@ -211,6 +238,7 @@ pub fn capture_failed(details: String, mode: CaptureMode, toolbar: bool) -> Noti
             "The screen could not be captured. This can happen while a display wakes up. Try again."
                 .into(),
         keys: Vec::new(),
+        progress: None,
         actions: vec![
             button(
                 "Try again",
@@ -232,6 +260,7 @@ pub fn welcome() -> Notice {
         body: "It lives in the system tray. Press the shortcut below anytime to start a capture, from any app."
             .into(),
         keys: vec!["Ctrl", "Shift", "1"],
+        progress: None,
         actions: vec![
             button("Open Settings", "none", false, Handler::OpenSettings),
             button("Got it", "none", true, Handler::Dismiss),
@@ -246,12 +275,118 @@ pub fn trash_failed(error: &str, file: PathBuf) -> Notice {
         title: "Could not move the screenshot to the Trash".into(),
         body: format!("{error}. The file is still where it was."),
         keys: Vec::new(),
+        progress: None,
         actions: vec![
             button("Show file", "folder", true, Handler::Reveal(file)),
             dismiss(),
         ],
     }
 }
+
+// ---- updates (docs/adr/0008) -----------------------------------------------------------------------
+
+fn update(title: String, body: &str, progress: Option<Progress>, actions: Vec<Action>) -> Notice {
+    Notice {
+        tone: Tone::Update,
+        icon: "refresh-cw",
+        title,
+        body: body.into(),
+        keys: Vec::new(),
+        progress,
+        actions,
+    }
+}
+
+/// A new version was found (the daily check): download it when the user says so.
+pub fn update_available(version: &str) -> Notice {
+    update(
+        format!("LumenGrab {version} is here"),
+        "It downloads in the background and restarts when you choose.",
+        None,
+        vec![
+            button("Install and restart", "none", true, Handler::UpdateDownload),
+            button("Later", "none", false, Handler::Dismiss),
+            button(
+                "See what's new",
+                "none",
+                false,
+                Handler::OpenUrl(release_url(version)),
+            ),
+        ],
+    )
+}
+
+pub fn update_downloading(version: &str, text: String, fraction: Option<f32>) -> Notice {
+    update(
+        format!("Downloading LumenGrab {version}"),
+        "You can keep working. We'll tell you when it is ready.",
+        Some(Progress { fraction, text }),
+        vec![button("Cancel", "none", false, Handler::UpdateCancel)],
+    )
+}
+
+pub fn update_ready() -> Notice {
+    update(
+        "A new version of LumenGrab is ready".into(),
+        "It installs in the background and restarts when you choose.",
+        None,
+        vec![
+            button("Install and restart", "none", true, Handler::UpdateRestart),
+            button("Later", "none", false, Handler::Dismiss),
+        ],
+    )
+}
+
+/// The update did not work: what a person can do about it depends on why.
+pub fn update_failed(reason: crate::updater::FailReason) -> Notice {
+    use crate::updater::FailReason as R;
+    let (title, body, second) = match reason {
+        R::Signature => (
+            "Update failed: security check",
+            "The update did not pass its signature check, so it was not installed. Your current version is untouched.",
+            button(
+                "Download manually",
+                "none",
+                false,
+                Handler::OpenUrl(DOWNLOADS_URL.into()),
+            ),
+        ),
+        R::Disk => (
+            "Update failed: not enough space",
+            "There is not enough free disk space for the update. Free some up and try again.",
+            dismiss_as("Later"),
+        ),
+        R::Network | R::Other => (
+            "Update failed: no connection",
+            "LumenGrab couldn't download the update. Check your internet connection and try again.",
+            dismiss_as("Later"),
+        ),
+    };
+    Notice {
+        tone: Tone::Error,
+        icon: "triangle-alert",
+        title: title.into(),
+        body: body.into(),
+        keys: Vec::new(),
+        progress: None,
+        actions: vec![
+            button("Try again", "none", true, Handler::UpdateCheck),
+            second,
+        ],
+    }
+}
+
+fn dismiss_as(label: &'static str) -> Action {
+    button(label, "none", false, Handler::Dismiss)
+}
+
+/// The page of a release on GitHub.
+pub fn release_url(version: &str) -> String {
+    format!("https://github.com/DasTvm/LumenGrab/releases/tag/v{version}")
+}
+
+/// Where to get the installers by hand.
+pub const DOWNLOADS_URL: &str = "https://github.com/DasTvm/LumenGrab/releases/latest";
 
 #[cfg(test)]
 mod tests {

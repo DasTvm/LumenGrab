@@ -19,6 +19,8 @@
 //!   LUMENGRAB_DEV_QA=n                             deliver n synthetic captures (1.2 s apart) to test the Quick Access
 //!                                                  cards without a real capture; the app stays open
 //!   LUMENGRAB_DEV_QA_SIZE=5120x2880                make every synthetic capture of LUMENGRAB_DEV_QA that size
+//!   LUMENGRAB_DEV_UPDATE_ENDPOINT=http://...        look for updates there instead of GitHub
+//!   LUMENGRAB_DEV_UPDATE=install                   check, download and install an update, then restart (logs each state)
 //!   LUMENGRAB_DEV_SAVE_TARGET=/path/file.ext       "Save as…" writes there without asking (any format by extension)
 //!   LUMENGRAB_DEV_OPEN=/path/file.lumengrab        open that document in the viewer window at startup
 //!   LUMENGRAB_DEV_INTRO=1                          show the first-start hint (normally Windows only, once)
@@ -107,8 +109,47 @@ fn quick_access_demo(app: &AppHandle) {
     });
 }
 
+/// `LUMENGRAB_DEV_UPDATE=install`: the whole update without a click, to test it on a real bundle.
+fn update_demo(app: &AppHandle) {
+    if std::env::var("LUMENGRAB_DEV_UPDATE").as_deref() != Ok("install") {
+        return;
+    }
+    let app = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let _ = tauri::async_runtime::spawn_blocking(|| std::thread::sleep(Duration::from_secs(3)))
+            .await;
+        let info = crate::updater::check(&app, false).await;
+        eprintln!("[lumengrab:dev] update check -> {:?}", info.state);
+        if !matches!(info.state, crate::updater::UpdateState::Available { .. }) {
+            return;
+        }
+        if let Err(e) = crate::updater::download(&app) {
+            eprintln!("[lumengrab:dev] update download -> {e}");
+            return;
+        }
+        loop {
+            let _ = tauri::async_runtime::spawn_blocking(|| {
+                std::thread::sleep(Duration::from_millis(500))
+            })
+            .await;
+            let state = crate::updater::info(&app).state;
+            if matches!(state, crate::updater::UpdateState::Downloading { .. }) {
+                continue;
+            }
+            eprintln!("[lumengrab:dev] update state -> {state:?}");
+            if matches!(state, crate::updater::UpdateState::Ready { .. }) {
+                eprintln!("[lumengrab:dev] installing and restarting");
+                let result = crate::updater::install_and_restart(&app);
+                eprintln!("[lumengrab:dev] install -> {result:?}");
+            }
+            return;
+        }
+    });
+}
+
 pub fn autostart(app: &AppHandle) {
     quick_access_demo(app);
+    update_demo(app);
     if let Ok(path) = std::env::var("LUMENGRAB_DEV_OPEN") {
         let app = app.clone();
         std::thread::spawn(move || {

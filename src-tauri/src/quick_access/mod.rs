@@ -451,26 +451,61 @@ pub fn show(app: &AppHandle, new: NewCard) -> bool {
 /// Shows an error or warning card in the same corner (also when Quick Access is switched off: a
 /// problem must not go unnoticed). Call from a worker thread, never from the main thread.
 pub fn notify(app: &AppHandle, notice: Notice) -> bool {
+    notify_id(app, notice).is_some()
+}
+
+/// Like [`notify`], and tells which card it became (so its text can be replaced later, e.g. a progress bar).
+pub fn notify_id(app: &AppHandle, notice: Notice) -> Option<String> {
     let corner = app.state::<SettingsStore>().get().quick_access.corner;
-    add_card(app, corner, |label, id| Card {
-        id,
-        label,
-        path: PathBuf::new(),
-        width: 0,
-        height: 0,
-        source: CaptureMode::Area,
-        bytes: 0,
-        thumb: Arc::new(Vec::new()),
-        style: QuickAccessStyle::Compact,
-        auto_close_secs: 0,
-        css_height: 150.0,
-        extra_top: 0.0,
-        extra_bottom: 0.0,
-        shown: false,
-        original: None,
-        pending_delete: false,
-        notice: Some(notice),
+    let mut made = None;
+    add_card(app, corner, |label, id| {
+        made = Some(id.clone());
+        Card {
+            id,
+            label,
+            path: PathBuf::new(),
+            width: 0,
+            height: 0,
+            source: CaptureMode::Area,
+            bytes: 0,
+            thumb: Arc::new(Vec::new()),
+            style: QuickAccessStyle::Compact,
+            auto_close_secs: 0,
+            css_height: 150.0,
+            extra_top: 0.0,
+            extra_bottom: 0.0,
+            shown: false,
+            original: None,
+            pending_delete: false,
+            notice: Some(notice),
+        }
     })
+    .then_some(made)
+    .flatten()
+}
+
+/// Puts a new text on a notice card that is still there (the update card going from "here" to
+/// "downloading" to "ready"). `false` if the user closed it meanwhile.
+pub fn replace_notice(app: &AppHandle, id: &str, notice: Notice) -> bool {
+    let qa = app.state::<QuickAccess>();
+    let replaced = {
+        let mut inner = qa.inner.lock().expect("quick access state");
+        match inner
+            .cards
+            .iter_mut()
+            .find(|c| c.id == id && c.notice.is_some())
+        {
+            Some(card) => {
+                card.notice = Some(notice);
+                true
+            }
+            None => false,
+        }
+    };
+    if replaced {
+        relayout(app);
+    }
+    replaced
 }
 
 /// The first-start hint (design: "Windows - First start hint"), once. It is remembered as soon as it

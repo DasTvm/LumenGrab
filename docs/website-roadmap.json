@@ -353,6 +353,10 @@
       {
         "category": "internal",
         "title": "Unsigned installers for macOS (.dmg) and Windows (.exe), published as GitHub Releases."
+      },
+      {
+        "category": "new",
+        "title": "Updates inside the app: a notice when a new version is out and one click to install it."
       }
     ]
   }

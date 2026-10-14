@@ -30,6 +30,8 @@ to open it in the editor. Files from a newer version open read-only instead of b
 blur / pixelate / solid redaction, crop, layers with groups, undo and redo. Export as PNG, JPG or WebP (at 0.5×, 1×, 2× or a custom
 size), copy to the clipboard, or save a `.lumengrab`. Your work is autosaved to a recovery copy, and after a crash LumenGrab offers it back.
 
+**Updates:** LumenGrab tells you when a new version is out (Settings > Updates, a card in the corner, the menu bar entry) and updates itself with one click; documents with unsaved changes ask first.
+
 **Presentation** (the tab next to Annotate): a background (solid, gradient, mesh, your own picture or a blurred copy of the screenshot), padding (with auto-balance, and a button that trims too much empty space off the screenshot's own edges), rounded corners, a shadow,
 a window frame and an aspect ratio (including Instagram, X, LinkedIn and other sizes at their exact pixels). Save a combination as **your look**, and choose a default look
 that every new screenshot gets automatically (the saved file, the clipboard and drag-and-drop included; the original is kept for 30 days so you can still edit it).
@@ -41,7 +43,7 @@ always flat, with redactions baked in and the pixels destroyed.
 
 - No accounts, no login, no telemetry.
 - Everything (OCR, redaction, any AI-style feature) runs on your device.
-- No network access except update checks and upload targets **you** configure yourself.
+- No network access except update checks and upload targets **you** configure yourself. The update check asks GitHub for one small file with the latest version number and sends nothing about you; you can turn the daily check off in Settings > Updates.
 - No servers run by us. There is no backend and there never will be one.
 
 ## License

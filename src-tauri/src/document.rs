@@ -294,7 +294,15 @@ pub fn pick_and_open(app: &AppHandle) {
 pub fn on_destroyed(app: &AppHandle, label: &str) {
     if label.starts_with(WINDOW_PREFIX) {
         app.state::<Documents>().registry().unregister(label);
+        // An update waiting for the last unsaved document to be dealt with can go ahead now.
+        crate::updates_ui::after_document_closed(app);
     }
+}
+
+/// The user answered "Cancel" to "Save changes?": an update restart that was waiting for that is off.
+#[tauri::command]
+pub fn document_close_cancelled(app: AppHandle) {
+    crate::updates_ui::cancel_pending_restart(&app);
 }
 
 #[derive(Serialize)]
@@ -327,11 +335,9 @@ fn window_path(app: &AppHandle, label: &str) -> Result<PathBuf, String> {
         .ok_or_else(|| "This document has not been saved yet.".to_string())
 }
 
-#[tauri::command]
-pub fn document_info(app: AppHandle, label: String) -> Result<DocumentInfo, String> {
-    let source = source_of(&app, &label)?;
-    let path = source.read_path();
-    let file_name = match &source {
+/// The name a window shows for its document.
+fn display_name(source: &Source) -> String {
+    match source {
         Source::Recovered { name, .. } => name.clone(),
         Source::Capture(p) => p
             .file_stem()
@@ -341,7 +347,42 @@ pub fn document_info(app: AppHandle, label: String) -> Result<DocumentInfo, Stri
             .file_name()
             .map(|n| n.to_string_lossy().into_owned())
             .unwrap_or_default(),
-    };
+    }
+}
+
+/// A document window with changes that are not saved.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DirtyDocument {
+    pub label: String,
+    pub name: String,
+    /// `file`, `capture` or `recovered`.
+    pub kind: &'static str,
+}
+
+/// The documents that would lose work if the app quit now (the update restart lists them).
+pub fn dirty_documents(app: &AppHandle) -> Vec<DirtyDocument> {
+    let docs = app.state::<Documents>();
+    let registry = docs.registry();
+    let mut out: Vec<DirtyDocument> = registry
+        .windows
+        .iter()
+        .filter(|(label, _)| registry.is_dirty(label))
+        .map(|(label, source)| DirtyDocument {
+            label: label.clone(),
+            name: display_name(source),
+            kind: source.kind(),
+        })
+        .collect();
+    out.sort_by(|a, b| a.label.cmp(&b.label));
+    out
+}
+
+#[tauri::command]
+pub fn document_info(app: AppHandle, label: String) -> Result<DocumentInfo, String> {
+    let source = source_of(&app, &label)?;
+    let path = source.read_path();
+    let file_name = display_name(&source);
     Ok(DocumentInfo {
         file_name,
         folder: crate::quick_access::short_folder(path),

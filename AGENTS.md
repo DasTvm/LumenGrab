@@ -172,7 +172,7 @@ cd src-tauri && cargo fmt --check && cargo clippy -- -D warnings   # Rust checks
 
 Notes:
 
-- Updater is not enabled yet. Setup and the later steps are in `docs/UPDATER.md`.
+- The updater is built (`src-tauri/src/updater.rs`, ADR 0008) but only registers once a public key is in `tauri.conf.json`; setup and release steps are in `docs/UPDATER.md`. It is the only network access the app has.
 - TypeScript is pinned to 6.0.x because typescript-eslint does not support 7.x yet.
 - Windows installers are only built in CI (release workflow); macOS only is verified locally.
 - Local macOS test builds: ad-hoc signed builds are identified by their binary hash, so macOS forgets the Screen Recording

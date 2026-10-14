@@ -57,4 +57,58 @@ export const NOTICES: Record<string, QuickAccessNotice> = {
       { label: "Got it", icon: "none", primary: true },
     ],
   },
+  "update-available": {
+    tone: "update",
+    icon: "refresh-cw",
+    title: "LumenGrab 0.5.0 is here",
+    body: "It downloads in the background and restarts when you choose.",
+    keys: [],
+    actions: [
+      { label: "Install and restart", icon: "none", primary: true },
+      { label: "Later", icon: "none", primary: false },
+      { label: "See what's new", icon: "none", primary: false },
+    ],
+  },
+  "update-downloading": {
+    tone: "update",
+    icon: "refresh-cw",
+    title: "Downloading LumenGrab 0.5.0",
+    body: "You can keep working. We'll tell you when it is ready.",
+    progress: { fraction: 0.63, text: "24 of 38 MB · about 10 seconds left" },
+    keys: [],
+    actions: [{ label: "Cancel", icon: "none", primary: false }],
+  },
+  "update-ready": {
+    tone: "update",
+    icon: "refresh-cw",
+    title: "A new version of LumenGrab is ready",
+    body: "It installs in the background and restarts when you choose.",
+    keys: [],
+    actions: [
+      { label: "Install and restart", icon: "none", primary: true },
+      { label: "Later", icon: "none", primary: false },
+    ],
+  },
+  "update-failed-signature": {
+    tone: "error",
+    icon: "triangle-alert",
+    title: "Update failed: security check",
+    body: "The update did not pass its signature check, so it was not installed. Your current version is untouched.",
+    keys: [],
+    actions: [
+      { label: "Try again", icon: "none", primary: true },
+      { label: "Download manually", icon: "none", primary: false },
+    ],
+  },
+  "update-failed-network": {
+    tone: "error",
+    icon: "triangle-alert",
+    title: "Update failed: no connection",
+    body: "LumenGrab couldn't download the update. Check your internet connection and try again.",
+    keys: [],
+    actions: [
+      { label: "Try again", icon: "none", primary: true },
+      { label: "Later", icon: "none", primary: false },
+    ],
+  },
 };

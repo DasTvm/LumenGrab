@@ -18,6 +18,8 @@ import {
   type Settings,
   type SettingsInfo,
   type Platform,
+  type UnsavedDocument,
+  type UpdateInfo,
 } from "./types";
 
 /** What the Rust command `capture_overlay_session` returns (see src-tauri/src/capture/commands.rs). */
@@ -237,6 +239,58 @@ export const nativePlatform: Platform = {
     formats: SaveFormat[];
   }): Promise<SaveTarget | null> {
     return call<SaveTarget | null>("pick_save_target", { options });
+  },
+
+  async onSettingsPage(listener: (page: string) => void): Promise<() => void> {
+    return listen<string>("settings-page", (event) => {
+      listener(event.payload);
+    });
+  },
+
+  getUpdateInfo(): Promise<UpdateInfo> {
+    return call<UpdateInfo>("update_state");
+  },
+
+  async onUpdateInfo(listener: (info: UpdateInfo) => void): Promise<() => void> {
+    return listen<UpdateInfo>("update-state", (event) => {
+      listener(event.payload);
+    });
+  },
+
+  checkForUpdates(): Promise<UpdateInfo> {
+    return call<UpdateInfo>("update_check");
+  },
+
+  async downloadUpdate(): Promise<void> {
+    await call("update_download");
+  },
+
+  async cancelUpdate(): Promise<void> {
+    await call("update_cancel");
+  },
+
+  async skipUpdate(): Promise<void> {
+    await call("update_skip");
+  },
+
+  async restartToUpdate(): Promise<void> {
+    await call("update_restart");
+  },
+
+  getUnsavedDocuments(): Promise<UnsavedDocument[]> {
+    return call<UnsavedDocument[]>("update_restart_documents");
+  },
+
+  async confirmUpdateRestart(): Promise<void> {
+    await call("update_restart_confirm");
+  },
+
+  async dismissUpdateRestart(): Promise<void> {
+    await call("update_restart_dismiss");
+  },
+
+  async documentCloseCancelled(): Promise<void> {
+    await call("document_close_cancelled");
   },
 
   async pickImage(): Promise<Uint8Array | null> {

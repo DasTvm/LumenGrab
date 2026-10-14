@@ -14,6 +14,9 @@ import type {
   SaveFormat,
   SaveTarget,
   SettingsInfo,
+  UnsavedDocument,
+  UpdateInfo,
+  UpdateState,
 } from "../types";
 import { DEFAULT_SETTINGS } from "../defaults";
 import { currentOs } from "../os";
@@ -66,6 +69,14 @@ export interface MockSubmission {
     | "recoveryClose"
     | "pickSave"
     | "pickImage"
+    | "updateCheck"
+    | "updateDownload"
+    | "updateCancel"
+    | "updateSkip"
+    | "updateRestart"
+    | "updateRestartConfirm"
+    | "updateRestartDismiss"
+    | "docCloseCancelled"
     | "presentReady"
     | "looksSave"
     | "writeFile"
@@ -115,6 +126,8 @@ declare global {
       recovery?: Record<string, { bytes: Uint8Array; name: string }>;
       /** Pretends the user closed the window while it has unsaved changes. */
       requestClose?: () => void;
+      /** Tests can ask the open Settings window to show a page, as the tray does. */
+      settingsPage?: (page: string) => void;
       /** The automatic look: a test sends a capture in, the page answers into `presented`. */
       present?: (
         id: number,
@@ -156,6 +169,65 @@ function storedSettings(): Settings {
   } catch {
     return DEFAULT_SETTINGS;
   }
+}
+
+// ---- updates: a small copy of the native state machine, driven by `?update=` and `?check=` -------------
+
+const NOTES = [
+  "### New",
+  "- Presentation mode with looks, backgrounds and window frames",
+  "- Layers panel: drag to reorder, hide, lock and rename",
+  "### Improved",
+  "- Capture overlay is faster on mixed-DPI displays",
+  "### Fixed",
+  "- Quick Access no longer closes while you drag a file out",
+].join("\n");
+const MB = 1024 * 1024;
+const updateListeners = new Set<(info: UpdateInfo) => void>();
+let updateInfo: UpdateInfo | null = null;
+
+function initialUpdate(): UpdateInfo {
+  const q = new URLSearchParams(window.location.search).get("update") ?? "idle";
+  const now = new Date().toISOString();
+  const available: UpdateState = {
+    kind: "available",
+    version: "0.5.0",
+    notes: NOTES,
+    date: "2026-10-12",
+  };
+  const states: Record<string, UpdateState> = {
+    unavailable: { kind: "unavailable" },
+    idle: { kind: "idle" },
+    uptodate: { kind: "upToDate" },
+    available,
+    downloading: { kind: "downloading", version: "0.5.0", downloaded: 24 * MB, total: 38 * MB },
+    ready: { kind: "ready", version: "0.5.0" },
+    "failed-network": {
+      kind: "failed",
+      reason: "network",
+      message: "network request failed (no connection)",
+    },
+    "failed-signature": { kind: "failed", reason: "signature", message: "signature did not match" },
+    "failed-disk": { kind: "failed", reason: "disk", message: "no space left on device" },
+  };
+  return {
+    state: states[q] ?? { kind: "idle" },
+    currentVersion: "0.4.2",
+    lastChecked: q === "idle" || q === "unavailable" ? null : now,
+  };
+}
+
+function setUpdate(state: UpdateState, checked = false): void {
+  const was = (updateInfo ??= initialUpdate());
+  updateInfo = {
+    ...was,
+    state,
+    lastChecked: checked ? new Date().toISOString() : was.lastChecked,
+  };
+  const info = updateInfo;
+  updateListeners.forEach((listener) => {
+    listener(info);
+  });
 }
 
 const modeChannel = (): BroadcastChannel | null =>
@@ -429,6 +501,102 @@ export const mockPlatform: Platform = {
       fileName: `${base}.${format}`,
       format,
     });
+  },
+
+  onSettingsPage(listener: (page: string) => void): Promise<() => void> {
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    log.settingsPage = listener;
+    return Promise.resolve(() => {
+      if (log.settingsPage === listener) delete log.settingsPage;
+    });
+  },
+
+  getUpdateInfo(): Promise<UpdateInfo> {
+    return Promise.resolve((updateInfo ??= initialUpdate()));
+  },
+
+  onUpdateInfo(listener: (info: UpdateInfo) => void): Promise<() => void> {
+    updateListeners.add(listener);
+    return Promise.resolve(() => {
+      updateListeners.delete(listener);
+    });
+  },
+
+  /** `?check=available|fail` decides what the check finds (default: nothing new). */
+  async checkForUpdates(): Promise<UpdateInfo> {
+    record({ kind: "updateCheck" });
+    setUpdate({ kind: "checking" });
+    await sleep(500);
+    const outcome = new URLSearchParams(window.location.search).get("check") ?? "uptodate";
+    if (outcome === "available") {
+      setUpdate({ kind: "available", version: "0.5.0", notes: NOTES, date: "2026-10-12" }, true);
+    } else if (outcome === "fail") {
+      setUpdate({
+        kind: "failed",
+        reason: "network",
+        message: "network request failed (no connection)",
+      });
+    } else setUpdate({ kind: "upToDate" }, true);
+    return (updateInfo ??= initialUpdate());
+  },
+
+  /** The download runs for about two seconds, in steps. */
+  downloadUpdate(): Promise<void> {
+    record({ kind: "updateDownload" });
+    let done = 0;
+    setUpdate({ kind: "downloading", version: "0.5.0", downloaded: 0, total: 38 * MB });
+    const timer = setInterval(() => {
+      done += 4 * MB;
+      if (done >= 38 * MB) {
+        clearInterval(timer);
+        setUpdate({ kind: "ready", version: "0.5.0" });
+      } else if (updateInfo?.state.kind === "downloading") {
+        setUpdate({ kind: "downloading", version: "0.5.0", downloaded: done, total: 38 * MB });
+      } else clearInterval(timer);
+    }, 200);
+    return Promise.resolve();
+  },
+
+  cancelUpdate(): Promise<void> {
+    record({ kind: "updateCancel" });
+    setUpdate({ kind: "available", version: "0.5.0", notes: NOTES, date: "2026-10-12" });
+    return Promise.resolve();
+  },
+
+  skipUpdate(): Promise<void> {
+    record({ kind: "updateSkip" });
+    setUpdate({ kind: "upToDate" });
+    return Promise.resolve();
+  },
+
+  restartToUpdate(): Promise<void> {
+    record({ kind: "updateRestart" });
+    return Promise.resolve();
+  },
+
+  /** `?unsaved=2` lists two unsaved documents in the restart dialog. */
+  getUnsavedDocuments(): Promise<UnsavedDocument[]> {
+    const all: UnsavedDocument[] = [
+      { label: "doc-1", name: "Screenshot_2026-10-14", kind: "capture" },
+      { label: "doc-2", name: "Checkout_error", kind: "recovered" },
+    ];
+    const count = Number(new URLSearchParams(window.location.search).get("unsaved") ?? "2");
+    return Promise.resolve(all.slice(0, count));
+  },
+
+  confirmUpdateRestart(): Promise<void> {
+    record({ kind: "updateRestartConfirm" });
+    return Promise.resolve();
+  },
+
+  dismissUpdateRestart(): Promise<void> {
+    record({ kind: "updateRestartDismiss" });
+    return Promise.resolve();
+  },
+
+  documentCloseCancelled(): Promise<void> {
+    record({ kind: "docCloseCancelled" });
+    return Promise.resolve();
   },
 
   /** A 96 x 64 test picture (pink to orange); `?cancel=1` cancels the dialog. */

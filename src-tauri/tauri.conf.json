@@ -16,6 +16,11 @@
       "csp": "default-src 'self'; img-src 'self' data: blob: lgcapture: http://lgcapture.localhost; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost"
     }
   },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://github.com/DasTvm/LumenGrab/releases/latest/download/latest.json"]
+    }
+  },
   "bundle": {
     "active": true,
     "targets": [

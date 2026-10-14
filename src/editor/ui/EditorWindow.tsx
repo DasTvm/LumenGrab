@@ -267,6 +267,8 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
             }}
             onCancel={() => {
               setDialog(null);
+              // An update restart that was waiting for this document is off.
+              void platform.documentCloseCancelled();
             }}
           />
         ) : null}

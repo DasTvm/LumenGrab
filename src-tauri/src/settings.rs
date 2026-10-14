@@ -83,6 +83,20 @@ pub struct PresentationSettings {
     pub open_in_presentation: bool,
 }
 
+/// Updates: the daily check for a new version.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct UpdateSettings {
+    /// Look for a new version once a day, in the background. Off: LumenGrab never goes online by itself.
+    pub auto: bool,
+}
+
+impl Default for UpdateSettings {
+    fn default() -> Self {
+        Self { auto: true }
+    }
+}
+
 /// Everything the user can change. Every field has a default, so an older or partial file still loads.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -92,6 +106,7 @@ pub struct Settings {
     pub copy_to_clipboard: bool,
     pub quick_access: QuickAccessSettings,
     pub presentation: PresentationSettings,
+    pub updates: UpdateSettings,
     /// The Windows first-start hint was shown (or dismissed).
     pub seen_intro: bool,
 }
@@ -103,6 +118,7 @@ impl Default for Settings {
             copy_to_clipboard: true,
             quick_access: QuickAccessSettings::default(),
             presentation: PresentationSettings::default(),
+            updates: UpdateSettings::default(),
             seen_intro: false,
         }
     }

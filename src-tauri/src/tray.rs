@@ -3,7 +3,7 @@
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::TrayIconBuilder,
-    AppHandle, Manager, WebviewUrl, WebviewWindowBuilder,
+    AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
 use crate::capture::{flow, output, CaptureMode};
@@ -45,24 +45,32 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         MenuItem::with_id(app, "open-document", "Open Document…", true, None::<&str>)?;
     let recover = MenuItem::with_id(app, "recover", "Recover Unsaved Work…", true, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
+    // Only a build that can update has the entry; its words follow the state of the updater.
+    let update = crate::updater::configured(app)
+        .then(|| MenuItem::with_id(app, "update", "Check for Updates…", true, None::<&str>))
+        .transpose()?;
     let quit = MenuItem::with_id(app, "quit", "Quit LumenGrab", true, None::<&str>)?;
-    let menu = Menu::with_items(
-        app,
-        &[
-            &bar,
-            &PredefinedMenuItem::separator(app)?,
-            &area,
-            &window,
-            &fullscreen,
-            &PredefinedMenuItem::separator(app)?,
-            &folder,
-            &open_document,
-            &recover,
-            &settings,
-            &PredefinedMenuItem::separator(app)?,
-            &quit,
-        ],
-    )?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let separator_two = PredefinedMenuItem::separator(app)?;
+    let separator_three = PredefinedMenuItem::separator(app)?;
+    let mut items: Vec<&dyn tauri::menu::IsMenuItem<tauri::Wry>> = vec![
+        &bar,
+        &separator,
+        &area,
+        &window,
+        &fullscreen,
+        &separator_two,
+        &folder,
+        &open_document,
+        &recover,
+        &settings,
+    ];
+    if let Some(update) = &update {
+        items.push(update);
+    }
+    items.push(&separator_three);
+    items.push(&quit);
+    let menu = Menu::with_items(app, &items)?;
 
     let mut tray = TrayIconBuilder::with_id("main")
         .tooltip("LumenGrab")
@@ -80,6 +88,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
             }
             "recover" => crate::recovery::show(app),
             "settings" => show_settings(app),
+            "update" => crate::updates_ui::tray_clicked(app),
             "quit" => app.exit(0),
             _ => {}
         });
@@ -87,6 +96,9 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         tray = tray.icon(icon).icon_as_template(cfg!(target_os = "macos"));
     }
     tray.build(app)?;
+    if let Some(update) = update {
+        crate::updates_ui::set_tray_item(app, update);
+    }
     Ok(())
 }
 
@@ -104,15 +116,23 @@ fn tray_icon(app: &AppHandle) -> Option<tauri::image::Image<'_>> {
 
 /// Opens the settings window, or focuses it if it already exists.
 pub fn show_settings(app: &AppHandle) {
+    show_settings_page(app, "general");
+}
+
+/// Opens the settings window on a page (`general`, `presentation`, `hotkeys`, `updates`).
+pub fn show_settings_page(app: &AppHandle, page: &str) {
     if let Some(window) = app.get_webview_window(SETTINGS_LABEL) {
         let _ = window.show();
         let _ = window.set_focus();
+        if page != "general" {
+            let _ = app.emit_to(SETTINGS_LABEL, "settings-page", page);
+        }
         return;
     }
     let result = WebviewWindowBuilder::new(
         app,
         SETTINGS_LABEL,
-        WebviewUrl::App("index.html?window=settings".into()),
+        WebviewUrl::App(format!("index.html?window=settings&page={page}").into()),
     )
     .title("LumenGrab Settings")
     .inner_size(1100.0, 720.0)

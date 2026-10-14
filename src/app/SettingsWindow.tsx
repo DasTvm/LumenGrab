@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Folder, Frame, Keyboard, SlidersHorizontal } from "lucide-react";
+import { Folder, Frame, Keyboard, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { formatKey, spokenShortcut } from "@/platform/keys";
 import {
   DEFAULT_SETTINGS,
@@ -21,9 +21,11 @@ import { Segmented } from "@/ui/components/segmented";
 import { Switch } from "@/ui/components/switch";
 import { Divider, Row, Section } from "./settings-parts";
 import { PresentationPage } from "./SettingsPresentation";
+import { UpdatesPage } from "./SettingsUpdates";
 import { readThemePreference, saveThemePreference, type ThemePreference } from "@/ui/theme";
 
-type Page = "general" | "presentation" | "hotkeys";
+const PAGES = ["general", "presentation", "hotkeys", "updates"] as const;
+type Page = (typeof PAGES)[number];
 
 const HOTKEY_TEXT: Record<HotkeyInfo["id"], { title: string; description: string }> = {
   capture: {
@@ -63,12 +65,33 @@ const THEME_OPTIONS = [
 
 /** Settings window (design: "Settings", "Settings Hotkeys"). Only options that really work are live; the rest say "Soon". */
 export function SettingsWindow() {
-  const [page, setPage] = useState<Page>("general");
+  const [page, setPage] = useState<Page>(() => {
+    const wanted = new URLSearchParams(window.location.search).get("page");
+    return PAGES.find((p) => p === wanted) ?? "general";
+  });
   const [app, setApp] = useState<AppInfo | null>(null);
   const [info, setInfo] = useState<SettingsInfo | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // The app can ask for a page while the window is open (the tray's "Check for Updates…").
+  useEffect(() => {
+    const life = { alive: true, stop: null as (() => void) | null };
+    void platform
+      .onSettingsPage((wanted) => {
+        const next = PAGES.find((p) => p === wanted);
+        if (next) setPage(next);
+      })
+      .then((off) => {
+        if (life.alive) life.stop = off;
+        else off();
+      });
+    return () => {
+      life.alive = false;
+      life.stop?.();
+    };
+  }, []);
 
   useEffect(() => {
     platform.getAppInfo().then(setApp, () => {
@@ -127,6 +150,15 @@ export function SettingsWindow() {
         >
           Hotkeys
         </NavItem>
+        <NavItem
+          icon={<RefreshCw />}
+          active={page === "updates"}
+          onClick={() => {
+            setPage("updates");
+          }}
+        >
+          Updates
+        </NavItem>
       </nav>
 
       <main className="flex-1 overflow-auto p-8">
@@ -136,6 +168,8 @@ export function SettingsWindow() {
           </p>
         ) : page === "general" ? (
           <GeneralPage info={info} settings={settings} onChange={change} saveError={saveError} />
+        ) : page === "updates" ? (
+          <UpdatesPage settings={settings} onChange={change} saveError={saveError} />
         ) : page === "presentation" ? (
           <PresentationPage settings={settings} onChange={change} saveError={saveError} />
         ) : (

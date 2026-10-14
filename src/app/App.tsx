@@ -9,6 +9,7 @@ import { QuickAccessGallery } from "./QuickAccessGallery";
 import { QuickAccessWindow } from "./QuickAccessWindow";
 import { RecoverWindow } from "./RecoverWindow";
 import { SettingsWindow } from "./SettingsWindow";
+import { UpdateRestartWindow } from "./UpdateRestartWindow";
 
 /** Picks the window to render from `?window=`. One frontend bundle serves every native window. */
 export function App() {
@@ -28,6 +29,8 @@ export function App() {
       return <DialogWindow />;
     case "quick":
       return <QuickAccessWindow />;
+    case "update-restart":
+      return <UpdateRestartWindow />;
     case "present":
       return <PresentWindow />;
     case "recover":

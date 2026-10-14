@@ -61,11 +61,13 @@ export interface NoticeAction {
 
 /** An error or warning shown as a card in the Quick Access corner (design: "Feedback and Errors"). */
 export interface QuickAccessNotice {
-  tone: "error" | "warning" | "info";
-  /** A name the page maps to an icon: `triangle-alert`, `clipboard-x`, `keyboard`, `scan-line`, `trash`, `logo`. */
+  tone: "error" | "warning" | "info" | "update";
+  /** A name the page maps to an icon: `triangle-alert`, `clipboard-x`, `keyboard`, `scan-line`, `trash`, `logo`, `refresh-cw`. */
   icon: string;
   title: string;
   body: string;
+  /** A progress bar under the text (the update download); `fraction` is `null` while the size is not known. */
+  progress?: { fraction: number | null; text: string };
   /** Keys drawn as keycaps under the text (the first-start hint). */
   keys: string[];
   actions: NoticeAction[];
@@ -169,8 +171,48 @@ export interface Settings {
     /** A new capture opens in the Presentation tab of the editor. */
     openInPresentation: boolean;
   };
+  updates: {
+    /** Look for a new version once a day, in the background. Off: LumenGrab never goes online by itself. */
+    auto: boolean;
+  };
   /** The Windows first-start hint was shown. */
   seenIntro: boolean;
+}
+
+/** Why an update failed, as far as a person can act on it. */
+export type UpdateFailReason = "network" | "signature" | "disk" | "other";
+
+/** The one state of the updater (docs/adr/0008), the same in Settings, the Quick Access cards and the tray menu. */
+export type UpdateState =
+  /** Not set up in this build (no public key): the controls are hidden. */
+  | { kind: "unavailable" }
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "upToDate" }
+  | {
+      kind: "available";
+      version: string;
+      /** The release notes of the release page (Markdown). */
+      notes: string | null;
+      /** `YYYY-MM-DD`. */
+      date: string | null;
+    }
+  | { kind: "downloading"; version: string; downloaded: number; total: number | null }
+  | { kind: "ready"; version: string }
+  | { kind: "failed"; reason: UpdateFailReason; message: string };
+
+/** A document window with unsaved changes (the update restart lists them). */
+export interface UnsavedDocument {
+  label: string;
+  name: string;
+  kind: "file" | "capture" | "recovered";
+}
+
+export interface UpdateInfo {
+  state: UpdateState;
+  currentVersion: string;
+  /** The last check that worked (RFC 3339, UTC). */
+  lastChecked: string | null;
 }
 
 export interface SettingsInfo {
@@ -250,6 +292,29 @@ export interface Platform {
     suggestedName: string;
     formats: SaveFormat[];
   }): Promise<SaveTarget | null>;
+  /** Calls `listener` when the app asks this Settings window to show a page (the tray's "Check for Updates…"). */
+  onSettingsPage(listener: (page: string) => void): Promise<() => void>;
+  /** The state of the updater and what is known around it. */
+  getUpdateInfo(): Promise<UpdateInfo>;
+  /** Calls `listener` whenever the state changes (also for changes another window made). */
+  onUpdateInfo(listener: (info: UpdateInfo) => void): Promise<() => void>;
+  /** Looks for a new version now. */
+  checkForUpdates(): Promise<UpdateInfo>;
+  /** Downloads the available update in the background; progress arrives through `onUpdateInfo`. */
+  downloadUpdate(): Promise<void>;
+  cancelUpdate(): Promise<void>;
+  /** Do not announce this version again automatically. */
+  skipUpdate(): Promise<void>;
+  /** Installs the downloaded update and restarts the app (after asking about unsaved documents). */
+  restartToUpdate(): Promise<void>;
+  /** The documents with unsaved changes (the restart dialog lists them). */
+  getUnsavedDocuments(): Promise<UnsavedDocument[]>;
+  /** "Install and restart" in the dialog: each unsaved document asks "Save changes?", then the update is installed. */
+  confirmUpdateRestart(): Promise<void>;
+  /** "Later" in the dialog. */
+  dismissUpdateRestart(): Promise<void>;
+  /** The user cancelled "Save changes?" of a document: an update restart waiting for it is off. */
+  documentCloseCancelled(): Promise<void>;
   /** A dialog to pick a picture (PNG, JPEG or WebP, up to 20 MB) for a background: its bytes, or `null` if cancelled. */
   pickImage(): Promise<Uint8Array | null>;
   /** The text of `looks.json` (the user's saved looks), or `null` if there is none yet. */

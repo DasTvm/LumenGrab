@@ -232,6 +232,26 @@ pub async fn quick_access_notice_action(
                 close(&app, &id);
             }
         }
+        Handler::UpdateDownload => {
+            // The card stays: it turns into the progress card by itself.
+            crate::updater::download(&app)?;
+        }
+        Handler::UpdateCancel => {
+            crate::updater::cancel(&app);
+            close(&app, &id);
+        }
+        Handler::UpdateRestart => {
+            close(&app, &id);
+            crate::updates_ui::request_restart(&app);
+        }
+        Handler::UpdateCheck => {
+            close(&app, &id);
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                crate::updater::check(&app, false).await;
+            });
+        }
+        Handler::OpenUrl(url) => platform::open_url(&url),
         Handler::ApplyLook(path) => {
             crate::capture::output::apply_look_to_file(&app, &path)?;
             close(&app, &id);

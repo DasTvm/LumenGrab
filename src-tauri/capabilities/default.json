@@ -10,7 +10,8 @@
     "qa-*",
     "doc-*",
     "recover",
-    "present"
+    "present",
+    "update-restart"
   ],
   "permissions": [
     "core:default"

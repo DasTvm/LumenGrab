@@ -83,6 +83,7 @@ test.describe("settings (browser mock)", () => {
       copyToClipboard: false,
       quickAccess: { enabled: true, style: "large", autoCloseSecs: 10, corner: "topLeft" },
       presentation: { auto: false, openInPresentation: false },
+      updates: { auto: true },
       seenIntro: false,
     });
     await page.screenshot({
@@ -271,5 +272,125 @@ test.describe("settings (browser mock)", () => {
     await page.getByRole("button", { name: "Delete Docs" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
     await expect(page.getByText("You have not saved a look yet")).toBeVisible();
+  });
+
+  test.describe("Updates page", () => {
+    const open = async (page: Page, query = "") => {
+      await page.goto(`/?window=settings${query}`);
+      await page.getByRole("button", { name: "Updates" }).click();
+      await expect(page.getByRole("heading", { name: "Updates", level: 1 })).toBeVisible();
+    };
+
+    test("the app can open this page, from the address or while Settings is open", async ({
+      page,
+    }) => {
+      await page.goto("/?window=settings&page=updates");
+      await expect(page.getByRole("heading", { name: "Updates", level: 1 })).toBeVisible();
+      await page.goto("/?window=settings");
+      await expect(page.getByRole("heading", { name: "General", level: 1 })).toBeVisible();
+      await page.evaluate(() => {
+        window.__lumengrabMock?.settingsPage?.("updates");
+      });
+      await expect(page.getByRole("heading", { name: "Updates", level: 1 })).toBeVisible();
+    });
+
+    test("a check that finds nothing says so and remembers when", async ({ page }) => {
+      await open(page);
+      await expect(page.getByText("Not checked yet")).toBeVisible();
+      await page.getByRole("button", { name: "Check now" }).click();
+      await expect(page.getByText("Checking for updates…")).toBeVisible();
+      await expect(page.getByText("You're up to date")).toBeVisible();
+      await expect(page.getByText("LumenGrab 0.4.2 is the latest version.")).toBeVisible();
+      await expect(page.getByText(/Last checked: today, \d\d:\d\d/)).toBeVisible();
+      await page.screenshot({
+        path: "test-results/settings-updates-uptodate.png",
+        animations: "disabled",
+      });
+    });
+
+    test("an update: the notes by group, install = download, then restart", async ({ page }) => {
+      await open(page, "&check=available");
+      await page.getByRole("button", { name: "Check now" }).click();
+      await expect(page.getByText("Version 0.5.0 is available")).toBeVisible();
+      await expect(page.getByText("Released Oct 12, 2026")).toBeVisible();
+      const notes = page.getByLabel("What's new in 0.5.0");
+      await expect(notes).toContainText(
+        "Presentation mode with looks, backgrounds and window frames",
+      );
+      await expect(notes.getByText("Fixed", { exact: true })).toBeVisible();
+      await page.screenshot({
+        path: "test-results/settings-updates-available.png",
+        animations: "disabled",
+      });
+
+      await page.getByRole("button", { name: "Install and restart" }).click();
+      await expect(page.getByText("Downloading version 0.5.0")).toBeVisible();
+      await expect(page.getByRole("progressbar")).toBeVisible();
+      await expect(page.getByText("Version 0.5.0 is ready")).toBeVisible({ timeout: 8000 });
+      await page.getByRole("button", { name: "Restart now" }).click();
+      expect((await submissions(page)).some((e) => e.kind === "updateRestart")).toBe(true);
+    });
+
+    test("a running download can be cancelled, an update can be skipped, the release page opens", async ({
+      page,
+    }) => {
+      await open(page, "&update=downloading");
+      await expect(page.getByText("24 of 38 MB")).toBeVisible();
+      await page.getByRole("button", { name: "Cancel" }).click();
+      await expect(page.getByText("Version 0.5.0 is available")).toBeVisible();
+      await page.getByRole("button", { name: "See what's new" }).click();
+      expect((await submissions(page)).find((e) => e.kind === "openUrl")?.url).toBe(
+        "https://github.com/DasTvm/LumenGrab/releases/tag/v0.5.0",
+      );
+      await page.getByRole("button", { name: "Skip this version" }).click();
+      await expect(page.getByText("You're up to date")).toBeVisible();
+    });
+
+    test("the states of a ready update and of every failure", async ({ page }) => {
+      await open(page, "&update=ready");
+      await expect(page.getByText("Version 0.5.0 is ready")).toBeVisible();
+      await page.getByRole("button", { name: "Later" }).click();
+      await expect(page.getByText("The update installs when you restart LumenGrab.")).toBeVisible();
+
+      for (const [scenario, title] of [
+        ["failed-network", "Could not check for updates"],
+        ["failed-signature", "Update failed: security check"],
+        ["failed-disk", "Update failed: not enough space"],
+      ] as const) {
+        await open(page, `&update=${scenario}`);
+        await expect(page.getByText(title)).toBeVisible();
+        await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
+        await expect(page.getByText(/^Details:/)).toBeVisible();
+      }
+      await page.screenshot({
+        path: "test-results/settings-updates-failed.png",
+        animations: "disabled",
+      });
+    });
+
+    test("the daily check can be turned off, and the page says what goes online", async ({
+      page,
+    }) => {
+      await open(page);
+      const auto = page.getByRole("switch", { name: "Check for updates automatically" });
+      await expect(auto).toHaveAttribute("aria-checked", "true");
+      await expect(
+        page.getByText("The update check is the only network access LumenGrab has."),
+      ).toBeVisible();
+      await auto.click();
+      const saved = (await submissions(page)).filter((e) => e.kind === "settings").at(-1);
+      expect(saved?.settings?.updates).toEqual({ auto: false });
+    });
+
+    test("a build without the update key hides the controls instead of failing", async ({
+      page,
+    }) => {
+      await open(page, "&update=unavailable");
+      await expect(page.getByText("Updates are not set up in this build.")).toBeVisible();
+      await expect(page.getByRole("button", { name: "Check now" })).toHaveCount(0);
+      await expect(
+        page.getByRole("switch", { name: "Check for updates automatically" }),
+      ).toHaveCount(0);
+    });
   });
 });

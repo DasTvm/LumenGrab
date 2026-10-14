@@ -1,7 +1,9 @@
 name: Release
 
-# Tag `v*` -> unsigned installers attached to a draft GitHub Release in this repo.
-# Manual run (workflow_dispatch) -> installers are only uploaded as workflow artifacts, no release.
+# Tag `v*` -> installers plus the signed update packages and `latest.json` (what the in-app updater reads),
+# attached to a draft GitHub Release in this repo. Publish the draft by hand after writing its notes.
+# Manual run (workflow_dispatch) -> installers are only uploaded as workflow artifacts, no release and
+# no update packages (docs/UPDATER.md).
 on:
   push:
     tags: ["v*"]
@@ -49,17 +51,30 @@ jobs:
       - uses: tauri-apps/tauri-action@action-v1.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Updater signing is NOT enabled in M0 (see docs/UPDATER.md). When it is, add:
-          # TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          # TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Signs the update packages of a tag build (docs/UPDATER.md). Never printed, never committed.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
           releaseName: LumenGrab ${{ github.ref_name }}
+          # The notes of the release are what the update window shows (New / Improved / Fixed), so write
+          # them in this shape before publishing the draft, and delete the groups you do not need.
           releaseBody: |
+            ### New
+            - Describe what is new
+
+            ### Improved
+            - Describe what got better
+
+            ### Fixed
+            - Describe what was fixed
+
             Unsigned build. First launch: see "First launch" in the README
             (macOS Gatekeeper, Windows SmartScreen).
           releaseDraft: true # review the draft, then publish by hand
           prerelease: false
-          uploadUpdaterJson: false # no updater in M0; set to true once it is registered
+          uploadUpdaterJson: true # latest.json with the signatures, for the in-app updater
+          updaterJsonPreferNsis: true
           uploadWorkflowArtifacts: true
-          args: ${{ matrix.args }}
+          # Update packages (and their signatures) only on a tag: a manual run has no signing key.
+          args: ${{ matrix.args }} ${{ github.ref_type == 'tag' && '--config src-tauri/tauri.release.conf.json' || '' }}

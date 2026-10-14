@@ -158,6 +158,20 @@ Open the editor's **Presentation** tab (top bar, or Cmd/Ctrl+Shift+P). The first
 - **Windows only:** the frame fonts, the shadow, and the automatic look work on a 150 % / 200 % display and with two displays of different scale.
 - Dark mode (derived, not designed): the panel, the gallery and the dialogs are readable.
 
+## 6g. Updates
+
+Needs a build with the public key (docs/UPDATER.md); a build without it shows "Updates are not set up in this build" and no tray entry.
+
+- **Start with the key:** a build that has the public key must start cleanly and show the tray entry (a start-up crash once hid in exactly this combination).
+- **Settings > Updates:** version and "Last checked", "Check now" (checking, then up to date or a new version with its notes grouped New / Improved / Fixed), "See what's new" opens the release page, "Skip this version" hides it from the automatic check.
+- **Install and restart** on a found version: it downloads (progress and time left; Cancel stops it), then says it is ready. "Restart now" installs and the app comes back as the new version (check Settings > Updates and the version). On macOS the note about Screen Recording appears; after the restart macOS may ask for that permission again (unsigned builds).
+- **The corner card:** with the daily check on, a newer published release shows "LumenGrab X is here" on its own (Install and restart / Later / See what's new). The same card becomes the progress card, then "A new version is ready". Close it: Settings still shows the state.
+- **The menu bar / tray entry:** "Check for Updates…" opens Settings > Updates and checks; while a download runs it reads "Downloading Update…"; when ready it reads "Restart to Update".
+- **Unsaved documents:** change something in an editor, choose Install and restart: the dialog lists the document. "Install and restart" there makes the editor ask "Save changes?"; Save or Don't save, then the app restarts as the new version. Cancel in "Save changes?" calls the restart off (nothing is installed). "Later" closes the dialog.
+- **Failures:** switch off the network and press Check now ("Could not check for updates", Try again, Copy details); a package with a wrong signature ("Update failed: security check", nothing installed).
+- **Privacy:** with "Check for updates automatically" off, LumenGrab makes no request at all until Check now (watch the network with Little Snitch / the Windows firewall log).
+- **Windows only:** the NSIS installer updates in place and starts the new version; the tray entry and the restart dialog look right at 150 % and 200 %.
+
 ## 7. Display changes
 
 - Plug/unplug a monitor, change resolution or scale, rearrange monitors, sleep/wake, lock screen: the next capture uses the new layout, no stale or offset overlays, no crash.

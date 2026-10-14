@@ -129,6 +129,42 @@ test.describe("notice cards (browser mock)", () => {
     ]);
   });
 
+  test("the update cards: here, downloading with a progress bar, ready, and the failures", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=update-available");
+    await expect(page.getByRole("alert")).toContainText("LumenGrab 0.5.0 is here");
+    await expect(page.getByRole("button", { name: "Install and restart" })).toBeVisible();
+    await page.getByRole("button", { name: "See what's new" }).click();
+    expect((await submissions(page)).filter((s) => s.kind === "qaNotice")).toEqual([
+      { kind: "qaNotice", id: "demo", index: 2 },
+    ]);
+    await page.screenshot({
+      path: "test-results/update-card-available.png",
+      animations: "disabled",
+    });
+
+    await page.goto("/?window=quick&card=update-downloading");
+    await expect(page.getByRole("alert")).toContainText("Downloading LumenGrab 0.5.0");
+    await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "63");
+    await expect(page.getByText("24 of 38 MB · about 10 seconds left")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+    await page.screenshot({
+      path: "test-results/update-card-downloading.png",
+      animations: "disabled",
+    });
+
+    await page.goto("/?window=quick&card=update-ready");
+    await expect(page.getByRole("alert")).toContainText("A new version of LumenGrab is ready");
+    await expect(page.getByRole("button", { name: "Later" })).toBeVisible();
+
+    await page.goto("/?window=quick&card=update-failed-signature");
+    await expect(page.getByRole("alert")).toContainText("Update failed: security check");
+    await expect(page.getByRole("button", { name: "Download manually" })).toBeVisible();
+    await page.goto("/?window=quick&card=update-failed-network");
+    await expect(page.getByRole("alert")).toContainText("Update failed: no connection");
+  });
+
   test("an action that fails says why on the card and keeps it open", async ({ page }) => {
     await page.goto("/?window=quick&card=notice-save&notice=fail");
     await page.getByRole("button", { name: "Retry" }).click();
