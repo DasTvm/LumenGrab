@@ -1,4 +1,4 @@
-import { canvasCodec } from "@/document/render/canvas-codec";
+import type { RgbaImage } from "@/document/render/pixels";
 import { defaultPresentation } from "@/document/write";
 import { editorCodec } from "@/editor/draw/codec";
 import { applyLook, builtinById, type Look } from "./looks";
@@ -8,19 +8,18 @@ import { assetsOfLooks } from "./looks-store";
 export const FACTORY_LOOK_ID = "midnight";
 
 /**
- * The automatic look (docs/adr/0007): puts the default look on a capture and returns the finished PNG,
+ * The automatic look (docs/adr/0007): puts the default look on a capture (raw pixels, no PNG on the way) and returns the finished picture,
  * with the same drawing code as the editor and the export. The capture is the whole picture (no crop,
  * no annotations); lengths of the look scale to its width like in the editor. Throws if the look needs a
  * picture that is gone, so the capture is delivered as it is rather than with a wrong background.
  */
 export async function renderDefaultLook(
-  png: Uint8Array,
+  picture: RgbaImage,
   look: Look | null,
   readAsset: (name: string) => Promise<Uint8Array | null>,
-): Promise<Uint8Array> {
+): Promise<RgbaImage> {
   const chosen = look ?? builtinById(FACTORY_LOOK_ID);
   if (!chosen) throw new Error("There is no look to apply.");
-  const picture = await canvasCodec.decode(png);
   const assets: Record<string, Uint8Array> = {};
   for (const name of assetsOfLooks({ version: 1, looks: [chosen], defaultLook: null })) {
     const bytes = await readAsset(name);
@@ -29,6 +28,5 @@ export async function renderDefaultLook(
   }
   const presentation = applyLook(defaultPresentation(), chosen, picture.width);
   if (!editorCodec.present) throw new Error("This renderer cannot draw a presentation.");
-  const finished = await editorCodec.present(picture, presentation, assets);
-  return canvasCodec.encode(finished);
+  return editorCodec.present(picture, presentation, assets);
 }

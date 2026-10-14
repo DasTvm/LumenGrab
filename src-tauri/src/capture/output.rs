@@ -142,8 +142,7 @@ fn with_look(app: &AppHandle, frame: &Frame) -> Result<(Frame, Vec<u8>), String>
     #[cfg(any(debug_assertions, feature = "dev-hooks"))]
     let started = std::time::Instant::now();
     let original = encode::encode_png(frame, encode::Profile::Fast).map_err(|e| e.to_string())?;
-    let finished = present::present(app, original.clone())?;
-    let presented = encode::decode_png(&finished).map_err(|e| e.to_string())?;
+    let presented = present::present(app, frame)?;
     #[cfg(any(debug_assertions, feature = "dev-hooks"))]
     eprintln!(
         "[lumengrab:dev] look applied to {}x{} in {} ms ({}x{} out)",
@@ -160,14 +159,15 @@ fn with_look(app: &AppHandle, frame: &Frame) -> Result<(Frame, Vec<u8>), String>
 /// replaced by the finished picture, the capture goes to the originals, the clipboard gets the result.
 pub fn apply_look_to_file(app: &AppHandle, path: &Path) -> Result<(), String> {
     let original = fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let finished = present::present(app, original.clone())?;
+    let frame = encode::decode_png(&original).map_err(|e| e.to_string())?;
+    let finished = present::present(app, &frame)?;
+    let png = encode::encode_png(&finished, encode::Profile::Best).map_err(|e| e.to_string())?;
     if let Some(name) = path.file_name() {
         present::save_original(app, &original, name)?;
     }
-    crate::fsutil::write_atomic(path, &finished).map_err(|e| format!("{}: {e}", path.display()))?;
+    crate::fsutil::write_atomic(path, &png).map_err(|e| format!("{}: {e}", path.display()))?;
     if app.state::<SettingsStore>().get().copy_to_clipboard {
-        let frame = encode::decode_png(&finished).map_err(|e| e.to_string())?;
-        copy_to_clipboard(app, &frame)?;
+        copy_to_clipboard(app, &finished)?;
     }
     Ok(())
 }

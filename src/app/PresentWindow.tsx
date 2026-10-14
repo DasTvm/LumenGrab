@@ -14,15 +14,19 @@ export function PresentWindow() {
     const life = { alive: true };
     void (async () => {
       await looksStore.getState().init();
-      const off = await platform.onPresentRequest((id) => {
+      const off = await platform.onPresentRequest(({ id, width, height }) => {
         void (async () => {
           try {
-            const png = await platform.presentTake(id);
+            const rgba = await platform.presentTake(id);
             const look = looksStore.getState().defaultLook;
-            const finished = await renderDefaultLook(png, look, (name) =>
+            const finished = await renderDefaultLook({ width, height, data: rgba }, look, (name) =>
               looksStore.getState().readAsset(name),
             );
-            await platform.presentResult(id, { png: finished });
+            await platform.presentResult(id, {
+              width: finished.width,
+              height: finished.height,
+              rgba: finished.data,
+            });
           } catch (e) {
             await platform
               .presentResult(id, { error: e instanceof Error ? e.message : "The look failed." })

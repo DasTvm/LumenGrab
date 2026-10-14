@@ -289,22 +289,38 @@ export const nativePlatform: Platform = {
     await call("present_ready");
   },
 
-  async onPresentRequest(listener: (id: number) => void): Promise<() => void> {
-    return listen<number>("present-request", (event) => {
+  async onPresentRequest(
+    listener: (request: { id: number; width: number; height: number }) => void,
+  ): Promise<() => void> {
+    return listen<{ id: number; width: number; height: number }>("present-request", (event) => {
       listener(event.payload);
     });
   },
 
-  async presentTake(id: number): Promise<Uint8Array> {
-    return new Uint8Array(await invoke<ArrayBuffer>("present_take", { id }));
+  async presentTake(id: number): Promise<Uint8ClampedArray> {
+    return new Uint8ClampedArray(await invoke<ArrayBuffer>("present_take", { id }));
   },
 
-  async presentResult(id: number, outcome: { png: Uint8Array } | { error: string }): Promise<void> {
+  async presentResult(
+    id: number,
+    outcome: { width: number; height: number; rgba: Uint8ClampedArray } | { error: string },
+  ): Promise<void> {
     const headers: Record<string, string> = { id: String(id) };
-    // A header holds one line of plain text; the reason is only for the log and the notice.
-    if ("error" in outcome)
+    if ("error" in outcome) {
+      // A header holds one line of plain text; the reason is only for the log and the notice.
       headers["error"] = outcome.error.replace(/[^\x20-\x7e]/g, " ").slice(0, 200);
-    await invoke("present_result", "png" in outcome ? outcome.png : new Uint8Array(0), { headers });
+      await invoke("present_result", new Uint8Array(0), { headers });
+      return;
+    }
+    headers["width"] = String(outcome.width);
+    headers["height"] = String(outcome.height);
+    // The same memory seen as bytes (no copy): the pictures are tens of megabytes.
+    const bytes = new Uint8Array(
+      outcome.rgba.buffer,
+      outcome.rgba.byteOffset,
+      outcome.rgba.byteLength,
+    );
+    await invoke("present_result", bytes, { headers });
   },
 
   async writeGrantedFile(token: string, bytes: Uint8Array): Promise<void> {

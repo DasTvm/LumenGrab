@@ -12,7 +12,7 @@ type Answer =
   | { error: string }
   | { width: number; height: number; centre: number[]; corner: number[] };
 
-/** Sends a plain red 200 x 100 PNG as request `id` and returns what the page answered, decoded. */
+/** Sends a plain red 200 x 100 picture as request `id` and returns what the page answered, decoded. */
 async function ask(page: Page, id: number): Promise<Answer> {
   return page.evaluate(
     async ({ id: requestId, size }) => {
@@ -21,27 +21,23 @@ async function ask(page: Page, id: number): Promise<Answer> {
       if (!ctx) throw new Error("no 2d context");
       ctx.fillStyle = "#ff0000";
       ctx.fillRect(0, 0, size.width, size.height);
-      const png = new Uint8Array(
-        await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer(),
-      );
+      const picture = ctx.getImageData(0, 0, size.width, size.height);
       const mock = window.__lumengrabMock;
       if (!mock?.present) throw new Error("the page is not listening");
-      mock.present(requestId, png);
+      mock.present(requestId, { width: size.width, height: size.height, rgba: picture.data });
       for (let i = 0; i < 100 && !mock.presented?.[requestId]; i += 1)
         await new Promise((r) => setTimeout(r, 50));
       const answer = mock.presented?.[requestId];
       if (!answer) return { missing: true as const };
       if ("error" in answer) return { error: answer.error };
-      const bitmap = await createImageBitmap(new Blob([new Uint8Array(answer.png)]));
-      const out = new OffscreenCanvas(bitmap.width, bitmap.height);
-      const octx = out.getContext("2d");
-      if (!octx) throw new Error("no 2d context");
-      octx.drawImage(bitmap, 0, 0);
-      const px = (x: number, y: number) => Array.from(octx.getImageData(x, y, 1, 1).data);
+      const px = (x: number, y: number) =>
+        Array.from(
+          answer.rgba.subarray((y * answer.width + x) * 4, (y * answer.width + x) * 4 + 4),
+        );
       return {
-        width: bitmap.width,
-        height: bitmap.height,
-        centre: px(Math.floor(bitmap.width / 2), Math.floor(bitmap.height / 2)),
+        width: answer.width,
+        height: answer.height,
+        centre: px(Math.floor(answer.width / 2), Math.floor(answer.height / 2)),
         corner: px(2, 2),
       };
     },

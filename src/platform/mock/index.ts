@@ -116,9 +116,15 @@ declare global {
       /** Pretends the user closed the window while it has unsaved changes. */
       requestClose?: () => void;
       /** The automatic look: a test sends a capture in, the page answers into `presented`. */
-      present?: (id: number, png: Uint8Array) => void;
-      presentInput?: Record<number, Uint8Array>;
-      presented?: Record<number, { png: Uint8Array } | { error: string }>;
+      present?: (
+        id: number,
+        picture: { width: number; height: number; rgba: Uint8ClampedArray },
+      ) => void;
+      presentInput?: Record<number, Uint8ClampedArray>;
+      presented?: Record<
+        number,
+        { width: number; height: number; rgba: Uint8ClampedArray } | { error: string }
+      >;
     };
   }
 }
@@ -482,12 +488,17 @@ export const mockPlatform: Platform = {
     return Promise.resolve();
   },
 
-  /** Tests trigger a request with `window.__lumengrabMock.present(id, png)` and read the answer from `presented`. */
-  onPresentRequest(listener: (id: number) => void): Promise<() => void> {
+  /** Tests trigger a request with `window.__lumengrabMock.present(id, picture)` and read the answer from `presented`. */
+  onPresentRequest(
+    listener: (request: { id: number; width: number; height: number }) => void,
+  ): Promise<() => void> {
     const log = (window.__lumengrabMock ??= { submissions: [] });
-    const send = (id: number, png: Uint8Array) => {
-      (log.presentInput ??= {})[id] = png;
-      listener(id);
+    const send = (
+      id: number,
+      picture: { width: number; height: number; rgba: Uint8ClampedArray },
+    ) => {
+      (log.presentInput ??= {})[id] = picture.rgba;
+      listener({ id, width: picture.width, height: picture.height });
     };
     log.present = send;
     return Promise.resolve(() => {
@@ -495,12 +506,15 @@ export const mockPlatform: Platform = {
     });
   },
 
-  presentTake(id: number): Promise<Uint8Array> {
-    const png = window.__lumengrabMock?.presentInput?.[id];
-    return png ? Promise.resolve(png) : Promise.reject(new PlatformError("No such request."));
+  presentTake(id: number): Promise<Uint8ClampedArray> {
+    const rgba = window.__lumengrabMock?.presentInput?.[id];
+    return rgba ? Promise.resolve(rgba) : Promise.reject(new PlatformError("No such request."));
   },
 
-  presentResult(id: number, outcome: { png: Uint8Array } | { error: string }): Promise<void> {
+  presentResult(
+    id: number,
+    outcome: { width: number; height: number; rgba: Uint8ClampedArray } | { error: string },
+  ): Promise<void> {
     const log = (window.__lumengrabMock ??= { submissions: [] });
     (log.presented ??= {})[id] = outcome;
     return Promise.resolve();

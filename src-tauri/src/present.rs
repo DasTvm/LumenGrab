@@ -22,7 +22,10 @@ use tauri::{
     AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder,
 };
 
-use crate::settings::{self, Settings};
+use crate::{
+    capture::Frame,
+    settings::{self, Settings},
+};
 
 /// The label of the hidden page that draws the look.
 pub const LABEL: &str = "present";
@@ -31,9 +34,18 @@ const RESULT_TIMEOUT: Duration = Duration::from_secs(6);
 /// Originals older than this are removed at startup.
 pub const KEEP_ORIGINALS: Duration = Duration::from_secs(30 * 24 * 60 * 60);
 
+/// A picture as raw RGBA bytes: PNG coding on both sides would cost more than the look itself.
 struct Pending {
     original: Arc<Vec<u8>>,
-    reply: mpsc::Sender<Result<Vec<u8>, String>>,
+    reply: mpsc::Sender<Result<Frame, String>>,
+}
+
+/// What the hidden page is told about a request (the pixels follow through `present_take`).
+#[derive(Clone, serde::Serialize)]
+struct PresentRequest {
+    id: u64,
+    width: u32,
+    height: u32,
 }
 
 #[derive(Default)]
@@ -91,9 +103,9 @@ pub fn on_destroyed(app: &AppHandle, label: &str) {
     }
 }
 
-/// Draws the default look on `original` (a PNG) and returns the finished PNG. Blocks until the page
+/// Draws the default look on `original` and returns the finished picture. Blocks until the page
 /// answers or the time is up: call it from a worker thread, never from the main thread.
-pub fn present(app: &AppHandle, original: Vec<u8>) -> Result<Vec<u8>, String> {
+pub fn present(app: &AppHandle, original: &Frame) -> Result<Frame, String> {
     let presenter = app.state::<Presenter>();
     ensure_window(app)?;
     let started = std::time::Instant::now();
@@ -112,12 +124,20 @@ pub fn present(app: &AppHandle, original: Vec<u8>) -> Result<Vec<u8>, String> {
         .insert(
             id,
             Pending {
-                original: Arc::new(original),
+                original: Arc::new(original.rgba.clone()),
                 reply,
             },
         );
     let result = app
-        .emit_to(LABEL, "present-request", id)
+        .emit_to(
+            LABEL,
+            "present-request",
+            PresentRequest {
+                id,
+                width: original.width,
+                height: original.height,
+            },
+        )
         .map_err(|e| e.to_string())
         .and_then(|()| {
             wait.recv_timeout(RESULT_TIMEOUT)
@@ -135,7 +155,7 @@ pub fn present_ready(presenter: tauri::State<Presenter>) {
     presenter.ready.store(true, Ordering::SeqCst);
 }
 
-/// The picture a request is about, as raw bytes.
+/// The picture a request is about, as raw RGBA bytes.
 #[tauri::command]
 pub async fn present_take(
     presenter: tauri::State<'_, Presenter>,
@@ -151,7 +171,8 @@ pub async fn present_take(
     Ok(Response::new(bytes))
 }
 
-/// The finished picture (the body), or the reason it failed (the `error` header).
+/// The finished picture (the body: raw RGBA, with its `width` and `height` as headers), or the reason it
+/// failed (the `error` header).
 #[tauri::command]
 pub async fn present_result(
     presenter: tauri::State<'_, Presenter>,
@@ -163,11 +184,28 @@ pub async fn present_result(
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.parse().ok())
         .ok_or("The request is unknown.")?;
+    let number = |name: &str| -> Option<u32> {
+        request
+            .headers()
+            .get(name)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.parse().ok())
+    };
     let outcome = match request.headers().get("error").and_then(|v| v.to_str().ok()) {
         Some(reason) => Err(reason.to_owned()),
-        None => match request.body() {
-            InvokeBody::Raw(bytes) if !bytes.is_empty() => Ok(bytes.clone()),
-            _ => Err("The page sent no picture.".to_owned()),
+        None => match (request.body(), number("width"), number("height")) {
+            (InvokeBody::Raw(bytes), Some(width), Some(height))
+                if width > 0
+                    && height > 0
+                    && bytes.len() as u64 == u64::from(width) * u64::from(height) * 4 =>
+            {
+                Ok(Frame {
+                    width,
+                    height,
+                    rgba: bytes.clone(),
+                })
+            }
+            _ => Err("The page sent a malformed picture.".to_owned()),
         },
     };
     let pending = presenter.pending.lock().map_err(|_| "internal error")?;

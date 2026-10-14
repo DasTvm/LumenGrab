@@ -18,6 +18,7 @@
 //!
 //!   LUMENGRAB_DEV_QA=n                             deliver n synthetic captures (1.2 s apart) to test the Quick Access
 //!                                                  cards without a real capture; the app stays open
+//!   LUMENGRAB_DEV_QA_SIZE=5120x2880                make every synthetic capture of LUMENGRAB_DEV_QA that size
 //!   LUMENGRAB_DEV_SAVE_TARGET=/path/file.ext       "Save as…" writes there without asking (any format by extension)
 //!   LUMENGRAB_DEV_OPEN=/path/file.lumengrab        open that document in the viewer window at startup
 //!   LUMENGRAB_DEV_INTRO=1                          show the first-start hint (normally Windows only, once)
@@ -61,7 +62,13 @@ fn quick_access_demo(app: &AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_millis(2500));
         for i in 0..count {
-            let (w, h) = [(1200u32, 800u32), (640, 360), (900, 900)][(i % 3) as usize];
+            let (w, h) = std::env::var("LUMENGRAB_DEV_QA_SIZE")
+                .ok()
+                .and_then(|v| {
+                    let (w, h) = v.split_once('x')?;
+                    Some((w.parse::<u32>().ok()?, h.parse::<u32>().ok()?))
+                })
+                .unwrap_or([(1200u32, 800u32), (640, 360), (900, 900)][(i % 3) as usize]);
             let mut rgba = Vec::with_capacity((w * h * 4) as usize);
             for y in 0..h {
                 for x in 0..w {

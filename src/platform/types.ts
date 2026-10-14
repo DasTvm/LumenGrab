@@ -265,12 +265,17 @@ export interface Platform {
   onLooksChanged(listener: () => void): Promise<() => void>;
   /** The hidden page of the automatic look listens: the native side may send requests. */
   presentReady(): Promise<void>;
-  /** Calls `listener` with the id of a new request (a capture to put the default look on). */
-  onPresentRequest(listener: (id: number) => void): Promise<() => void>;
-  /** The PNG a request is about. */
-  presentTake(id: number): Promise<Uint8Array>;
-  /** Answers a request with the finished PNG, or with the reason it failed. */
-  presentResult(id: number, outcome: { png: Uint8Array } | { error: string }): Promise<void>;
+  /** Calls `listener` with a new request: a capture (its size; the pixels come from `presentTake`) to put the default look on. */
+  onPresentRequest(
+    listener: (request: { id: number; width: number; height: number }) => void,
+  ): Promise<() => void>;
+  /** The pixels (RGBA, straight alpha) a request is about. */
+  presentTake(id: number): Promise<Uint8ClampedArray>;
+  /** Answers a request with the finished picture (RGBA), or with the reason it failed. */
+  presentResult(
+    id: number,
+    outcome: { width: number; height: number; rgba: Uint8ClampedArray } | { error: string },
+  ): Promise<void>;
   /** Writes bytes (atomically) to a place `pickSaveTarget` granted. */
   writeGrantedFile(token: string, bytes: Uint8Array): Promise<void>;
   /** Saves the document to the `.lumengrab` file its window was opened from (atomically). */
