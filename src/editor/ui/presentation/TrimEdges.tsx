@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Scissors } from "lucide-react";
 import type { Rect } from "@/document/schema";
 import { Button } from "@/ui/components/button";
-import { cropForKeep, measureEdges, type Measured } from "@/presentation/balance";
+import { cropForKeep, measureEdges, type Measured, type Space } from "@/presentation/balance";
 import { useEditor, useStores } from "../context";
 import { Slider } from "../controls";
 import { SliderRow } from "./fields";
@@ -12,7 +12,7 @@ const sameRect = (a: Rect | null, b: Rect) =>
 
 interface Trim {
   measured: Measured;
-  keep: number;
+  keep: Space;
   /** The crop this trim made: when the document's crop is another one (undo, a new crop), the slider is gone. */
   last: Rect;
 }
@@ -33,7 +33,7 @@ export function TrimEdges() {
   const asCrop = (rect: Rect): Rect | null => (sameRect(rect, whole) ? null : rect);
   const active = trim && sameRect(crop, trim.last) ? trim : null;
 
-  const apply = (measured: Measured, keep: number): Rect => {
+  const apply = (measured: Measured, keep: Space): Rect => {
     const rect = cropForKeep(measured, keep);
     editor.getState().change((project) => {
       project.crop = asCrop(rect);
@@ -71,33 +71,42 @@ export function TrimEdges() {
         <Scissors aria-hidden className="size-4" />
         Trim empty edges
       </Button>
-      {active ? (
-        <SliderRow label="Space around the content" value={`${String(active.keep)} px`}>
-          <Slider
-            label="Space around the content"
-            value={active.keep}
-            min={0}
-            max={active.measured.maxKeep}
-            onStart={() => {
-              editor.getState().beginGesture();
-            }}
-            onEnd={() => {
-              editor.getState().endGesture();
-            }}
-            onChange={(keep) => {
-              const rect = apply(active.measured, keep);
-              setTrim({ ...active, keep, last: rect });
-            }}
-          />
-        </SliderRow>
-      ) : null}
+      {active
+        ? (
+            [
+              { axis: "x", label: "Space left and right" },
+              { axis: "y", label: "Space top and bottom" },
+            ] as const
+          ).map(({ axis, label }) => (
+            <SliderRow key={axis} label={label} value={`${String(active.keep[axis])} px`}>
+              <Slider
+                label={label}
+                value={active.keep[axis]}
+                min={0}
+                max={Math.max(1, active.measured.maxKeep[axis])}
+                onStart={() => {
+                  editor.getState().beginGesture();
+                }}
+                onEnd={() => {
+                  editor.getState().endGesture();
+                }}
+                onChange={(value) => {
+                  const keep = { ...active.keep, [axis]: value };
+                  const rect = apply(active.measured, keep);
+                  setTrim({ ...active, keep, last: rect });
+                }}
+              />
+            </SliderRow>
+          ))
+        : null}
       <p className="text-[13px] text-muted-foreground" role="status">
         {message ??
           "Too much empty space on one side of the screenshot? This crops it to the smallest margin the picture has, so the content sits evenly. The original stays untouched."}
       </p>
       {active ? (
         <p className="text-[13px] text-muted-foreground">
-          Cut too much or too little? Move the slider: 0 sits right at the content.
+          Cut too much or too little? Move the sliders, each side pair on its own: 0 sits right at
+          the content.
         </p>
       ) : null}
     </>

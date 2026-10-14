@@ -90,23 +90,33 @@ export function findMargins(image: RgbaImage, tolerance = DEFAULT_TOLERANCE): Ma
 /** A side with less empty space than this counts as touching the edge: it has no margin to copy. */
 export const TOUCHING = 2;
 
-/** What was measured in a picture: where, the margins, and the space to leave (suggested, and the most there is). */
+/** The space to leave on each axis: `x` on the left and the right, `y` at the top and the bottom. */
+export interface Space {
+  x: number;
+  y: number;
+}
+
+/** What was measured in a picture: where, the margins, the space to leave (suggested, and the most there is). */
 export interface Measured {
   /** The picture the margins were measured in (a crop of the source, or the whole source), in source pixels. */
   area: Rect;
   margins: Margins;
-  /** The space to leave around the content: the smallest margin the picture really has. */
-  keep: number;
-  /** The largest margin of the four: the end of the fine-tune slider. */
-  maxKeep: number;
+  /** The space to leave around the content, suggested from the margins the picture really has. */
+  keep: Space;
+  /** The largest margin of each axis: the end of the fine-tune sliders. */
+  maxKeep: Space;
 }
 
-/** The smallest margin that is a real one (sides that touch the edge are not a model to copy). 0 if there is none. */
-export function suggestedKeep(margins: Margins): number {
-  const real = [margins.top, margins.right, margins.bottom, margins.left].filter(
-    (m) => m >= TOUCHING,
-  );
-  return real.length === 0 ? 0 : Math.min(...real);
+/**
+ * The space to leave, per axis: the smaller of the two margins of the axis when both are real. A side that
+ * touches the edge has no margin to copy, so that axis takes the value of the other axis (where the
+ * spacing is right), and 0 if neither axis has a real margin.
+ */
+export function suggestedKeep(margins: Margins): Space {
+  const real = (a: number, b: number) => (a >= TOUCHING && b >= TOUCHING ? Math.min(a, b) : null);
+  const x = real(margins.left, margins.right);
+  const y = real(margins.top, margins.bottom);
+  return { x: x ?? y ?? 0, y: y ?? x ?? 0 };
 }
 
 /** Measures the empty space of the picture (or of `area` inside it); `null` if there is no empty edge to speak of. */
@@ -127,22 +137,26 @@ export function measureEdges(
     },
     margins,
     keep: suggestedKeep(margins),
-    maxKeep: Math.max(margins.top, margins.right, margins.bottom, margins.left),
+    maxKeep: {
+      x: Math.max(margins.left, margins.right),
+      y: Math.max(margins.top, margins.bottom),
+    },
   };
 }
 
 /**
- * The crop that leaves at most `keep` pixels of empty space on each side. A side that has less than
- * `keep` is left as it is (a crop cannot add space), so content never gets cut: only empty space goes.
+ * The crop that leaves at most `keep` pixels of empty space on each side (`keep.x` left and right, `keep.y`
+ * top and bottom). A side that has less is left as it is (a crop cannot add space), so content never gets
+ * cut: only empty space goes.
  */
-export function cropForKeep(measured: Measured, keep: number): Rect {
+export function cropForKeep(measured: Measured, keep: Space): Rect {
   const { area, margins } = measured;
-  const space = Math.max(0, Math.round(keep));
-  const cut = (margin: number) => Math.max(0, margin - space);
-  const left = cut(margins.left);
-  const top = cut(margins.top);
-  const right = cut(margins.right);
-  const bottom = cut(margins.bottom);
+  const cut = (margin: number, space: number) =>
+    Math.max(0, margin - Math.max(0, Math.round(space)));
+  const left = cut(margins.left, keep.x);
+  const right = cut(margins.right, keep.x);
+  const top = cut(margins.top, keep.y);
+  const bottom = cut(margins.bottom, keep.y);
   return {
     x: area.x + left,
     y: area.y + top,

@@ -59,30 +59,46 @@ describe("finding the empty edges", () => {
 });
 
 describe("the crop that balances the edges", () => {
-  it("leaves the smallest real margin on every side", () => {
-    const image = picture(100, 60, [10, 5, 50, 40]);
-    // Smallest margin is 5 (top): left 10 -> 5, right 40 -> 5, bottom 15 -> 5.
-    expect(balanceCrop(image, null)).toEqual({ x: 5, y: 0, width: 60, height: 50 });
+  it("leaves the smaller margin of each axis on both of its sides", () => {
+    const image = picture(100, 60, [10, 5, 50, 40]); // left 10, top 5, right 40, bottom 15
+    const measured = measureEdges(image, null);
+    expect(measured?.keep).toEqual({ x: 10, y: 5 });
+    expect(measured?.maxKeep).toEqual({ x: 40, y: 15 });
+    // Horizontal: right 40 -> 10 (left stays 10). Vertical: bottom 15 -> 5 (top stays 5).
+    expect(balanceCrop(image, null)).toEqual({ x: 0, y: 0, width: 70, height: 50 });
   });
 
-  it("does not cut at the content when one side has no margin: it copies the smallest margin that exists", () => {
+  it("copies from the other axis when a side touches the edge, instead of cutting at the content", () => {
     // Content touches the left edge (margin 0); the others are top 6, right 30, bottom 14.
     const image = picture(100, 60, [0, 6, 70, 40]);
     const measured = measureEdges(image, null);
     expect(measured?.margins).toEqual({ left: 0, top: 6, right: 30, bottom: 14 });
-    expect(measured?.keep).toBe(6);
-    expect(measured?.maxKeep).toBe(30);
-    // Right and bottom are cut down to 6; the left stays touching; nothing of the content is lost.
+    // Vertical has two real margins: 6. Horizontal has a side with none, so it takes 6 as well.
+    expect(measured?.keep).toEqual({ x: 6, y: 6 });
     expect(balanceCrop(image, null)).toEqual({ x: 0, y: 0, width: 76, height: 52 });
   });
 
-  it("can leave more or less space than suggested, and never cuts into the content", () => {
+  it("keeps a generous horizontal margin when only the vertical one is small", () => {
+    // left 30, right 30, top 4, bottom 4 (a wide strip): horizontal keeps 30, vertical keeps 4.
+    const image = picture(100, 40, [30, 4, 40, 32]);
+    const measured = measureEdges(image, null);
+    expect(measured?.keep).toEqual({ x: 30, y: 4 });
+    expect(balanceCrop(image, null)).toBeNull(); // already as small as it can be
+  });
+
+  it("can leave other space per axis, and never cuts into the content", () => {
     const image = picture(100, 60, [10, 5, 50, 40]);
     const measured = measureEdges(image, null);
     if (!measured) throw new Error("no margins");
-    expect(cropForKeep(measured, 0)).toEqual({ x: 10, y: 5, width: 50, height: 40 }); // hard at the content
-    expect(cropForKeep(measured, 12)).toEqual({ x: 0, y: 0, width: 72, height: 57 }); // top 5 and left 10 stay as they are
-    expect(cropForKeep(measured, 999)).toEqual({ x: 0, y: 0, width: 100, height: 60 }); // everything
+    expect(cropForKeep(measured, { x: 0, y: 0 })).toEqual({ x: 10, y: 5, width: 50, height: 40 }); // hard at the content
+    expect(cropForKeep(measured, { x: 20, y: 0 })).toEqual({ x: 0, y: 5, width: 80, height: 40 }); // only the sides
+    expect(cropForKeep(measured, { x: 0, y: 12 })).toEqual({ x: 10, y: 0, width: 50, height: 57 });
+    expect(cropForKeep(measured, { x: 999, y: 999 })).toEqual({
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 60,
+    }); // everything
   });
 
   it("is null when the edges are already as small as they can be, or there is no empty edge", () => {
@@ -93,7 +109,7 @@ describe("the crop that balances the edges", () => {
   it("measures inside an existing crop and answers in source pixels", () => {
     const image = picture(100, 60, [10, 5, 50, 40]);
     const area = { x: 4, y: 2, width: 90, height: 50 };
-    // In the crop the margins are top 3, left 6, right 34, bottom 7: the smallest is 3.
-    expect(balanceCrop(image, area)).toEqual({ x: 7, y: 2, width: 56, height: 46 });
+    // In the crop the margins are left 6, top 3, right 34, bottom 7: horizontal keeps 6, vertical 3.
+    expect(balanceCrop(image, area)).toEqual({ x: 4, y: 2, width: 62, height: 46 });
   });
 });
