@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-14T20:42:19.018Z",
+  "generatedAt": "2026-10-14T23:07:24.884Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -590,6 +590,13 @@
       "category": "improved",
       "title": "the automatic look moves raw pixels instead of PNG (5K: 2.2 s -> 1.25 s)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/ea62f5723ec6402bdbe36ceb8a155d479e7baf23"
+    },
+    {
+      "id": "d1b8b677dcbb4ec84903ff59d6a8ca814c6902ff",
+      "date": "2026-10-14T23:07:14Z",
+      "category": "new",
+      "title": "in-app updates (ADR 0008)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/d1b8b677dcbb4ec84903ff59d6a8ca814c6902ff"
     }
   ],
   "releases": [],
@@ -677,7 +684,8 @@
     "51fa07928e2b003458c37b7eb447592ca8c605a8",
     "84cf961c14c414174830a5d6c0f190a63f6bf834",
     "00fcc330123a665f711eb0b2bad10ffd3f67d409",
-    "ea62f5723ec6402bdbe36ceb8a155d479e7baf23"
+    "ea62f5723ec6402bdbe36ceb8a155d479e7baf23",
+    "d1b8b677dcbb4ec84903ff59d6a8ca814c6902ff"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -1034,6 +1042,10 @@
         {
           "category": "internal",
           "title": "Unsigned installers for macOS (.dmg) and Windows (.exe), published as GitHub Releases."
+        },
+        {
+          "category": "new",
+          "title": "Updates inside the app: a notice when a new version is out and one click to install it."
         }
       ]
     }
