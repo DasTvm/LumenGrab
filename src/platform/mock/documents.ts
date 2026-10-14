@@ -188,16 +188,18 @@ async function entriesOf(
 }
 
 /** A 600 x 300 white picture whose content (a dark window) sits left and high: 40 px empty above and on the left, 260 px on the right, 80 below. */
-async function marginsDocument() {
+async function marginsDocument(touching = false) {
   const canvas = new OffscreenCanvas(600, 300);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("no 2d context");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, 600, 300);
   ctx.fillStyle = "#1e293b";
-  ctx.fillRect(40, 40, 300, 180);
+  // `touching`: the content reaches the left edge, so that side has no margin to copy.
+  const left = touching ? 0 : 40;
+  ctx.fillRect(left, 40, 300, 180);
   ctx.fillStyle = "#c8ff2e";
-  ctx.fillRect(60, 60, 120, 20);
+  ctx.fillRect(left + 20, 60, 120, 20);
   const png = new Uint8Array(
     await (await canvas.convertToBlob({ type: "image/png" })).arrayBuffer(),
   );
@@ -208,6 +210,8 @@ export async function buildScenario(scenario: string): Promise<Uint8Array> {
   switch (scenario) {
     case "margins":
       return save(await marginsDocument());
+    case "margins-edge":
+      return save(await marginsDocument(true));
     case "redactions":
       return save(
         await newDocument([redaction("r1", "solid", 120, 120), redaction("r2", "blur", 120, 300)]),

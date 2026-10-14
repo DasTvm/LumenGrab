@@ -1,10 +1,8 @@
-import { useState } from "react";
-import { AlignHorizontalSpaceAround, Info, Scissors } from "lucide-react";
+import { AlignHorizontalSpaceAround, Info } from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { Switch } from "@/ui/components/switch";
 import { cn } from "@/ui/lib/utils";
 import { shadowTint } from "@/presentation/backgrounds";
-import { balanceCrop } from "@/presentation/balance";
 import { balancedPadding } from "@/presentation/compose";
 import {
   applyShadowPreset,
@@ -14,9 +12,9 @@ import {
   withOpacity,
   type ShadowPresetId,
 } from "@/presentation/shadow-presets";
-import { useStores } from "../context";
 import { Section, Slider, SwatchRow } from "../controls";
 import { NumberInput, SliderRow } from "./fields";
+import { TrimEdges } from "./TrimEdges";
 import { usePictureWidth, usePresentation } from "./use-presentation";
 
 const px = (n: number) => `${String(Math.round(n))} px`;
@@ -29,9 +27,7 @@ const SIDES = [
 
 /** Padding (design): one slider, the auto-balance switch, the four edges and "Balance edges". */
 export function PaddingSection() {
-  const { editor, session } = useStores();
   const { p, set, start, end } = usePresentation();
-  const [trimMessage, setTrimMessage] = useState<string | null>(null);
   const { top, right, bottom, left } = p.padding;
   const even = top === right && right === bottom && bottom === left;
   const mean = balancedPadding(p.padding).top;
@@ -102,45 +98,7 @@ export function PaddingSection() {
       <p className="text-[13px] text-muted-foreground">
         Makes all four edges equal after you change the aspect ratio or drag a single edge.
       </p>
-      <Button
-        variant="outline"
-        className="h-9 gap-2"
-        onClick={() => {
-          const current = editor.getState().project.crop;
-          const crop = balanceCrop(session.sourceImage, current);
-          if (!crop) {
-            setTrimMessage("There is no extra empty space to trim.");
-            return;
-          }
-          const was = current ?? {
-            x: 0,
-            y: 0,
-            width: session.sourceImage.width,
-            height: session.sourceImage.height,
-          };
-          const sides = [
-            ["the left", crop.x - was.x],
-            ["the top", crop.y - was.y],
-            ["the right", was.x + was.width - (crop.x + crop.width)],
-            ["the bottom", was.y + was.height - (crop.y + crop.height)],
-          ] as const;
-          const text = sides
-            .filter(([, px]) => px > 0)
-            .map(([name, px]) => `${String(Math.round(px))} px from ${name}`)
-            .join(", ");
-          editor.getState().change((project) => {
-            project.crop = crop;
-          });
-          setTrimMessage(`Trimmed ${text}. Undo brings it back.`);
-        }}
-      >
-        <Scissors aria-hidden className="size-4" />
-        Trim empty edges
-      </Button>
-      <p className="text-[13px] text-muted-foreground" role="status">
-        {trimMessage ??
-          "Too much empty space on one side of the screenshot? This crops it to the smallest of the four, so the content sits evenly. The original stays untouched."}
-      </p>
+      <TrimEdges />
     </Section>
   );
 }

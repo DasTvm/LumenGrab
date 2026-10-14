@@ -449,4 +449,27 @@ test.describe("presentation mode (browser mock)", () => {
     await page.keyboard.press("ControlOrMeta+z");
     expect(await crop()).toBeNull();
   });
+
+  test("Trim empty edges does not cut at the content when a side has no margin, and a slider fine-tunes the space", async ({
+    page,
+  }) => {
+    await page.goto("/?window=document&label=doc-1&scenario=margins-edge");
+    await expect(page.getByTestId("editor-canvas")).toBeVisible();
+    await page.getByRole("radio", { name: "Presentation" }).click();
+    const crop = () =>
+      page.evaluate(() => window.__lumengrabEditor?.editor.getState().project.crop);
+    await page.getByRole("button", { name: "Trim empty edges" }).click();
+    // Margins: left 0 (touching), top 40, right 300, bottom 80. The smallest real one is 40: right and
+    // bottom are cut to 40, the left side stays at the edge. The content (x 0..300, y 40..220) is whole.
+    expect(await crop()).toEqual({ x: 0, y: 0, width: 340, height: 260 });
+    const slider = page.getByRole("slider", { name: "Space around the content" });
+    await expect(slider).toHaveValue("40");
+    await slider.fill("100");
+    expect(await crop()).toEqual({ x: 0, y: 0, width: 400, height: 300 });
+    await slider.fill("0");
+    expect(await crop()).toEqual({ x: 0, y: 40, width: 300, height: 180 });
+    // Another crop (undo) takes the slider away: it only belongs to the trim that made the crop.
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(slider).toHaveCount(0);
+  });
 });

@@ -87,32 +87,84 @@ export function findMargins(image: RgbaImage, tolerance = DEFAULT_TOLERANCE): Ma
   return { top, right, bottom, left };
 }
 
+/** A side with less empty space than this counts as touching the edge: it has no margin to copy. */
+export const TOUCHING = 2;
+
+/** What was measured in a picture: where, the margins, and the space to leave (suggested, and the most there is). */
+export interface Measured {
+  /** The picture the margins were measured in (a crop of the source, or the whole source), in source pixels. */
+  area: Rect;
+  margins: Margins;
+  /** The space to leave around the content: the smallest margin the picture really has. */
+  keep: number;
+  /** The largest margin of the four: the end of the fine-tune slider. */
+  maxKeep: number;
+}
+
+/** The smallest margin that is a real one (sides that touch the edge are not a model to copy). 0 if there is none. */
+export function suggestedKeep(margins: Margins): number {
+  const real = [margins.top, margins.right, margins.bottom, margins.left].filter(
+    (m) => m >= TOUCHING,
+  );
+  return real.length === 0 ? 0 : Math.min(...real);
+}
+
+/** Measures the empty space of the picture (or of `area` inside it); `null` if there is no empty edge to speak of. */
+export function measureEdges(
+  image: RgbaImage,
+  area: Rect | null,
+  tolerance = DEFAULT_TOLERANCE,
+): Measured | null {
+  const picture = area ? cropImage(image, area) : image;
+  const margins = findMargins(picture, tolerance);
+  if (!margins) return null;
+  return {
+    area: {
+      x: area ? Math.round(area.x) : 0,
+      y: area ? Math.round(area.y) : 0,
+      width: picture.width,
+      height: picture.height,
+    },
+    margins,
+    keep: suggestedKeep(margins),
+    maxKeep: Math.max(margins.top, margins.right, margins.bottom, margins.left),
+  };
+}
+
 /**
- * The crop (in picture pixels) that gives every side the smallest of the four margins, or `null` when
- * the margins are already equal (or there is nothing to find). `area` is the picture the margins were
- * measured in (a crop of the source or the whole source); the result is in source pixels.
+ * The crop that leaves at most `keep` pixels of empty space on each side. A side that has less than
+ * `keep` is left as it is (a crop cannot add space), so content never gets cut: only empty space goes.
+ */
+export function cropForKeep(measured: Measured, keep: number): Rect {
+  const { area, margins } = measured;
+  const space = Math.max(0, Math.round(keep));
+  const cut = (margin: number) => Math.max(0, margin - space);
+  const left = cut(margins.left);
+  const top = cut(margins.top);
+  const right = cut(margins.right);
+  const bottom = cut(margins.bottom);
+  return {
+    x: area.x + left,
+    y: area.y + top,
+    width: area.width - left - right,
+    height: area.height - top - bottom,
+  };
+}
+
+const sameRect = (a: Rect, b: Rect) =>
+  a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+
+/**
+ * The crop for the suggested space, or `null` when it would change nothing (the empty space is already as
+ * small as the smallest margin on every side, or there is none).
  */
 export function balanceCrop(
   image: RgbaImage,
   area: Rect | null,
   tolerance = DEFAULT_TOLERANCE,
 ): Rect | null {
-  const origin = area ? { x: Math.round(area.x), y: Math.round(area.y) } : { x: 0, y: 0 };
-  const picture = area ? cropImage(image, area) : image;
-  const margins = findMargins(picture, tolerance);
-  if (!margins) return null;
-  const keep = Math.min(margins.top, margins.right, margins.bottom, margins.left);
-  const cut = {
-    top: margins.top - keep,
-    right: margins.right - keep,
-    bottom: margins.bottom - keep,
-    left: margins.left - keep,
-  };
-  if (cut.top + cut.right + cut.bottom + cut.left === 0) return null;
-  return {
-    x: origin.x + cut.left,
-    y: origin.y + cut.top,
-    width: picture.width - cut.left - cut.right,
-    height: picture.height - cut.top - cut.bottom,
-  };
+  const measured = measureEdges(image, area, tolerance);
+  if (!measured) return null;
+  const crop = cropForKeep(measured, measured.keep);
+  return sameRect(crop, measured.area) ? null : crop;
 }
