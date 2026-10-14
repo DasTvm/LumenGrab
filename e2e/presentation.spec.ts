@@ -426,4 +426,27 @@ test.describe("presentation mode (browser mock)", () => {
     await expect(page.getByTestId("editor-canvas")).toBeVisible();
     await expect(page.getByTestId("presentation-panel")).toHaveCount(0);
   });
+
+  test("Trim empty edges crops the empty space to the smallest margin, in one undo step", async ({
+    page,
+  }) => {
+    await page.goto("/?window=document&label=doc-1&scenario=margins");
+    await expect(page.getByTestId("editor-canvas")).toBeVisible();
+    await page.getByRole("radio", { name: "Presentation" }).click();
+    const crop = () =>
+      page.evaluate(() => window.__lumengrabEditor?.editor.getState().project.crop);
+    expect(await crop()).toBeNull();
+    await page.getByRole("button", { name: "Trim empty edges" }).click();
+    // Margins were top 40, left 40, right 260, bottom 80: all four become 40.
+    expect(await crop()).toEqual({ x: 0, y: 0, width: 380, height: 260 });
+    await expect(
+      page.getByText("Trimmed 220 px from the right, 40 px from the bottom. Undo brings it back."),
+    ).toBeVisible();
+    // Nothing more to trim; the picture is measured inside the crop.
+    await page.getByRole("button", { name: "Trim empty edges" }).click();
+    expect(await crop()).toEqual({ x: 0, y: 0, width: 380, height: 260 });
+    await expect(page.getByText("There is no extra empty space to trim.")).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(await crop()).toBeNull();
+  });
 });

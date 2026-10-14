@@ -30,7 +30,7 @@ to open it in the editor. Files from a newer version open read-only instead of b
 blur / pixelate / solid redaction, crop, layers with groups, undo and redo. Export as PNG, JPG or WebP (at 0.5×, 1×, 2× or a custom
 size), copy to the clipboard, or save a `.lumengrab`. Your work is autosaved to a recovery copy, and after a crash LumenGrab offers it back.
 
-**Presentation** (the tab next to Annotate): a background (solid, gradient, mesh, your own picture or a blurred copy of the screenshot), padding, rounded corners, a shadow,
+**Presentation** (the tab next to Annotate): a background (solid, gradient, mesh, your own picture or a blurred copy of the screenshot), padding (with auto-balance, and a button that trims too much empty space off the screenshot's own edges), rounded corners, a shadow,
 a window frame and an aspect ratio (including Instagram, X, LinkedIn and other sizes at their exact pixels). Save a combination as **your look**, and choose a default look
 that every new screenshot gets automatically (the saved file, the clipboard and drag-and-drop included; the original is kept for 30 days so you can still edit it).
 

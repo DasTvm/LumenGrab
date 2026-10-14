@@ -104,6 +104,11 @@ export class DocumentSession {
     return serializeDocument({ ...this.d.doc, project, assets }, preview);
   }
 
+  /** The untouched source picture (for measuring its empty edges). */
+  get sourceImage(): RgbaImage {
+    return this.d.source;
+  }
+
   /** The files of the document (a background picture), by asset name. */
   get assets(): Readonly<Record<string, Uint8Array>> {
     return this.d.doc.assets;
