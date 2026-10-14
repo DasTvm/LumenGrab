@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-14T11:54:00.924Z",
+  "generatedAt": "2026-10-14T14:41:49.479Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -562,6 +562,13 @@
       "category": "new",
       "title": "the automatic look for every new screenshot (M5 stage 7)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/a23e1b42bec9fa5f37295a326fe40d075dd1c9bd"
+    },
+    {
+      "id": "51fa07928e2b003458c37b7eb447592ca8c605a8",
+      "date": "2026-10-14T14:41:38Z",
+      "category": "new",
+      "title": "Trim empty edges (crops the screenshot's own empty space to the smallest margin)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/51fa07928e2b003458c37b7eb447592ca8c605a8"
     }
   ],
   "releases": [],
@@ -645,7 +652,8 @@
     "9447f197aa1124db7a30e78fe87e855d08569237",
     "3784b5dc7acd2654fa409543c102bfffb2b9c98e",
     "e67ca45b9f85597a4badf54e09bc9e5888832daa",
-    "a23e1b42bec9fa5f37295a326fe40d075dd1c9bd"
+    "a23e1b42bec9fa5f37295a326fe40d075dd1c9bd",
+    "51fa07928e2b003458c37b7eb447592ca8c605a8"
   ],
   "roadmap": {
     "schemaVersion": 1,
