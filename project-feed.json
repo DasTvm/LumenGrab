@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-14T15:06:34.008Z",
+  "generatedAt": "2026-10-14T15:28:53.841Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -583,6 +583,13 @@
       "category": "new",
       "title": "Trim empty edges per axis, with a slider for left/right and one for top/bottom",
       "url": "https://github.com/DasTvm/LumenGrab/commit/00fcc330123a665f711eb0b2bad10ffd3f67d409"
+    },
+    {
+      "id": "ea62f5723ec6402bdbe36ceb8a155d479e7baf23",
+      "date": "2026-10-14T15:28:43Z",
+      "category": "improved",
+      "title": "the automatic look moves raw pixels instead of PNG (5K: 2.2 s -> 1.25 s)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/ea62f5723ec6402bdbe36ceb8a155d479e7baf23"
     }
   ],
   "releases": [],
@@ -669,7 +676,8 @@
     "a23e1b42bec9fa5f37295a326fe40d075dd1c9bd",
     "51fa07928e2b003458c37b7eb447592ca8c605a8",
     "84cf961c14c414174830a5d6c0f190a63f6bf834",
-    "00fcc330123a665f711eb0b2bad10ffd3f67d409"
+    "00fcc330123a665f711eb0b2bad10ffd3f67d409",
+    "ea62f5723ec6402bdbe36ceb8a155d479e7baf23"
   ],
   "roadmap": {
     "schemaVersion": 1,
