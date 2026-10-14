@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-14T14:57:47.405Z",
+  "generatedAt": "2026-10-14T15:06:34.008Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -576,6 +576,13 @@
       "category": "fixed",
       "title": "Trim empty edges leaves the smallest real margin and has a fine-tune slider",
       "url": "https://github.com/DasTvm/LumenGrab/commit/84cf961c14c414174830a5d6c0f190a63f6bf834"
+    },
+    {
+      "id": "00fcc330123a665f711eb0b2bad10ffd3f67d409",
+      "date": "2026-10-14T15:06:21Z",
+      "category": "new",
+      "title": "Trim empty edges per axis, with a slider for left/right and one for top/bottom",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/00fcc330123a665f711eb0b2bad10ffd3f67d409"
     }
   ],
   "releases": [],
@@ -661,7 +668,8 @@
     "e67ca45b9f85597a4badf54e09bc9e5888832daa",
     "a23e1b42bec9fa5f37295a326fe40d075dd1c9bd",
     "51fa07928e2b003458c37b7eb447592ca8c605a8",
-    "84cf961c14c414174830a5d6c0f190a63f6bf834"
+    "84cf961c14c414174830a5d6c0f190a63f6bf834",
+    "00fcc330123a665f711eb0b2bad10ffd3f67d409"
   ],
   "roadmap": {
     "schemaVersion": 1,
