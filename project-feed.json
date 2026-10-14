@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-14T14:41:49.479Z",
+  "generatedAt": "2026-10-14T14:57:47.405Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -569,6 +569,13 @@
       "category": "new",
       "title": "Trim empty edges (crops the screenshot's own empty space to the smallest margin)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/51fa07928e2b003458c37b7eb447592ca8c605a8"
+    },
+    {
+      "id": "84cf961c14c414174830a5d6c0f190a63f6bf834",
+      "date": "2026-10-14T14:57:28Z",
+      "category": "fixed",
+      "title": "Trim empty edges leaves the smallest real margin and has a fine-tune slider",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/84cf961c14c414174830a5d6c0f190a63f6bf834"
     }
   ],
   "releases": [],
@@ -653,7 +660,8 @@
     "3784b5dc7acd2654fa409543c102bfffb2b9c98e",
     "e67ca45b9f85597a4badf54e09bc9e5888832daa",
     "a23e1b42bec9fa5f37295a326fe40d075dd1c9bd",
-    "51fa07928e2b003458c37b7eb447592ca8c605a8"
+    "51fa07928e2b003458c37b7eb447592ca8c605a8",
+    "84cf961c14c414174830a5d6c0f190a63f6bf834"
   ],
   "roadmap": {
     "schemaVersion": 1,
