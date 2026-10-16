@@ -295,6 +295,14 @@ pub async fn check(app: &AppHandle, automatic: bool) -> UpdateInfo {
                 None => set_state(app, UpdateState::UpToDate),
             }
         }
+        // No release published yet (the address does not exist): there is nothing newer, not an error.
+        Err(tauri_plugin_updater::Error::ReleaseNotFound) => {
+            if let Ok(mut p) = updater.persisted.lock() {
+                p.last_checked = Some(now());
+            }
+            updater.save();
+            set_state(app, UpdateState::UpToDate);
+        }
         Err(e) => failed(app, &e),
     }
     info(app)

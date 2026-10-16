@@ -1,8 +1,9 @@
 # Auto-update
 
-Status: **built, waiting for the signing key.** The updater code, the Settings page, the Quick Access cards, the tray
-entry and the release workflow are in. Until the public key is in `src-tauri/tauri.conf.json`, the updater is **not
-registered** and nothing goes online: Settings > Updates says "Updates are not set up in this build". Design and
+Status: **set up.** The key pair exists (private key in `~/.tauri/lumengrab.key` with its password next to it, and in the GitHub secrets
+`TAURI_SIGNING_PRIVATE_KEY` / `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`), the public key is in `src-tauri/tauri.conf.json`. The first release with update packages is the first
+thing an installed app can update to; until a release is published the check answers "You're up to date". (A build without a public key, for example a fork,
+is not registered and nothing goes online: Settings > Updates says "Updates are not set up in this build".) Design and
 decisions: [ADR 0008](adr/0008-in-app-updates.md).
 
 How it works for a user: once a day (or on "Check now") LumenGrab asks GitHub for `latest.json` of the newest

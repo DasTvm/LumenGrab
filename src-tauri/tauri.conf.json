@@ -18,6 +18,7 @@
   },
   "plugins": {
     "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlBRjM1QjdCMjQwODk1ODcKUldTSGxRZ2tlMXZ6bWxNblpkWk9tcC9rUm1ZSWNuRDNBUUFGbngvaUpRc2NyME1UQURaeWlMRnQK",
       "endpoints": ["https://github.com/DasTvm/LumenGrab/releases/latest/download/latest.json"]
     }
   },
