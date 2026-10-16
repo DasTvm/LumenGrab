@@ -7,8 +7,8 @@ import { FORMAT_VERSION } from "../limits";
  * is only rewritten when the user saves.
  *
  * Version 2 added the `group` layer, version 3 the presentation features of M5 (new background types,
- * frames, social sizes), all with defaults for what is absent. Every older project is already a valid
- * newer project, so both steps are the identity (`migrateToLatest` stamps the version). When the schema changes again:
+ * frames, social sizes), version 4 the shader background of M5b, all with defaults for what is absent.
+ * Every older project is already a valid newer project, so all steps are the identity (`migrateToLatest` stamps the version). When the schema changes again:
  * bump `FORMAT_VERSION`, add `MIGRATIONS[oldVersion]`, add a golden fixture `fixtures/lumengrab/v<new>-*`
  * and update docs/FORMAT.md in the same commit.
  */
@@ -17,6 +17,7 @@ export type Migration = (project: Record<string, unknown>) => Record<string, unk
 export const MIGRATIONS: Readonly<Record<number, Migration>> = {
   1: (project) => project,
   2: (project) => project,
+  3: (project) => project,
 };
 
 /**

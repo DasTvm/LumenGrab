@@ -1,0 +1,184 @@
+{
+  "manifest": {
+    "format": "lumengrab",
+    "formatVersion": 4,
+    "minReaderVersion": 4,
+    "createdBy": "LumenGrab 0.1.0 (fixture)",
+    "createdAt": "2026-10-06T12:00:00Z",
+    "modifiedAt": "2026-10-06T12:05:00Z",
+    "documentId": "00000000-0000-4000-8000-00000000000a",
+    "source": {
+      "file": "source.png",
+      "width": 80,
+      "height": 50,
+      "scale": 2,
+      "sha256": "5e191f046dc62010257a035cdb9a1fa0dfa28b658feb3d69a3d90e9ff9c9a3ed"
+    }
+  },
+  "project": {
+    "version": 4,
+    "crop": null,
+    "layers": [],
+    "presentation": {
+      "enabled": true,
+      "background": {
+        "type": "shader",
+        "engine": 1,
+        "loop": 8,
+        "poster": 2.5,
+        "seed": 48213,
+        "palette": [
+          "#2DD4BF",
+          "#0EA5E9",
+          "#84CC16",
+          "#C8FF2E",
+          "#0B3A5C",
+          "#050A14"
+        ],
+        "fallback": "#050A14",
+        "futureShaderField": {
+          "keep": "me"
+        },
+        "layers": [
+          {
+            "id": "g1",
+            "kind": "gradient",
+            "enabled": true,
+            "opacity": 1,
+            "blend": "normal",
+            "speed": 1,
+            "params": {
+              "type": "linear",
+              "angle": 150,
+              "stops": [
+                {
+                  "offset": 0,
+                  "color": "#050A14"
+                },
+                {
+                  "offset": 0.55,
+                  "color": "#84CC16"
+                },
+                {
+                  "offset": 1,
+                  "color": "#0B3A5C"
+                }
+              ]
+            }
+          },
+          {
+            "id": "a1",
+            "kind": "aurora",
+            "enabled": true,
+            "opacity": 0.9,
+            "blend": "screen",
+            "speed": 2,
+            "params": {
+              "scale": 1.2,
+              "rotation": 35,
+              "offsetX": 0.1,
+              "offsetY": -0.05,
+              "source": "custom",
+              "highlight": "#C8FF2E"
+            },
+            "reverse": true,
+            "seed": 777
+          },
+          {
+            "id": "o1",
+            "kind": "orbs",
+            "enabled": false,
+            "opacity": 0.7,
+            "blend": "overlay",
+            "speed": 1,
+            "params": {
+              "count": 5,
+              "size": 0.5,
+              "softness": 0.6,
+              "spread": 0.5,
+              "source": "palette"
+            }
+          },
+          {
+            "id": "c1",
+            "kind": "custom",
+            "enabled": true,
+            "opacity": 0.85,
+            "blend": "soft-light",
+            "speed": 0,
+            "params": {
+              "speed": 1,
+              "tint": "#C8FF2E",
+              "soft": true
+            },
+            "name": "Glow",
+            "role": "generator",
+            "code": "// @param float speed = 1.0 [0.0, 4.0]\n// @param color tint = #C8FF2E\n// @param bool soft = true\nprecision mediump float;\nuniform vec2 u_resolution;\nuniform float u_phase;\nuniform vec3 u_palette[8];\nuniform float speed;\nuniform vec3 tint;\nuniform bool soft;\nvoid main() {\n  vec2 uv = gl_FragCoord.xy / u_resolution;\n  float t = u_phase * 6.28318 * floor(speed + 0.5);\n  float w = sin(uv.x * 8.0 + t) * 0.5 + 0.5;\n  vec3 base = mix(u_palette[0], u_palette[1], uv.y);\n  gl_FragColor = vec4(mix(base, tint, w * (soft ? uv.y : 1.0)), 1.0);\n}\n"
+          },
+          {
+            "id": "f1",
+            "kind": "grain",
+            "enabled": true,
+            "opacity": 0.3,
+            "blend": "overlay",
+            "speed": 1,
+            "params": {
+              "amount": 0.3,
+              "size": 1.2,
+              "animate": true
+            }
+          },
+          {
+            "id": "u1",
+            "kind": "kind-from-the-future",
+            "enabled": true,
+            "opacity": 1,
+            "blend": "multiply",
+            "speed": 0,
+            "params": {
+              "power": 3,
+              "label": "keep",
+              "list": [
+                1,
+                2,
+                3
+              ]
+            },
+            "futureLayerField": [
+              "keep",
+              "me"
+            ]
+          }
+        ]
+      },
+      "padding": {
+        "top": 64,
+        "right": 64,
+        "bottom": 64,
+        "left": 64
+      },
+      "autoBalance": true,
+      "cornerRadius": 12,
+      "shadow": {
+        "enabled": true,
+        "x": 0,
+        "y": 20,
+        "blur": 50,
+        "spread": 0,
+        "color": "#00000040"
+      },
+      "frame": {
+        "type": "macos-window",
+        "title": "Fixture"
+      },
+      "aspect": {
+        "mode": "free"
+      },
+      "exportScale": 1
+    }
+  },
+  "assets": [],
+  "extraEntries": [],
+  "warnings": [],
+  "readOnly": null
+}

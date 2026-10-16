@@ -1,5 +1,5 @@
 /** The format version this build reads and writes. Bumped with every schema change (docs/FORMAT.md section 5). */
-export const FORMAT_VERSION = 3;
+export const FORMAT_VERSION = 4;
 
 /** Hard limits for reading a file (docs/FORMAT.md sections 2 and 7). A file beyond them is rejected, never partly read. */
 export interface Limits {
@@ -54,3 +54,16 @@ export const DEFAULT_FONT_ID = "inter";
 
 /** How many groups may sit inside each other (format v2, docs/FORMAT.md section 4). */
 export const MAX_GROUP_DEPTH = 8;
+
+/** Limits of a shader background (format v4, docs/FORMAT.md section 4c). */
+export const SHADER_LIMITS = {
+  maxLayers: 16,
+  maxParams: 64,
+  maxPalette: 8,
+  maxLoop: 60,
+  maxSpeed: 32,
+  /** Characters of the code of one custom layer. */
+  maxCodeLength: 16384,
+  /** Characters of all custom code in one background. */
+  maxTotalCodeLength: 65536,
+} as const;

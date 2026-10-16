@@ -7,6 +7,8 @@ import { fitBox, type Layout } from "./compose";
 import { drawFrameChrome, frameFonts } from "./frames";
 import { linearLine, radialCircle, sortedStops } from "./gradient";
 import { meshFieldSize, renderMeshField } from "./mesh";
+import { posterSeconds } from "@/shader/scene";
+import { sharedRenderer } from "@/shader/renderer";
 
 /**
  * Draws a presentation (docs/FORMAT.md section 4b): background, shadow, then the window with its frame
@@ -22,7 +24,14 @@ export interface CompositionInput {
   presentation: Presentation;
   /** The decoded background image, for an `image` background. Without it that background stays plain. */
   backgroundImage?: CanvasImageSource | null;
+  /** The moment of a shader background to draw, in seconds. Without it the scene's still frame (docs/FORMAT.md section 4c). */
+  shaderSeconds?: number;
+  /** Whether the custom code of a shader background may run. Off unless the caller says it is the user's own. */
+  trustCustomCode?: boolean;
 }
+
+/** The longest side of the picture a shader background is drawn at; bigger canvases scale it up (it is smooth). */
+const SHADER_MAX_EDGE = 4096;
 
 export function makeCanvas(width: number, height: number): Canvas {
   if (typeof OffscreenCanvas !== "undefined") return new OffscreenCanvas(width, height);
@@ -91,7 +100,13 @@ function blurredLayer(
   return out;
 }
 
-function drawBackground(ctx: Ctx2D, input: CompositionInput, width: number, height: number): void {
+function drawBackground(
+  ctx: Ctx2D,
+  input: CompositionInput,
+  width: number,
+  height: number,
+  scale: number,
+): void {
   const bg = input.presentation.background;
   switch (bg.type) {
     case "solid":
@@ -171,6 +186,28 @@ function drawBackground(ctx: Ctx2D, input: CompositionInput, width: number, heig
         0,
       );
       break;
+    case "shader": {
+      const renderer = sharedRenderer("still");
+      const k = Math.min(1, SHADER_MAX_EDGE / Math.max(width * scale, height * scale, 1));
+      const report = renderer?.render(
+        bg,
+        input.shaderSeconds ?? posterSeconds(bg),
+        Math.max(1, Math.round(width * scale * k)),
+        Math.max(1, Math.round(height * scale * k)),
+        { allowCode: () => input.trustCustomCode === true },
+      );
+      if (renderer && report?.drawn) {
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(renderer.canvas, 0, 0, width, height);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = cssColor(bg.fallback);
+        ctx.fillRect(0, 0, width, height);
+      }
+      break;
+    }
     default:
       break;
   }
@@ -190,7 +227,7 @@ export function drawComposition(
   const { canvas, unit, contentBox, radius, bar, k } = layout;
   ctx.save();
   ctx.scale(scale, scale);
-  drawBackground(ctx, input, canvas.width, canvas.height);
+  drawBackground(ctx, input, canvas.width, canvas.height, scale);
 
   const { shadow, frame } = presentation;
   if (shadow.enabled && shadow.color.length >= 7) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Writes the golden fixtures of every format version into fixtures/lumengrab/ (v1: first run, v2: the
-// `group` layer, v3: the presentation features of M5).
+// `group` layer, v3: the presentation features of M5, v4: shader backgrounds of M5b).
 //
 // Each fixture was written ONCE. The files are committed and must never be edited or regenerated
 // (docs/FORMAT.md section 5, rule 7): they prove that every released version keeps opening.
@@ -603,6 +603,147 @@ const v3 = { formatVersion: 3, minReaderVersion: 3 };
     },
     entries: { "source.png": [image, 0], "preview.png": [image, 0] },
     assets: [],
+    extraEntries: [],
+  });
+}
+
+const v4 = { formatVersion: 4, minReaderVersion: 4 };
+const fixtureCode = `// @param float speed = 1.0 [0.0, 4.0]
+// @param color tint = #C8FF2E
+// @param bool soft = true
+precision mediump float;
+uniform vec2 u_resolution;
+uniform float u_phase;
+uniform vec3 u_palette[8];
+uniform float speed;
+uniform vec3 tint;
+uniform bool soft;
+void main() {
+  vec2 uv = gl_FragCoord.xy / u_resolution;
+  float t = u_phase * 6.28318 * floor(speed + 0.5);
+  float w = sin(uv.x * 8.0 + t) * 0.5 + 0.5;
+  vec3 base = mix(u_palette[0], u_palette[1], uv.y);
+  gl_FragColor = vec4(mix(base, tint, w * (soft ? uv.y : 1.0)), 1.0);
+}
+`;
+{
+  const source = { width: 80, height: 50 };
+  const image = gradient(source.width, source.height);
+  const shaderLayer = (id, kind, extra) => ({
+    id,
+    kind,
+    enabled: true,
+    opacity: 1,
+    blend: "normal",
+    speed: 1,
+    params: {},
+    ...extra,
+  });
+  fixtures.push({
+    name: "v4-shader",
+    manifest: manifest("00000000-0000-4000-8000-00000000000a", source, image, v4),
+    project: {
+      version: 4,
+      crop: null,
+      layers: [],
+      presentation: presentation({
+        enabled: true,
+        background: {
+          type: "shader",
+          engine: 1,
+          loop: 8,
+          poster: 2.5,
+          seed: 48213,
+          palette: ["#2DD4BF", "#0EA5E9", "#84CC16", "#C8FF2E", "#0B3A5C", "#050A14"],
+          fallback: "#050A14",
+          futureShaderField: { keep: "me" },
+          layers: [
+            shaderLayer("g1", "gradient", {
+              params: {
+                type: "linear",
+                angle: 150,
+                stops: [
+                  { offset: 0, color: "#050A14" },
+                  { offset: 0.55, color: "#84CC16" },
+                  { offset: 1, color: "#0B3A5C" },
+                ],
+              },
+            }),
+            shaderLayer("a1", "aurora", {
+              opacity: 0.9,
+              blend: "screen",
+              speed: 2,
+              reverse: true,
+              seed: 777,
+              params: {
+                scale: 1.2,
+                rotation: 35,
+                offsetX: 0.1,
+                offsetY: -0.05,
+                source: "custom",
+                highlight: "#C8FF2E",
+              },
+            }),
+            shaderLayer("o1", "orbs", {
+              enabled: false,
+              opacity: 0.7,
+              blend: "overlay",
+              params: { count: 5, size: 0.5, softness: 0.6, spread: 0.5, source: "palette" },
+            }),
+            shaderLayer("c1", "custom", {
+              name: "Glow",
+              role: "generator",
+              opacity: 0.85,
+              blend: "soft-light",
+              speed: 0,
+              code: fixtureCode,
+              params: { speed: 1, tint: "#C8FF2E", soft: true },
+            }),
+            shaderLayer("f1", "grain", {
+              opacity: 0.3,
+              blend: "overlay",
+              params: { amount: 0.3, size: 1.2, animate: true },
+            }),
+            shaderLayer("u1", "kind-from-the-future", {
+              blend: "multiply",
+              speed: 0,
+              params: { power: 3, label: "keep", list: [1, 2, 3] },
+              futureLayerField: ["keep", "me"],
+            }),
+          ],
+        },
+        frame: { type: "macos-window", title: "Fixture" },
+      }),
+    },
+    entries: { "source.png": [image, 0], "preview.png": [image, 0] },
+    assets: [],
+    extraEntries: [],
+  });
+}
+{
+  const source = { width: 60, height: 40 };
+  const image = gradient(source.width, source.height);
+  const frozen = stripes(24, 14);
+  const frozenName = `${sha256(frozen)}.png`;
+  fixtures.push({
+    name: "v4-frozen-frame",
+    manifest: manifest("00000000-0000-4000-8000-00000000000b", source, image, v4),
+    project: {
+      version: 4,
+      crop: null,
+      layers: [],
+      presentation: presentation({
+        enabled: true,
+        background: { type: "image", asset: frozenName, fit: "cover" },
+        aspect: { mode: "fixed", ratio: [16, 9] },
+      }),
+    },
+    entries: {
+      "source.png": [image, 0],
+      "preview.png": [image, 0],
+      [`assets/${frozenName}`]: [frozen, 0],
+    },
+    assets: [frozenName],
     extraEntries: [],
   });
 }

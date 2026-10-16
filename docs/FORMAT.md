@@ -1,6 +1,6 @@
 # `.lumengrab` File Format Specification
 
-Status: **v3, implemented in `src/document/` (v1: M3, v2 adds the `group` layer: M4, v3 adds the presentation features: M5)** · Extension: `.lumengrab` · Source of truth for the document model.
+Status: **v4, implemented in `src/document/` (v1: M3, v2 adds the `group` layer: M4, v3 adds the presentation features: M5, v4 adds the shader background: M5b)** · Extension: `.lumengrab` · Source of truth for the document model.
 
 ## 1. Goals
 
@@ -57,7 +57,7 @@ Rules:
 - `createdBy` names the version that first created the file and is kept on later saves. `modifiedAt` is set on every save. Timestamps are UTC, `YYYY-MM-DDTHH:MM:SSZ`.
 - `documentId` is a random UUID v4 created with the file and kept for its lifetime.
 
-## 4. `project.json` (v3)
+## 4. `project.json` (v4)
 
 All geometry is in **source-image pixel space** (origin top-left, y down). Colors are hex `#RRGGBB` or `#RRGGBBAA`. Angles in degrees. IDs are short unique strings (1 to 64 characters).
 
@@ -68,7 +68,7 @@ Numbers must be finite. A coordinate or length beyond +-1 000 000 is **clamped**
 ```ts
 // Reference types. Implement as Zod schemas in src/document/schema.ts
 type Project = {
-  version: 3
+  version: 4
   crop: { x: number; y: number; width: number; height: number } | null   // null = full image
   layers: Layer[]                     // z-order: first = bottom
   presentation: Presentation
@@ -110,7 +110,7 @@ type Redaction = BaseLayer & {
   seed: number              // randomization seed for pixelate, so output is deterministic per export
 }
 
-// v3 added what is marked "v3". A field marked "absent = x" means that x is used when the field is not there.
+// v3 and v4 added what is marked "v3" and "v4". A field marked "absent = x" means that x is used when the field is not there.
 type Presentation = {
   enabled: boolean                    // false: the picture is exported as it is, the rest is kept
   background:
@@ -122,6 +122,7 @@ type Presentation = {
     | { type: "image"; asset: string; fit: "cover" | "contain";   // asset = file name in assets/
         blur?: number; dim?: number } // v3, blur radius in pixels (absent = 0), black over it 0..1 (absent = 0)
     | { type: "source-blur"; blur: number; zoom: number; dim: number; saturation: number }  // v3: the picture itself, enlarged and blurred
+    | ShaderBackground                // v4: a background that moves, section 4c
     | { type: "transparent" }
   padding: { top: number; right: number; bottom: number; left: number }
   autoBalance: boolean                // the editor keeps the four paddings equal while on; the renderer only reads `padding`
@@ -141,6 +142,32 @@ type Presentation = {
   }
   exportScale: number
 }
+
+// v4. Layers and effects drawn by WebGL; the rules are section 4c.
+type ShaderBackground = {
+  type: "shader"
+  engine: number                      // version of the rendering rules (section 4c); this reader draws 1
+  loop: number                        // seconds until the motion is back at its start, 1 to 60
+  poster: number                      // the moment, in seconds, every still picture shows, 0 to 60
+  seed: number                        // whole number, 0 to 4294967295
+  palette: string[]                   // 1 to 8 colours the layers paint with
+  fallback: string                    // drawn below the first layer, and everywhere if WebGL is not there
+  layers: ShaderLayer[]               // bottom first, at most 16
+}
+type ShaderLayer = {
+  id: string
+  kind: string                        // a kind of section 4c, or "custom"
+  enabled: boolean
+  name?: string
+  opacity: number                     // 0..1
+  blend: "normal" | "add" | "screen" | "multiply" | "overlay" | "soft-light"
+  speed: number                       // whole cycles of the motion per loop, 0 to 32
+  reverse?: boolean                   // absent = false
+  seed?: number                       // absent = the seed of the background
+  params: Record<string, number | boolean | string | (number | string | { offset: number; color: string })[]>
+  role?: "generator" | "effect"       // custom only
+  code?: string                       // custom only: a WebGL 1 fragment shader (GLSL ES 1.00), at most 16 384 characters
+}
 ```
 
 Notes:
@@ -150,6 +177,7 @@ Notes:
 - **Redactions inside groups are baked like any other** (section 7): the renderer collects them depth first, skips those with a hidden layer or group around them, and applies them to the full source image before anything is drawn.
 - `source-blur` is a `zoom` of 1 to 4, a `saturation` of 0 to 3, `dim` 0 to 1 and a `blur` radius of 0 or more pixels. A `mesh` has 1 to 16 colours; `points` has none or as many entries as `colors` (otherwise the default layout is used). A `gradient` has 2 to 16 stops. `aspect.size` sides are whole numbers from 1 to 16 384.
 - A new document starts with `crop: null`, no layers, and this presentation: `enabled: false`, solid `#F4F4F5`, padding 64 on every side, `autoBalance: true`, `cornerRadius: 12`, shadow on (`x 0, y 20, blur 50, spread 0, #00000040`), frame `none`, aspect `free`, `exportScale: 1`.
+- A shader background has at most 16 layers, 8 palette colours, 64 settings per layer, a loop of 1 to 60 seconds, and 16 384 characters of code per layer and 65 536 in all. A layer whose `kind` this version does not know is kept with all its settings and is not drawn; the settings of a known kind that are missing take their default and those out of range are clamped when it is drawn, never rejected.
 - Redactions are layers like any other but are **always rendered baked** into flat exports (see section 7).
 - New layer types and fields are added by bumping `version` (see section 5).
 - `pencil.points` is a flat `[x0, y0, x1, y1, ...]` array.
@@ -205,9 +233,57 @@ The blurs are done at a reduced size and scaled back, so they differ from an exa
 - *terminal*: dark whatever `theme` says; like macOS, with the title in JetBrains Mono 400, size 12.
 Text that does not fit is cut with an ellipsis. A font that cannot be loaded falls back to the system font.
 
+## 4c. Shader background rendering rules (normative, v4)
+
+A `shader` background is drawn by WebGL 1 with **engine 1**. These rules are as binding as 4a and 4b; a change to how a kind looks is a new engine version (`engine` is written into every scene so an old file keeps its engine). A reader that is given `engine` higher than it knows still draws what it can and says so.
+
+The GLSL of the built-in kinds in `src/shader/glsl.ts` is the reference for their look. **Pictures from different graphics cards match visually, not bit for bit** (the cards round differently); golden-picture tests use a tolerance.
+
+**Time.** A moment `t` in seconds is `phase = (t / loop) mod 1`, 0 up to (not including) 1. Every layer gets `a = 2 pi x s x phase` and `ph = fract(s x phase)` with `s = speed` (negative when `reverse`), `speed` a whole number. All motion is built from whole turns of `a` or whole steps of `ph`, so the picture at `t = loop` is the picture at `t = 0`. A layer with `speed` 0 stands still. Stills (export, copy, `preview.png`, the automatic look, "Use this frame as picture") show `t = poster`, clamped into the loop. A video or GIF shows `t = i / fps` for frame `i`.
+
+**Order.** The picture below the first layer is the `fallback` colour, opaque. Each enabled layer of a known kind is drawn in order, bottom first, and laid over the result: a **generator** draws a colour and an alpha by itself; an **effect** reads the picture below it (as `u_input`) and gives a colour; its alpha is 1. The layer's result `s` with alpha `a` is laid over `d` as `d' = mix(d, B(d, s), a x opacity)`. The picture stays opaque. `B` is `normal`: `s`; `add`: `min(d + s, 1)`; `screen`: `1 - (1 - d)(1 - s)`; `multiply`: `d s`; `overlay`: `2 d s` where `d < 0.5`, otherwise `1 - 2(1 - d)(1 - s)`; `soft-light`: the W3C formula. Colours are in sRGB, not linear. A layer that is `enabled: false`, of a kind this reader does not know, or a `custom` layer without code, is skipped.
+
+**Coordinates and size.** The picture is drawn at the size of the canvas of section 4b (at most 4096 pixels on the long side, then scaled up smoothly). `y` points up in the shaders. A built-in kind works in units of the short side of the picture, centred; an `px` setting is in pixels of a picture 1280 pixels wide and scales with the width. A scene therefore looks the same at every size.
+
+**Colours.** A built-in kind paints with the first `k` colours of `palette` (`k` is 1 to 4 for most kinds, the whole palette for `orbs` and `waves`); with `source: "custom"` its last colour is `highlight`. A custom shader sees the whole palette as `u_palette[8]`, the palette repeated to fill eight.
+
+**Kinds and settings** (a setting is `params.<id>`; the value is clamped into the range; the default is used when it is absent):
+
+| kind | role | settings (default, range) |
+|---|---|---|
+| `gradient` | generator | `type` linear / radial / conic / diamond (linear), `angle` 150 (0 to 360), `stops` 2 to 8 `{offset, color}` sorted by offset (the alpha of a colour counts). `speed` turns a linear or conic gradient round, and lets a radial or diamond one breathe by 12 %. |
+| `orbs` | generator | `count` 5 (2 to 12), `size` 0.5 (0.2 to 1.2), `softness` 0.6, `spread` 0.5 (0 to 1), `source`, `highlight` |
+| `aurora` | generator | `scale` 1.2 (0.3 to 4), `rotation` 35 (-180 to 180), `offsetX` 0.1, `offsetY` -0.05 (-1 to 1), `source`, `highlight` |
+| `waves` | generator | `count` 5 (2 to 12), `amplitude` 0.6, `frequency` 2 (0.5 to 8), `rotation` 0, `softness` 0.15, `source`, `highlight` |
+| `liquid` | generator | `scale` 1.6 (0.3 to 6), `warp` 1 (0 to 2), `detail` 3 (1 to 5), `rotation` 0, `source`, `highlight` |
+| `cells` | generator | `scale` 8 (2 to 40), `softness` 0.5, `jitter` 1, `edges` false, `source`, `highlight` |
+| `ripples` | generator | `centerX` 0.5, `centerY` 0.5, `spacing` 0.12 (0.03 to 0.5), `thickness` 0.4, `fade` 0.5, `source`, `highlight` |
+| `pattern` | generator | `shape` stripes / grid / dots, `scale` 14 (2 to 60), `angle` 30 (-90 to 90), `thickness` 0.35, `softness` 0.1, `source`, `highlight` |
+| `rays` | generator | `count` 12 (3 to 40), `originX` 0.5, `originY` 1.1 (-0.5 to 1.5), `spread` 0.6, `softness` 0.6, `falloff` 0.5, `source`, `highlight` |
+| `stars` | generator | `density` 0.5, `size` 1 (0.3 to 3), `twinkle` 0.6, `drift` 0.3, `source`, `highlight` |
+| `solid` | generator | `color` |
+| `warp` | effect | `amount` 0.4, `scale` 2 (0.3 to 6) |
+| `swirl` | effect | `amount` 0.6 (-2 to 2), `radius` 0.6 (0.05 to 1.5), `centerX` 0.5, `centerY` 0.5 |
+| `chromatic` | effect | `amount` 6 px (0 to 60), `angle` 0 (0 to 360) |
+| `pixelate` | effect | `size` 12 px (2 to 200), `square` true, `amount` 1, `animate` false |
+| `posterize` | effect | `levels` 5 (2 to 16), `amount` 1 |
+| `vignette` | effect | `amount` 0.4, `softness` 0.5, `roundness` 0.5 |
+| `grain` | effect | `amount` 0.3, `size` 1.2 px (0.5 to 6), `animate` true (the grain changes 12 times per cycle of `speed`) |
+| `glow` | effect | `threshold` 0.6, `radius` 0.06 (0.005 to 0.2), `intensity` 0.8 (0 to 2) |
+| `grade` | effect | `brightness` 0 (-100 to 100), `contrast` 0 (-100 to 100), `saturation` 1 (0 to 3), `hue` 0 (-180 to 180), `tint`, `tintAmount` 0 |
+
+Settings written 0 to 1 have that range unless another is given. `kind: "custom"` is the next paragraph; any other `kind` is unknown.
+
+**Custom shaders.** A `custom` layer has `role` (`generator`, the default, or `effect`), its `code`, and `params` for the settings the code asks for. The code is **one WebGL 1 fragment shader, GLSL ES 1.00**, at most 16 384 characters, with no `#extension`, `#version`, `#include` or `#pragma`, and loops that run at most 256 times (WebGL 1 allows only loops with a constant count). It is compiled as `precision mediump float;`, LumenGrab's helpers, `#line 1` and the code, so an error is reported with the line of the code. The code may declare and read these uniforms: `vec2 u_resolution` (pixels), `float u_phase` (the phase, 0 up to 1), `float u_seed` (the seed of the layer, `seed mod 1048576`), `vec3 u_palette[8]` and, for an effect, `sampler2D u_input` (the picture below). It may call `noise(vec2)`, `fbm(vec2)`, `hsv2rgb(vec3)` and `rot(float)` (helpers it defines itself take their place). It writes `gl_FragColor`; the alpha of an effect is ignored. A setting is a comment line `// @param float|int|color|bool name = default [min, max] "Label"` with a matching uniform of the same name (`float`, `vec3` for a colour, `bool`); its value is `params.<name>`. The code **cannot read the screenshot or anything else**: it has no inputs but these. To loop without a jump it must use whole numbers of turns of `u_phase`.
+Code that does not compile, is too long or fails the checks is not drawn (the layer is skipped; the editor shows the reason). **A file never runs its code by itself**: the code of a `.lumengrab` that came from outside runs only after the user allows it (the allowance is kept by the app per document id, never in the file). Code the user wrote in this app runs. A layer that makes a frame slower than 250 milliseconds is switched off (`enabled: false`) and the user is told.
+
+**Where WebGL is missing.** The background is the `fallback` colour. The scene is kept untouched and is drawn normally on another computer.
+
+**Frozen frames.** "Use this frame as picture" renders the still of the scene at the canvas size of 4b (at most 3840 on the long side) into an asset PNG and changes the background to `image` (`fit: cover`); it is an ordinary v3 background and needs no WebGL.
+
 ## 5. Versioning and migrations (mandatory process)
 
-1. `manifest.formatVersion` and `project.version` are integers that start at 1. **v2** added the `group` layer. Every v1 project is a valid v2 project, so the migration `v1 -> v2` changes nothing but the version. A v1 reader would see a group as an unknown layer, not draw its children and so export a redaction inside it unredacted, so it must not open such a file for editing. **v3** added the presentation features (new background types, frames, social sizes, section 4b) with a default for everything that is absent; the migration `v2 -> v3` is the identity as well. A v2 reader rejects a background type it does not know, so new files are written with `formatVersion 3` and `minReaderVersion 3`.
+1. `manifest.formatVersion` and `project.version` are integers that start at 1. **v2** added the `group` layer. Every v1 project is a valid v2 project, so the migration `v1 -> v2` changes nothing but the version. A v1 reader would see a group as an unknown layer, not draw its children and so export a redaction inside it unredacted, so it must not open such a file for editing. **v3** added the presentation features (new background types, frames, social sizes, section 4b) with a default for everything that is absent; the migration `v2 -> v3` is the identity as well. A v2 reader rejects a background type it does not know, so new files are written with `formatVersion 3` and `minReaderVersion 3`. **v4** added the `shader` background (section 4c); `v3 -> v4` is the identity and, as for v3, an older reader rejects the new type, so files are written with `formatVersion 4` and `minReaderVersion 4`.
 2. **Any** change to `project.json` or the container layout that old readers cannot handle correctly requires:
    - bump `formatVersion` and `project.version`,
    - a pure migration function `migrate_vN_to_vN+1(project)` in `src/document/migrations/`,
@@ -263,7 +339,7 @@ Autosave: editor changes autosave to a recovery location in the app data dir, no
 
 ## 9. Test requirements
 
-Implemented: `src/document/*.test.ts` and `fixtures/lumengrab/`. The golden fixtures are `v1-minimal`, `v1-all-layers`, `v1-redactions`, `v1-unknown-fields` (v1) `v2-groups` (nested, hidden and locked groups, a redaction inside, an unknown field on a group) and, for v3, `v3-presentation` (mesh with points, per-side padding, a terminal frame, a social size), `v3-source-blur` (blurred screenshot, browser frame, 1.91:1 size), `v3-image-background` (image with blur and dim, minimal frame, an unknown field) and `v3-radial-gradient` (radial gradient with a transparent stop, Windows frame), each with a `.expected.json` of what a correct reader must produce; they were written by `scripts/make-fixtures.mjs` (independent of `src/document`) and are never edited. An older fixture opens as a project of the current version: the test expects its `.expected.json` with `version` raised to the current one.
+Implemented: `src/document/*.test.ts` and `fixtures/lumengrab/`. The golden fixtures are `v1-minimal`, `v1-all-layers`, `v1-redactions`, `v1-unknown-fields` (v1) `v2-groups` (nested, hidden and locked groups, a redaction inside, an unknown field on a group) and, for v3, `v3-presentation` (mesh with points, per-side padding, a terminal frame, a social size), `v3-source-blur` (blurred screenshot, browser frame, 1.91:1 size), `v3-image-background` (image with blur and dim, minimal frame, an unknown field) `v3-radial-gradient` (radial gradient with a transparent stop, Windows frame) and, for v4, `v4-shader` (gradient, aurora with its own colour and seed, a hidden layer, a layer with code and its settings, grain, a kind this version does not know and an unknown field on the scene) and `v4-frozen-frame` (a frozen frame stored as an image background), each with a `.expected.json` of what a correct reader must produce; they were written by `scripts/make-fixtures.mjs` (independent of `src/document`) and are never edited. An older fixture opens as a project of the current version: the test expects its `.expected.json` with `version` raised to the current one.
 
 - Round-trip test: create -> save -> load -> equals original (including unknown fields).
 - Golden fixtures for every released version open and migrate cleanly.

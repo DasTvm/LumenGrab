@@ -1,6 +1,7 @@
 import { seededRandom } from "@/document/render/pixels";
 import type { Presentation } from "@/document/schema";
 import { parseHex, toHex } from "./color";
+import { TEMPLATES } from "@/shader/scenes";
 import { sortedStops } from "./gradient";
 
 /** Defaults, conversions and generators for the background controls. Pure, tested in Node. */
@@ -43,6 +44,8 @@ export function backgroundColors(bg: Background): string[] {
       return sortedStops(bg.stops).map((s) => s.color);
     case "mesh":
       return bg.colors;
+    case "shader":
+      return bg.palette;
     default:
       return [];
   }
@@ -129,6 +132,10 @@ export function convertBackground(
       return { type: "image", asset: imageAsset ?? "", fit: "cover" };
     case "source-blur":
       return { ...DEFAULT_SOURCE_BLUR };
+    case "shader": {
+      const scene = (TEMPLATES[0] ?? TEMPLATES[TEMPLATES.length - 1])?.make();
+      return scene ? { ...scene, seed } : { type: "transparent" };
+    }
     case "transparent":
       return { type: "transparent" };
   }

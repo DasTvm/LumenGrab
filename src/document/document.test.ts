@@ -146,14 +146,14 @@ describe("versions", () => {
   it("opens a file with a higher minReaderVersion read-only, with the numbers for the dialog", async () => {
     const opened = await openDocument(
       await rawFile({
-        manifest: { ...(await goodManifest()), formatVersion: 4, minReaderVersion: 4 },
-        project: { version: 4, somethingNew: { a: 1 } }, // does not fit this version's schema
+        manifest: { ...(await goodManifest()), formatVersion: 5, minReaderVersion: 5 },
+        project: { version: 5, somethingNew: { a: 1 } }, // does not fit this version's schema
       }),
     );
     expect(opened.readOnly).toEqual({
       reason: "newer-version",
-      fileVersion: 4,
-      minReaderVersion: 4,
+      fileVersion: 5,
+      minReaderVersion: 5,
       supportedVersion: FORMAT_VERSION,
     });
     expect(opened.doc.project).toBeNull();

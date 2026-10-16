@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MAX_COORDINATE, MAX_GROUP_DEPTH } from "./limits";
+import { MAX_COORDINATE, MAX_GROUP_DEPTH, SHADER_LIMITS as LIMITS_SHADER } from "./limits";
 
 /**
  * Zod schemas of `manifest.json` and `project.json` (docs/FORMAT.md sections 3 and 4).
@@ -246,6 +246,69 @@ export const LayerSchema: z.ZodType<Layer> = z.any().transform((value: unknown, 
   return z.NEVER;
 });
 
+/** One value of a shader layer parameter: a number, a switch, a name or colour, or a list (gradient stops). */
+const ShaderParamValue = z.union([
+  z.number().transform(clamp),
+  z.boolean(),
+  z.string().max(64),
+  z
+    .array(
+      z.union([
+        z.number().transform(clamp),
+        z.string().max(64),
+        z.looseObject({ offset: unit, color }),
+      ]),
+    )
+    .max(16),
+]);
+
+/** A layer or an effect of a shader background (v4). `kind` and the keys of `params` are checked by the shader registry, not here: a kind this version does not know is kept and skipped. */
+export const ShaderLayerSchema = z.looseObject({
+  id,
+  /** `aurora`, `warp`, ... or `custom` for the layer with your own code. */
+  kind: z.string().min(1).max(64),
+  enabled: z.boolean(),
+  name: z.string().max(200).optional(),
+  opacity: unit,
+  blend: z.enum(["normal", "add", "screen", "multiply", "overlay", "soft-light"]),
+  /** Whole cycles of the motion per loop; 0 stands still. */
+  speed: z.number().int().min(0).max(LIMITS_SHADER.maxSpeed),
+  reverse: z.boolean().optional(),
+  /** Absent means the seed of the background. */
+  seed: z.number().int().min(0).max(0xffffffff).optional(),
+  params: z
+    .record(z.string().max(64), ShaderParamValue)
+    .refine(
+      (params) => Object.keys(params).length <= LIMITS_SHADER.maxParams,
+      "too many parameters",
+    ),
+  /** `custom` only: the fragment shader (GLSL ES 1.00), and what it is. */
+  role: z.enum(["generator", "effect"]).optional(),
+  code: z.string().max(LIMITS_SHADER.maxCodeLength).optional(),
+});
+
+export const ShaderBackgroundSchema = z
+  .looseObject({
+    type: z.literal("shader"),
+    /** Version of the rendering rules (section 4c). This reader knows 1. */
+    engine: z.number().int().min(1),
+    /** Seconds the motion takes to come round to its start. */
+    loop: z.number().min(1).max(LIMITS_SHADER.maxLoop),
+    /** The moment, in seconds, that every still picture shows. */
+    poster: z.number().min(0).max(LIMITS_SHADER.maxLoop),
+    seed: z.number().int().min(0).max(0xffffffff),
+    palette: z.array(color).min(1).max(LIMITS_SHADER.maxPalette),
+    /** What is drawn below the first layer, and instead of everything where WebGL is missing. */
+    fallback: color,
+    layers: z.array(ShaderLayerSchema).max(LIMITS_SHADER.maxLayers),
+  })
+  .refine(
+    (scene) =>
+      scene.layers.reduce((sum, layer) => sum + (layer.code?.length ?? 0), 0) <=
+      LIMITS_SHADER.maxTotalCodeLength,
+    "the custom code of the background is too long",
+  );
+
 export const BackgroundSchema = z.discriminatedUnion("type", [
   z.looseObject({ type: z.literal("solid"), color }),
   z.looseObject({
@@ -288,6 +351,8 @@ export const BackgroundSchema = z.discriminatedUnion("type", [
     dim: unit,
     saturation: z.number().min(0).max(3),
   }),
+  /** v4. A moving background made from layers and effects (docs/FORMAT.md section 4c). */
+  ShaderBackgroundSchema,
   z.looseObject({ type: z.literal("transparent") }),
 ]);
 
