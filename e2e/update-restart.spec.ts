@@ -37,13 +37,27 @@ test.describe("update restart dialog (browser mock)", () => {
     await page.setViewportSize({ width: 1280, height: 880 });
     await page.goto("/?window=document&label=doc-1&scenario=stack");
     await expect(page.getByTestId("editor-canvas")).toBeVisible();
-    await page.keyboard.press("r");
-    const box = await page.getByTestId("editor-canvas-area").boundingBox();
-    if (!box) throw new Error("no canvas");
-    await page.mouse.move(box.x + 300, box.y + 300);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 400, box.y + 380, { steps: 4 });
-    await page.mouse.up();
+    // One change in the document (no mouse timing involved), so there is something unsaved.
+    await page.evaluate(() => {
+      window.__lumengrabEditor?.editor.getState().change((project) => {
+        project.layers.push({
+          id: "r1",
+          visible: true,
+          locked: false,
+          type: "rect",
+          x: 10,
+          y: 10,
+          width: 80,
+          height: 40,
+          rotation: 0,
+          stroke: "#EF4444",
+          fill: null,
+          strokeWidth: 4,
+          radius: 0,
+        });
+      });
+    });
+    await expect(page.getByTestId("unsaved-dot")).toBeVisible();
     // The app asks the page to close (as the window's close button does).
     await page.evaluate(() => {
       window.__lumengrabMock?.requestClose?.();
