@@ -224,6 +224,69 @@
       ]
     },
     {
+      "id": "M5b",
+      "title": "Animated backgrounds",
+      "description": "Moving WebGL backgrounds made from layers and effects, a Background Studio with a shader editor for your own code, a still frame, and loops as MP4, WebM or GIF.",
+      "status": "building",
+      "tasks": [
+        {
+          "id": "task-1",
+          "title": "Animated backgrounds as a new background type (file format v4, loops without a jump)",
+          "done": false
+        },
+        {
+          "id": "task-2",
+          "title": "Building blocks: gradient, orbs, aurora, waves, liquid, cells, ripples, pattern, light rays, stars and solid",
+          "done": false
+        },
+        {
+          "id": "task-3",
+          "title": "Effects: warp, swirl, chromatic shift, pixelate, posterize, vignette, film grain, glow and colour grade",
+          "done": false
+        },
+        {
+          "id": "task-4",
+          "title": "Fourteen animated looks in the Presentation panel, a still frame and a switch for the animation",
+          "done": false
+        },
+        {
+          "id": "task-5",
+          "title": "Background Studio: layers, palette, inspector, timeline, seam check, undo and Apply / Cancel",
+          "done": false
+        },
+        {
+          "id": "task-6",
+          "title": "Shader editor with your own GLSL code: settings from comments, examples, reference, Copy for AI",
+          "done": false
+        },
+        {
+          "id": "task-7",
+          "title": "My shaders: save a shader once and add it to any look; custom code from other people asks first",
+          "done": false
+        },
+        {
+          "id": "task-8",
+          "title": "Use this frame as a picture, and export the background as PNG, JPG or WebP",
+          "done": false
+        },
+        {
+          "id": "task-9",
+          "title": "Export a loop as MP4, WebM or GIF with progress and cancel",
+          "done": false
+        },
+        {
+          "id": "task-10",
+          "title": "Animated default look for new screenshots (uses the still frame)",
+          "done": false
+        },
+        {
+          "id": "task-11",
+          "title": "Complete native checks of animated backgrounds on macOS and Windows",
+          "done": false
+        }
+      ]
+    },
+    {
       "id": "M6",
       "title": "History, pin and OCR",
       "description": "History, pinned captures, copy text, QR, all-in-one mode.",
@@ -299,11 +362,6 @@
     }
   ],
   "later": [
-    {
-      "id": "animated-backgrounds",
-      "title": "Animated backgrounds, exported as video",
-      "icon": "sparkles"
-    },
     {
       "id": "video-editor",
       "title": "Video editor with smart zooms",

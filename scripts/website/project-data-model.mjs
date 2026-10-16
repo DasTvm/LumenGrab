@@ -35,7 +35,7 @@ export function validateRoadmap(input) {
     throw new Error("Unsupported roadmap");
   unique(input.milestones, "milestone");
   input.milestones.forEach((milestone) => {
-    if (!/^M\d+$/.test(milestone.id) || !STATUSES[milestone.status])
+    if (!/^M\d+[a-z]?$/.test(milestone.id) || !STATUSES[milestone.status])
       throw new Error("Invalid milestone status");
     text(milestone.title, "milestone title");
     text(milestone.description, "milestone description");

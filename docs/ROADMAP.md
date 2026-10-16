@@ -50,6 +50,19 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Looks: built-in gallery and your own saved looks
   - [x] Default look for every new screenshot, set in Settings
   - [ ] Complete native presentation acceptance checks on macOS and Windows
+- [ ] **M5b Animated backgrounds**: Moving WebGL backgrounds made from layers and effects, a Background Studio with a shader editor for your own code, a still frame, and loops as MP4, WebM or GIF.
+  - Status: building.
+  - [ ] Animated backgrounds as a new background type (file format v4, loops without a jump)
+  - [ ] Building blocks: gradient, orbs, aurora, waves, liquid, cells, ripples, pattern, light rays, stars and solid
+  - [ ] Effects: warp, swirl, chromatic shift, pixelate, posterize, vignette, film grain, glow and colour grade
+  - [ ] Fourteen animated looks in the Presentation panel, a still frame and a switch for the animation
+  - [ ] Background Studio: layers, palette, inspector, timeline, seam check, undo and Apply / Cancel
+  - [ ] Shader editor with your own GLSL code: settings from comments, examples, reference, Copy for AI
+  - [ ] My shaders: save a shader once and add it to any look; custom code from other people asks first
+  - [ ] Use this frame as a picture, and export the background as PNG, JPG or WebP
+  - [ ] Export a loop as MP4, WebM or GIF with progress and cancel
+  - [ ] Animated default look for new screenshots (uses the still frame)
+  - [ ] Complete native checks of animated backgrounds on macOS and Windows
 - [ ] **M6 History, pin and OCR**: History, pinned captures, copy text, QR, all-in-one mode.
   - Status: planned.
   - [ ] Capture history
@@ -67,4 +80,4 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [ ] Long-chat capture
   - [ ] Stitching and export
 
-Later: Animated backgrounds, exported as video, Video editor with smart zooms, Device mockups, 3D tilt, Local auto-redact, Multi-format export, Upload targets you set up.
+Later: Video editor with smart zooms, Device mockups, 3D tilt, Local auto-redact, Multi-format export, Upload targets you set up.
