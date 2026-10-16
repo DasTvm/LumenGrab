@@ -225,8 +225,8 @@ export async function buildScenario(scenario: string): Promise<Uint8Array> {
     case "readonly":
       // From a version of the format that does not exist yet: it does not fit our schema at all.
       return entriesOf(
-        { formatVersion: 4, minReaderVersion: 4 },
-        { version: 4, crop: null, scene: { nodes: [] } },
+        { formatVersion: 5, minReaderVersion: 5 },
+        { version: 5, crop: null, scene: { nodes: [] } },
       );
     case "corrupt": {
       // The project lost its layers: the example of the design.

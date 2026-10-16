@@ -6,6 +6,7 @@ import {
   Image as ImageIcon,
   Plus,
   Shuffle,
+  Sparkles,
   Square,
   ArrowLeftRight,
   Trash2,
@@ -32,6 +33,7 @@ import { cssColor } from "@/editor/draw/color";
 import { cn } from "@/ui/lib/utils";
 import { Pills, Section, Slider, SwatchRow } from "../controls";
 import { useStores } from "../context";
+import { AnimatedEditor } from "./AnimatedSection";
 import { ColorChip, HexInput, NumberInput, SliderRow } from "./fields";
 import { usePresentation } from "./use-presentation";
 
@@ -41,6 +43,7 @@ const ICONS: Record<string, LucideIcon> = {
   mesh: Grid3x3,
   image: ImageIcon,
   "source-blur": Droplet,
+  shader: Sparkles,
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -49,6 +52,7 @@ const TYPE_LABEL: Record<string, string> = {
   mesh: "Mesh",
   image: "Image",
   "source-blur": "Blur",
+  shader: "Animated",
   transparent: "Transparent",
 };
 
@@ -71,7 +75,7 @@ export function BackgroundSection() {
       <div
         role="radiogroup"
         aria-label="Background type"
-        className="grid grid-cols-5 gap-1 rounded-md bg-muted p-1"
+        className="grid grid-cols-6 gap-0.5 rounded-lg bg-muted p-1"
       >
         {BACKGROUND_TYPES.map((t) => {
           const Icon = ICONS[t.id] ?? Square;
@@ -83,7 +87,7 @@ export function BackgroundSection() {
               role="radio"
               aria-checked={selected}
               className={cn(
-                "flex flex-col items-center gap-1 rounded-sm py-1.5 text-xs font-medium",
+                "flex flex-col items-center gap-1 rounded-md py-1.5 text-[10px] font-medium",
                 selected
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground",
@@ -103,6 +107,7 @@ export function BackgroundSection() {
       {bg.type === "mesh" ? <MeshEditor bg={bg} /> : null}
       {bg.type === "image" ? <ImageEditor bg={bg} /> : null}
       {bg.type === "source-blur" ? <BlurEditor bg={bg} /> : null}
+      {bg.type === "shader" ? <AnimatedEditor bg={bg} /> : null}
     </Section>
   );
 }

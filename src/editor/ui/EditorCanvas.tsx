@@ -21,6 +21,8 @@ import { computeLayout } from "@/presentation/compose";
 import { drawComposition, ensureFrameFonts } from "@/presentation/draw-presentation";
 import { useBackgroundBitmap } from "./background-image";
 import { renderPicture } from "./picture";
+import { posterSeconds, sceneMoves } from "@/shader/scene";
+import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import { SafeAreaOverlay } from "./SafeAreaOverlay";
 
 interface Props {
@@ -69,6 +71,17 @@ export function EditorCanvas({ base }: Props) {
   const cropping = tool === "crop" && mode === "annotate";
   // Presentation mode shows the finished composition; there is nothing to select or draw in it.
   const presenting = mode === "presentation" && project.presentation.enabled;
+  const animateOn = useUi((s) => s.animate);
+  const studioOpen = useUi((s) => s.studio);
+  const reduced = useReducedMotion();
+  const scene =
+    project.presentation.background.type === "shader" ? project.presentation.background : null;
+  // An animated background plays while the presentation is shown, unless it is switched off, the system asks for less motion, or the Studio is open (it plays its own).
+  const playing =
+    presenting && scene !== null && sceneMoves(scene) && animateOn && !reduced && !studioOpen;
+  const stillSeconds = scene ? posterSeconds(scene) : 0;
+  /** Where the animation is, in seconds. Restarts at the still frame whenever that, the loop or the scene changes. */
+  const clock = useRef<{ from: number; at: number; seconds: number } | null>(null);
   const picture = project.crop ?? { x: 0, y: 0, width: base.width, height: base.height };
   const layout = useMemo(
     () => (presenting ? computeLayout(picture, project.presentation) : null),
@@ -141,7 +154,7 @@ export function EditorCanvas({ base }: Props) {
   }, [project.layers]);
 
   // Draw.
-  useEffect(() => {
+  const paint = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !view || size.width === 0) return;
     const dpr = window.devicePixelRatio || 1;
@@ -159,7 +172,13 @@ export function EditorCanvas({ base }: Props) {
       ctx.setTransform(1, 0, 0, 1, dpr * view.x, dpr * view.y);
       drawComposition(
         ctx,
-        { content: pictureCanvas, presentation: project.presentation, backgroundImage: background },
+        {
+          content: pictureCanvas,
+          presentation: project.presentation,
+          backgroundImage: background,
+          shaderSeconds: playing && clock.current ? clock.current.seconds : stillSeconds,
+          trustCustomCode: true,
+        },
         layout,
         dpr * view.zoom,
       );
@@ -202,13 +221,44 @@ export function EditorCanvas({ base }: Props) {
     content.y,
     content.width,
     content.height,
-    fontRev,
     editing,
     layout,
     pictureCanvas,
     background,
     project.presentation,
+    playing,
+    stillSeconds,
   ]);
+  useEffect(() => {
+    paint();
+  }, [paint, fontRev]);
+
+  // The animation: about 30 pictures a second, from the still frame, round and round the loop.
+  useEffect(() => {
+    if (!playing) {
+      clock.current = null;
+      return;
+    }
+    const loop = scene.loop;
+    if (!clock.current || clock.current.from !== stillSeconds) {
+      clock.current = { from: stillSeconds, at: performance.now(), seconds: stillSeconds };
+    }
+    let frame = 0;
+    let last = 0;
+    const tick = (now: number) => {
+      frame = requestAnimationFrame(tick);
+      if (now - last < 33) return;
+      last = now;
+      const state = clock.current;
+      if (!state) return;
+      state.seconds = (state.from + (now - state.at) / 1000) % loop;
+      paint();
+    };
+    frame = requestAnimationFrame(tick);
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [playing, scene, stillSeconds, paint]);
 
   const toArea = useCallback((clientX: number, clientY: number): Point => {
     const rect = areaRef.current?.getBoundingClientRect();

@@ -14,6 +14,7 @@ export const BACKGROUND_TYPES: readonly { id: BackgroundType; label: string }[] 
   { id: "mesh", label: "Mesh" },
   { id: "image", label: "Image" },
   { id: "source-blur", label: "Blur" },
+  { id: "shader", label: "Animated" },
 ];
 
 export const SOLID_SWATCHES = [

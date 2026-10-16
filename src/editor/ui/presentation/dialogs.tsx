@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bookmark, Check, X } from "lucide-react";
+import { Bookmark, Check, Image as ImageIcon, X } from "lucide-react";
 import type { Presentation } from "@/document/schema";
 import { Button } from "@/ui/components/button";
 import { Switch } from "@/ui/components/switch";
@@ -177,6 +177,65 @@ export function ConfirmDialog({
           onClick={onConfirm}
         >
           {confirm}
+        </Button>
+      </div>
+    </Modal>
+  );
+}
+
+/** "Use this frame as picture?" (design: Studio / Dialog / Use frame as picture). */
+export function FreezeDialog({
+  url,
+  seconds,
+  onConfirm,
+  onCancel,
+}: {
+  url: string;
+  seconds: number;
+  onConfirm: (keepAnimation: boolean) => void;
+  onCancel: () => void;
+}) {
+  const [keep, setKeep] = useState(false);
+  return (
+    <Modal label="Use this frame as picture?" onClose={onCancel} className="w-[460px]">
+      <div className="flex flex-col gap-1.5">
+        <h2 className="text-base font-semibold">Use this frame as picture?</h2>
+        <p className="text-[13px] text-muted-foreground">
+          The animation is replaced by this picture. You can undo this.
+        </p>
+      </div>
+      <div className="relative overflow-hidden rounded-lg border border-border bg-muted">
+        <img
+          src={url}
+          alt="The frame that becomes the background"
+          className="h-40 w-full object-cover"
+        />
+        <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{`Still frame · ${seconds.toFixed(1)} s`}</span>
+      </div>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col">
+          <span className="text-[13px] font-medium">Keep the animation as my look</span>
+          <span className="text-xs text-muted-foreground">
+            It is saved under Your animated looks, so you can use it again.
+          </span>
+        </div>
+        <Switch
+          aria-label="Keep the animation as my look"
+          checked={keep}
+          onCheckedChange={setKeep}
+        />
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button variant="ghost" onClick={onCancel}>
+          <X aria-hidden /> Cancel
+        </Button>
+        <Button
+          data-autofocus
+          onClick={() => {
+            onConfirm(keep);
+          }}
+        >
+          <ImageIcon aria-hidden /> Use as picture
         </Button>
       </div>
     </Modal>

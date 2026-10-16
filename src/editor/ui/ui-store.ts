@@ -66,6 +66,10 @@ export interface UiState {
   counterNext: number | null;
   /** The pointer is held down for panning (Space) or a gesture is running: cursor hints. */
   panning: boolean;
+  /** An animated background plays in the editor while you edit ("Animate in editor"). */
+  animate: boolean;
+  /** The Background Studio is open on top of the editor. */
+  studio: boolean;
 }
 
 export interface UiActions {
@@ -88,6 +92,8 @@ export interface UiActions {
   setCounterNext(value: number | null): void;
   setEditing(editing: { id: string; isNew: boolean } | null): void;
   setCrop(crop: CropDraft | null): void;
+  setAnimate(animate: boolean): void;
+  setStudio(open: boolean): void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -113,6 +119,8 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     counterNext: null,
     editing: null,
     crop: null,
+    animate: true,
+    studio: false,
 
     setTool: (tool) => {
       set({ tool });
@@ -175,6 +183,12 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setCrop: (crop) => {
       set({ crop });
+    },
+    setAnimate: (animate) => {
+      set({ animate });
+    },
+    setStudio: (studio) => {
+      set({ studio });
     },
   }));
 }
