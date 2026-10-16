@@ -44,7 +44,7 @@ export function makeCanvas(width: number, height: number): Canvas {
 function context2d(canvas: Canvas): Ctx2D {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("This system cannot process images in the browser engine.");
-  return ctx as Ctx2D;
+  return ctx;
 }
 
 function sizeOf(source: CanvasImageSource): { width: number; height: number } {

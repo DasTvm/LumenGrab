@@ -149,15 +149,13 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
     page,
   }) => {
     await page.addInitScript(() => {
-      const original = HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext = function (
-        this: HTMLCanvasElement,
-        kind: string,
-        ...rest: unknown[]
-      ) {
+      type GetContext = (this: HTMLCanvasElement, kind: string, ...rest: unknown[]) => unknown;
+      const proto = HTMLCanvasElement.prototype as unknown as { getContext: GetContext };
+      const original: GetContext = proto.getContext;
+      proto.getContext = function (kind, ...rest) {
         if (kind === "webgl" || kind === "webgl2") return null;
-        return (original as (k: string, ...r: unknown[]) => unknown).call(this, kind, ...rest);
-      } as typeof original;
+        return original.call(this, kind, ...rest);
+      };
     });
     await open(page);
     await toAnimated(page);
