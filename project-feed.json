@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-16T12:01:10.721Z",
+  "generatedAt": "2026-10-16T12:07:48.898Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -618,6 +618,13 @@
       "category": "fixed",
       "title": "the unit tests of the update texts no longer build the window state (Windows could not start the test program)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/ec523abb2702f42932e67534de6b2b1212325153"
+    },
+    {
+      "id": "96e27c955d5048148012c1ec1fe351d8931a3bb3",
+      "date": "2026-10-16T12:07:35Z",
+      "category": "internal",
+      "title": "the cancel-Save-changes test changes the document through the store instead of the mouse (it was timing dependent on CI)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/96e27c955d5048148012c1ec1fe351d8931a3bb3"
     }
   ],
   "releases": [],
@@ -709,7 +716,8 @@
     "d1b8b677dcbb4ec84903ff59d6a8ca814c6902ff",
     "0835f9dbbcb84651824f2eeff514cd9791a48aeb",
     "01b6636867eb09b29df1cda125841180c059e2b9",
-    "ec523abb2702f42932e67534de6b2b1212325153"
+    "ec523abb2702f42932e67534de6b2b1212325153",
+    "96e27c955d5048148012c1ec1fe351d8931a3bb3"
   ],
   "roadmap": {
     "schemaVersion": 1,
