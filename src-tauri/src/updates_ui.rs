@@ -69,7 +69,10 @@ pub fn download_text(downloaded: u64, total: Option<u64>, elapsed: Duration) -> 
 }
 
 /// The card for a state, or `None` for states that have none (checking, up to date).
-fn notice_for(ui: &UpdateUi, state: &UpdateState) -> Option<notice::Notice> {
+///
+/// Takes only plain values (no app state): a test that built the whole `UpdateUi` would pull the window and menu
+/// code into the test program, which Windows cannot start without the app's manifest.
+fn notice_for(state: &UpdateState, elapsed: Duration) -> Option<notice::Notice> {
     match state {
         UpdateState::Available { version, .. } => Some(notice::update_available(version)),
         UpdateState::Downloading {
@@ -77,12 +80,6 @@ fn notice_for(ui: &UpdateUi, state: &UpdateState) -> Option<notice::Notice> {
             downloaded,
             total,
         } => {
-            let elapsed = ui
-                .started
-                .lock()
-                .ok()
-                .and_then(|s| *s)
-                .map_or(Duration::ZERO, |s| s.elapsed());
             let fraction = total
                 .filter(|t| *t > 0)
                 .map(|t| (*downloaded as f32 / t as f32).min(1.0));
@@ -128,7 +125,13 @@ pub fn progress(app: &AppHandle) {
 fn sync(app: &AppHandle, create: bool) {
     let ui = app.state::<UpdateUi>();
     let info = updater::info(app);
-    let Some(notice) = notice_for(&ui, &info.state) else {
+    let elapsed = ui
+        .started
+        .lock()
+        .ok()
+        .and_then(|s| *s)
+        .map_or(Duration::ZERO, |s| s.elapsed());
+    let Some(notice) = notice_for(&info.state, elapsed) else {
         return;
     };
     if !matches!(info.state, UpdateState::Downloading { .. }) {
@@ -347,25 +350,24 @@ mod tests {
 
     #[test]
     fn only_the_states_with_something_to_say_have_a_card() {
-        let ui = UpdateUi::default();
-        assert!(notice_for(&ui, &UpdateState::Checking).is_none());
-        assert!(notice_for(&ui, &UpdateState::UpToDate).is_none());
+        assert!(notice_for(&UpdateState::Checking, Duration::ZERO).is_none());
+        assert!(notice_for(&UpdateState::UpToDate, Duration::ZERO).is_none());
         let ready = notice_for(
-            &ui,
             &UpdateState::Ready {
                 version: "0.5.0".into(),
             },
+            Duration::ZERO,
         )
         .unwrap();
         assert_eq!(ready.title, "A new version of LumenGrab is ready");
         assert_eq!(ready.actions.iter().filter(|a| a.primary).count(), 1);
         let here = notice_for(
-            &ui,
             &UpdateState::Available {
                 version: "0.5.0".into(),
                 notes: None,
                 date: None,
             },
+            Duration::ZERO,
         )
         .unwrap();
         assert_eq!(here.title, "LumenGrab 0.5.0 is here");
