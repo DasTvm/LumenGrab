@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-16T07:10:57.368Z",
+  "generatedAt": "2026-10-16T11:37:29.293Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -597,6 +597,13 @@
       "category": "new",
       "title": "in-app updates (ADR 0008)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/d1b8b677dcbb4ec84903ff59d6a8ca814c6902ff"
+    },
+    {
+      "id": "0835f9dbbcb84651824f2eeff514cd9791a48aeb",
+      "date": "2026-10-16T11:37:15Z",
+      "category": "new",
+      "title": "the public update key, and a missing release counts as up to date",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/0835f9dbbcb84651824f2eeff514cd9791a48aeb"
     }
   ],
   "releases": [],
@@ -685,7 +692,8 @@
     "84cf961c14c414174830a5d6c0f190a63f6bf834",
     "00fcc330123a665f711eb0b2bad10ffd3f67d409",
     "ea62f5723ec6402bdbe36ceb8a155d479e7baf23",
-    "d1b8b677dcbb4ec84903ff59d6a8ca814c6902ff"
+    "d1b8b677dcbb4ec84903ff59d6a8ca814c6902ff",
+    "0835f9dbbcb84651824f2eeff514cd9791a48aeb"
   ],
   "roadmap": {
     "schemaVersion": 1,
