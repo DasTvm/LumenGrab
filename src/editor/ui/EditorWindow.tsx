@@ -12,6 +12,7 @@ import { RightPanel } from "./RightPanel";
 import { commandForKey } from "./shortcuts";
 import { ToolRail } from "./ToolRail";
 import { LookNoticeBanner } from "./LookNoticeBanner";
+import { StudioHost } from "./studio/Studio";
 import { ToastStack } from "./ToastStack";
 import { TopBar } from "./TopBar";
 import { createUiStore, type UiStoreApi } from "./ui-store";
@@ -79,6 +80,7 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
     [label, doc, source, info, app, editor, ui],
   );
   const mode = useStore(ui, (s) => s.mode);
+  const studio = useStore(ui, (s) => s.studio);
   const [webp, setWebp] = useState(true);
   // Text in a font installed on the device that made the file: say so if this device does not have it.
   const [missingFonts, setMissingFonts] = useState<string[]>([]);
@@ -237,6 +239,7 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
           <RightPanel readOnly={false} />
         </div>
         <ToastStack />
+        {studio ? <StudioHost base={base} /> : null}
         {dialog?.type === "export" ? (
           <ExportDialog
             documentName={meta.fileName}

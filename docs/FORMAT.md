@@ -162,7 +162,7 @@ type ShaderLayer = {
   opacity: number                     // 0..1
   blend: "normal" | "add" | "screen" | "multiply" | "overlay" | "soft-light"
   speed: number                       // whole cycles of the motion per loop, 0 to 32
-  reverse?: boolean                   // absent = false
+  direction?: "right" | "left" | "up" | "down"  // which way the motion travels, absent = right
   seed?: number                       // absent = the seed of the background
   params: Record<string, number | boolean | string | (number | string | { offset: number; color: string })[]>
   role?: "generator" | "effect"       // custom only
@@ -239,7 +239,7 @@ A `shader` background is drawn by WebGL 1 with **engine 1**. These rules are as 
 
 The GLSL of the built-in kinds in `src/shader/glsl.ts` is the reference for their look. **Pictures from different graphics cards match visually, not bit for bit** (the cards round differently); golden-picture tests use a tolerance.
 
-**Time.** A moment `t` in seconds is `phase = (t / loop) mod 1`, 0 up to (not including) 1. Every layer gets `a = 2 pi x s x phase` and `ph = fract(s x phase)` with `s = speed` (negative when `reverse`), `speed` a whole number. All motion is built from whole turns of `a` or whole steps of `ph`, so the picture at `t = loop` is the picture at `t = 0`. A layer with `speed` 0 stands still. Stills (export, copy, `preview.png`, the automatic look, "Use this frame as picture") show `t = poster`, clamped into the loop. A video or GIF shows `t = i / fps` for frame `i`.
+**Time.** A moment `t` in seconds is `phase = (t / loop) mod 1`, 0 up to (not including) 1. Every layer gets `a = 2 pi x s x phase` and `ph = fract(s x phase)` with `s = speed` (negative when `direction` is `left` or `down`), `speed` a whole number. All motion is built from whole turns of `a` or whole steps of `ph`, so the picture at `t = loop` is the picture at `t = 0`. A layer with `speed` 0 stands still. `up` and `down` also swap the x and y axes of a built-in kind (`centered()` and `extent()` in its shader), so what travelled sideways travels up or down. Stills (export, copy, `preview.png`, the automatic look, "Use this frame as picture") show `t = poster`, clamped into the loop. A video or GIF shows `t = i / fps` for frame `i`.
 
 **Order.** The picture below the first layer is the `fallback` colour, opaque. Each enabled layer of a known kind is drawn in order, bottom first, and laid over the result: a **generator** draws a colour and an alpha by itself; an **effect** reads the picture below it (as `u_input`) and gives a colour; its alpha is 1. The layer's result `s` with alpha `a` is laid over `d` as `d' = mix(d, B(d, s), a x opacity)`. The picture stays opaque. `B` is `normal`: `s`; `add`: `min(d + s, 1)`; `screen`: `1 - (1 - d)(1 - s)`; `multiply`: `d s`; `overlay`: `2 d s` where `d < 0.5`, otherwise `1 - 2(1 - d)(1 - s)`; `soft-light`: the W3C formula. Colours are in sRGB, not linear. A layer that is `enabled: false`, of a kind this reader does not know, or a `custom` layer without code, is skipped.
 

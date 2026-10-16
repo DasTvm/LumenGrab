@@ -135,7 +135,7 @@ export function convertBackground(
       return { ...DEFAULT_SOURCE_BLUR };
     case "shader": {
       const scene = (TEMPLATES[0] ?? TEMPLATES[TEMPLATES.length - 1])?.make();
-      return scene ? { ...scene, seed } : { type: "transparent" };
+      return scene ?? { type: "transparent" };
     }
     case "transparent":
       return { type: "transparent" };

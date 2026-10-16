@@ -273,7 +273,8 @@ export const ShaderLayerSchema = z.looseObject({
   blend: z.enum(["normal", "add", "screen", "multiply", "overlay", "soft-light"]),
   /** Whole cycles of the motion per loop; 0 stands still. */
   speed: z.number().int().min(0).max(LIMITS_SHADER.maxSpeed),
-  reverse: z.boolean().optional(),
+  /** Which way the motion travels; absent means `right`. `up` and `down` turn the layer's axes. */
+  direction: z.enum(["right", "left", "up", "down"]).optional(),
   /** Absent means the seed of the background. */
   seed: z.number().int().min(0).max(0xffffffff).optional(),
   params: z

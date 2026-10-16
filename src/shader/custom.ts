@@ -19,9 +19,6 @@ export interface ParamPragma {
   line: number;
 }
 
-const PRAGMA =
-  /^\s*\/\/\s*@param\s+(float|int|color|bool)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(#[0-9a-fA-F]{6,8}|[^\s[]+)\s*(?:\[\s*([-+0-9.eE]+)\s*,\s*([-+0-9.eE]+)\s*\])?\s*(?:"([^"]{1,40})")?\s*$/;
-
 /** `soft` -> `Soft`, `softEdges` -> `Soft edges`, `tint_color` -> `Tint color`. */
 export function labelFromName(name: string): string {
   const words = name
@@ -32,6 +29,78 @@ export function labelFromName(name: string): string {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
+interface PragmaLine {
+  type: "float" | "int" | "color" | "bool" | "choice";
+  name: string;
+  value: string;
+  range: string[] | null;
+  step: number | null;
+  label: string | null;
+  group: string | null;
+}
+
+/**
+ * One `// @param` line: `// @param <float|int|color|bool|choice> <name> = <default> [min, max] step 0.1 "Label" in "Group"`.
+ * Everything after the default is optional. A choice lists its options in the brackets: `[Soft, Hard, Glow]`.
+ */
+function readPragma(text: string): PragmaLine | string {
+  const head =
+    /^\s*\/\/\s*@param\s+(float|int|color|bool|choice)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/.exec(
+      text,
+    );
+  if (!head) return "This @param line is not written like the examples.";
+  const [, type = "float", name = "", rest = ""] = head;
+  let at = 0;
+  const skip = () => {
+    while (at < rest.length && /\s/.test(rest.charAt(at))) at += 1;
+  };
+  let value: string;
+  if (rest.startsWith('"')) {
+    const end = rest.indexOf('"', 1);
+    if (end < 0) return "A quote is not closed.";
+    value = rest.slice(1, end);
+    at = end + 1;
+  } else {
+    const m = /^[^\s[]+/.exec(rest);
+    value = m ? m[0] : "";
+    at = value.length;
+  }
+  const line: PragmaLine = {
+    type: type as PragmaLine["type"],
+    name,
+    value,
+    range: null,
+    step: null,
+    label: null,
+    group: null,
+  };
+  for (;;) {
+    skip();
+    if (at >= rest.length) break;
+    const here = rest.slice(at);
+    let m: RegExpExecArray | null;
+    if (here.startsWith("[")) {
+      const end = here.indexOf("]");
+      if (end < 0) return "A bracket is not closed.";
+      line.range = here
+        .slice(1, end)
+        .split(",")
+        .map((part) => part.trim());
+      at += end + 1;
+    } else if ((m = /^step\s+([-+0-9.eE]+)/.exec(here))) {
+      line.step = Number(m[1]);
+      at += m[0].length;
+    } else if ((m = /^in\s+"([^"]{1,40})"/.exec(here))) {
+      line.group = m[1] ?? null;
+      at += m[0].length;
+    } else if ((m = /^"([^"]{1,40})"/.exec(here))) {
+      line.label = m[1] ?? null;
+      at += m[0].length;
+    } else return "Something after the default is not understood.";
+  }
+  return line;
+}
+
 /** The settings a shader asks for in its comments. Lines that do not parse are reported, not guessed. */
 export function parsePragmas(code: string): {
   params: ParamPragma[];
@@ -40,16 +109,15 @@ export function parsePragmas(code: string): {
   const params: ParamPragma[] = [];
   const problems: { line: number; message: string }[] = [];
   const seen = new Set<string>();
-  const lines = code.split("\n");
-  lines.forEach((text, index) => {
+  code.split("\n").forEach((text, index) => {
     if (!/^\s*\/\/\s*@param\b/.test(text)) return;
     const line = index + 1;
-    const m = PRAGMA.exec(text);
-    if (!m) {
-      problems.push({ line, message: "This @param line is not written like the examples." });
+    const read = readPragma(text);
+    if (typeof read === "string") {
+      problems.push({ line, message: read });
       return;
     }
-    const [, type, name = "", rawDefault = "", rawMin, rawMax, label] = m;
+    const { type, name, value, range, step, label, group } = read;
     if (name.startsWith("u_") || name.startsWith("gl_")) {
       problems.push({ line, message: `${name} is a reserved name.` });
       return;
@@ -63,15 +131,16 @@ export function parsePragmas(code: string): {
       return;
     }
     const title = label ?? labelFromName(name);
+    const where = group ?? "Settings";
     let spec: ParamSpec;
     if (type === "float" || type === "int") {
-      const def = Number(rawDefault);
+      const def = Number(value);
       if (!Number.isFinite(def)) {
-        problems.push({ line, message: `${rawDefault} is not a number.` });
+        problems.push({ line, message: `${value} is not a number.` });
         return;
       }
-      let min = rawMin === undefined ? Math.min(0, def) : Number(rawMin);
-      let max = rawMax === undefined ? Math.max(1, def * 2) : Number(rawMax);
+      let min = range?.[0] === undefined ? Math.min(0, def) : Number(range[0]);
+      let max = range?.[1] === undefined ? Math.max(1, def * 2) : Number(range[1]);
       if (!Number.isFinite(min) || !Number.isFinite(max)) {
         problems.push({ line, message: "The range is not made of numbers." });
         return;
@@ -79,46 +148,85 @@ export function parsePragmas(code: string): {
       if (min > max) [min, max] = [max, min];
       min = Math.min(min, def);
       max = Math.max(max, def);
+      const whole = type === "int";
       spec = {
         id: name,
         label: title,
-        group: "Settings",
-        type: type === "int" ? "int" : "number",
+        group: where,
+        type: whole ? "int" : "number",
         min,
         max,
-        step: type === "int" ? 1 : (max - min) / 200,
-        default: type === "int" ? Math.round(def) : def,
-        decimals: type === "int" ? 0 : 2,
+        step: whole ? 1 : step !== null && step > 0 ? step : (max - min) / 200,
+        default: whole ? Math.round(def) : def,
+        decimals: whole ? 0 : 2,
       };
     } else if (type === "color") {
-      if (!/^#[0-9a-fA-F]{6}$/.test(rawDefault)) {
+      if (!/^#[0-9a-fA-F]{6}$/.test(value)) {
         problems.push({ line, message: "A colour is written like #C8FF2E." });
         return;
       }
-      spec = {
-        id: name,
-        label: title,
-        group: "Settings",
-        type: "color",
-        default: rawDefault.toUpperCase(),
-      };
-    } else {
-      if (rawDefault !== "true" && rawDefault !== "false") {
-        problems.push({ line, message: "A switch is true or false." });
+      spec = { id: name, label: title, group: where, type: "color", default: value.toUpperCase() };
+    } else if (type === "choice") {
+      const options = (range ?? []).filter((o) => o !== "");
+      if (options.length < 2 || options.length > 12) {
+        problems.push({ line, message: "A choice needs 2 to 12 options in [brackets]." });
+        return;
+      }
+      if (!options.includes(value)) {
+        problems.push({ line, message: `${value} is not one of the options.` });
         return;
       }
       spec = {
         id: name,
         label: title,
-        group: "Settings",
-        type: "bool",
-        default: rawDefault === "true",
+        group: where,
+        type: "enum",
+        options: options.map((o) => ({ id: o, label: o })),
+        default: value,
       };
+    } else {
+      if (value !== "true" && value !== "false") {
+        problems.push({ line, message: "A switch is true or false." });
+        return;
+      }
+      spec = { id: name, label: title, group: where, type: "bool", default: value === "true" };
     }
     seen.add(name);
     params.push({ spec, line });
   });
   return { params, problems };
+}
+
+/** The `// @param` line for a setting (the builder writes it into the code). */
+export function formatPragma(spec: ParamSpec): string {
+  const label = `"${spec.label}"`;
+  const group = spec.group !== "Settings" ? ` in "${spec.group}"` : "";
+  switch (spec.type) {
+    case "number":
+      return `// @param float ${spec.id} = ${spec.default.toFixed(Math.max(1, spec.decimals ?? 1))} [${String(spec.min)}, ${String(spec.max)}] step ${String(spec.step)} ${label}${group}`;
+    case "int":
+      return `// @param int ${spec.id} = ${String(spec.default)} [${String(spec.min)}, ${String(spec.max)}] ${label}${group}`;
+    case "color":
+      return `// @param color ${spec.id} = ${spec.default} ${label}${group}`;
+    case "bool":
+      return `// @param bool ${spec.id} = ${String(spec.default)} ${label}${group}`;
+    case "enum":
+      return `// @param choice ${spec.id} = ${spec.default} [${spec.options.map((o) => o.id).join(", ")}] ${label}${group}`;
+    case "stops":
+      return "";
+  }
+}
+
+/** The GLSL type a setting is declared with. */
+export function uniformTypeOf(spec: ParamSpec): string {
+  switch (spec.type) {
+    case "color":
+      return "vec3";
+    case "bool":
+      return "bool";
+    default:
+      return "float";
+  }
 }
 
 export type CodeCheck =
@@ -210,6 +318,11 @@ export function customValues(
     } else if (spec.type === "color") {
       out[spec.id] =
         typeof value === "string" && /^#[0-9a-fA-F]{6}/.test(value) ? value : spec.default;
+    } else if (spec.type === "enum") {
+      out[spec.id] =
+        typeof value === "string" && spec.options.some((o) => o.id === value)
+          ? value
+          : spec.default;
     }
   }
   return out;

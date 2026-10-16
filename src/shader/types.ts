@@ -6,6 +6,22 @@ export type ShaderLayer = ShaderScene["layers"][number];
 export type ShaderParamValue = ShaderLayer["params"][string];
 export type BlendMode = ShaderLayer["blend"];
 export type LayerRole = "generator" | "effect";
+export type Direction = NonNullable<ShaderLayer["direction"]>;
+
+export const DIRECTIONS: readonly Direction[] = ["right", "left", "up", "down"];
+
+/** What can be changed on a layer besides its settings. (`ShaderLayer` has an index signature for unknown fields, so `Partial<Omit<...>>` would accept anything.) */
+export interface LayerPatch {
+  name?: string;
+  enabled?: boolean;
+  opacity?: number;
+  blend?: BlendMode;
+  speed?: number;
+  direction?: Direction;
+  seed?: number;
+  role?: LayerRole;
+  code?: string;
+}
 
 export interface GradientStop {
   offset: number;

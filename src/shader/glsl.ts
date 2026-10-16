@@ -76,6 +76,7 @@ uniform float u_seed;
 uniform float u_a;
 uniform float u_ph;
 uniform float u_unit;
+uniform float u_swap;
 uniform vec3 u_lp[8];
 uniform float u_lpn;
 uniform sampler2D u_input;
@@ -95,8 +96,14 @@ vec3 lramp(float t) {
   return mix(lpal(i), lpal(min(i + 1.0, top)), x - i);
 }
 vec2 circ(float a, float r) { return r * vec2(cos(a), sin(a)); }
-vec2 centered() { return (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y); }
-vec2 extent() { return u_resolution / min(u_resolution.x, u_resolution.y); }
+vec2 centered() {
+  vec2 c = (gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y);
+  return u_swap > 0.5 ? c.yx : c;
+}
+vec2 extent() {
+  vec2 e = u_resolution / min(u_resolution.x, u_resolution.y);
+  return u_swap > 0.5 ? e.yx : e;
+}
 float luma(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 `;
 

@@ -2,7 +2,7 @@ import { BLEND_INDEX } from "./glsl";
 import { customValues, parsePragmas } from "./custom";
 import { kindById, uniformsOf, type KindDef } from "./kinds";
 import { normalizeStops, resolveParams } from "./params";
-import { layerColors, layerSeed, layerTime, paddedPalette, rgb01 } from "./scene";
+import { layerColors, layerSeed, layerTime, paddedPalette, rgb01, swapsAxes } from "./scene";
 import type { ShaderLayer, ShaderScene } from "./types";
 
 /**
@@ -53,6 +53,7 @@ export function builtinValues(
     ...commonValues(scene, layer, phase, width, height),
     u_a: time.a,
     u_ph: time.ph,
+    u_swap: swapsAxes(layer) ? 1 : 0,
     u_unit: unitOf(width),
     u_lp: flat3(colors, 8),
     u_lpn: Math.max(1, colors.length),
@@ -99,15 +100,17 @@ export function customLayerValues(
   const values = commonValues(scene, layer, phase, width, height);
   const specs = parsePragmas(layer.code ?? "").params.map((p) => p.spec);
   const own = customValues(specs, layer.params);
-  for (const [name, value] of Object.entries(own)) {
-    values[name] =
-      typeof value === "boolean"
-        ? value
-          ? 1
-          : 0
-        : typeof value === "string"
-          ? rgb01(value)
-          : value;
+  for (const spec of specs) {
+    const value = own[spec.id];
+    if (value === undefined) continue;
+    if (typeof value === "boolean") values[spec.id] = value ? 1 : 0;
+    else if (typeof value === "number") values[spec.id] = value;
+    else if (spec.type === "enum")
+      values[spec.id] = Math.max(
+        0,
+        spec.options.findIndex((o) => o.id === value),
+      );
+    else values[spec.id] = rgb01(value);
   }
   return values;
 }

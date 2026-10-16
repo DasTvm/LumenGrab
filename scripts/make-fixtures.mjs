@@ -673,7 +673,7 @@ void main() {
               opacity: 0.9,
               blend: "screen",
               speed: 2,
-              reverse: true,
+              direction: "left",
               seed: 777,
               params: {
                 scale: 1.2,

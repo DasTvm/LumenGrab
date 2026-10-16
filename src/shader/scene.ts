@@ -93,9 +93,14 @@ export function posterSeconds(scene: ShaderScene): number {
  * same at the start and the end of a loop, whatever the speed, because the speed is a whole number.
  */
 export function layerTime(layer: ShaderLayer, phase: number): { a: number; ph: number } {
-  const turns = (layer.reverse === true ? -1 : 1) * Math.round(layer.speed) * phase;
+  const sign = layer.direction === "left" || layer.direction === "down" ? -1 : 1;
+  const turns = sign * Math.round(layer.speed) * phase;
   return { a: 2 * Math.PI * turns, ph: turns - Math.floor(turns) };
 }
+
+/** `up` and `down` swap the axes of the layer, so what travelled sideways now travels vertically. */
+export const swapsAxes = (layer: ShaderLayer): boolean =>
+  layer.direction === "up" || layer.direction === "down";
 
 /** The seed a layer's shader reads: small enough to be exact as a float. */
 export function layerSeed(scene: ShaderScene, layer: ShaderLayer): number {

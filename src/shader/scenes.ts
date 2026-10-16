@@ -11,7 +11,7 @@ interface Patch {
   opacity?: number;
   blend?: BlendMode;
   speed?: number;
-  reverse?: boolean;
+  direction?: ShaderLayer["direction"];
   seed?: number;
   params?: Record<string, ShaderParamValue>;
 }
@@ -24,7 +24,7 @@ function layer(kind: string, patch: Patch, index: number): ShaderLayer {
   if (patch.opacity !== undefined) made.opacity = patch.opacity;
   if (patch.blend) made.blend = patch.blend;
   if (patch.speed !== undefined) made.speed = patch.speed;
-  if (patch.reverse) made.reverse = true;
+  if (patch.direction) made.direction = patch.direction;
   if (patch.seed !== undefined) made.seed = patch.seed;
   return made;
 }
@@ -64,7 +64,7 @@ const AURORA_NIGHT = () =>
           blend: "screen",
           opacity: 0.55,
           speed: 1,
-          reverse: true,
+          direction: "left",
           seed: 777,
           params: { scale: 1.7, rotation: -18, offsetY: 0.22 },
         },

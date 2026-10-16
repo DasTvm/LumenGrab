@@ -75,6 +75,8 @@ export function SaveLookDialog({
   );
   const [makeDefault, setMakeDefault] = useState(draft?.makeDefault ?? false);
   const ready = name.trim() !== "" && include.length > 0;
+  const animated = presentation.background.type === "shader" && include.includes("background");
+  const loopSeconds = presentation.background.type === "shader" ? presentation.background.loop : 0;
   const preview = lookFromPresentation(presentation, include, width, name, "preview");
   const submit = () => {
     if (ready) onSave({ name: name.trim(), include, makeDefault });
@@ -87,8 +89,11 @@ export function SaveLookDialog({
           Keep this background, padding, shadow and frame to reuse on any capture.
         </p>
       </div>
-      <div className="overflow-hidden rounded-lg">
+      <div className="relative overflow-hidden rounded-lg">
         <LookThumb look={preview} width={412} height={90} fill backgroundImage={backgroundImage} />
+        {animated ? (
+          <span className="absolute top-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs text-white">{`${String(loopSeconds)} s loop`}</span>
+        ) : null}
       </div>
       <label className="flex flex-col gap-1.5 text-[13px]">
         <span className="font-medium">Name</span>
@@ -122,6 +127,12 @@ export function SaveLookDialog({
           ))}
         </div>
       </div>
+      {animated ? (
+        <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+          Includes the animation. It is saved with its layers and seed, and the picture export uses
+          the still frame.
+        </p>
+      ) : null}
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col">
           <span className="text-[13px] font-medium">Use as my default look</span>

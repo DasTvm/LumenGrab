@@ -81,7 +81,7 @@
               "source": "custom",
               "highlight": "#C8FF2E"
             },
-            "reverse": true,
+            "direction": "left",
             "seed": 777
           },
           {

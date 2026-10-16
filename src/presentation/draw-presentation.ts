@@ -8,7 +8,8 @@ import { drawFrameChrome, frameFonts } from "./frames";
 import { linearLine, radialCircle, sortedStops } from "./gradient";
 import { meshFieldSize, renderMeshField } from "./mesh";
 import { posterSeconds } from "@/shader/scene";
-import { sharedRenderer } from "@/shader/renderer";
+import { sharedRenderer, type RenderReport } from "@/shader/renderer";
+import type { ShaderScene } from "@/shader/types";
 
 /**
  * Draws a presentation (docs/FORMAT.md section 4b): background, shadow, then the window with its frame
@@ -100,6 +101,49 @@ function blurredLayer(
   return out;
 }
 
+/**
+ * Draws a shader background (docs/FORMAT.md section 4c) onto `ctx`, `width` x `height` composition pixels at `scale` device pixels per
+ * pixel. Where WebGL is missing the scene's fallback colour is drawn. Returns what the renderer reported (`null` without WebGL).
+ */
+export function drawShaderBackground(
+  ctx: Ctx2D,
+  scene: ShaderScene,
+  width: number,
+  height: number,
+  scale: number,
+  options: {
+    seconds?: number;
+    trustCustomCode?: boolean;
+    purpose?: string;
+    measure?: boolean;
+  } = {},
+): RenderReport | null {
+  const renderer = sharedRenderer(options.purpose ?? "still");
+  const k = Math.min(1, SHADER_MAX_EDGE / Math.max(width * scale, height * scale, 1));
+  const report =
+    renderer?.render(
+      scene,
+      options.seconds ?? posterSeconds(scene),
+      Math.max(1, Math.round(width * scale * k)),
+      Math.max(1, Math.round(height * scale * k)),
+      {
+        allowCode: () => options.trustCustomCode === true,
+        ...(options.measure ? { measure: true } : {}),
+      },
+    ) ?? null;
+  ctx.save();
+  if (renderer && report?.drawn) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(renderer.canvas, 0, 0, width, height);
+  } else {
+    ctx.fillStyle = cssColor(scene.fallback);
+    ctx.fillRect(0, 0, width, height);
+  }
+  ctx.restore();
+  return report;
+}
+
 function drawBackground(
   ctx: Ctx2D,
   input: CompositionInput,
@@ -186,28 +230,12 @@ function drawBackground(
         0,
       );
       break;
-    case "shader": {
-      const renderer = sharedRenderer("still");
-      const k = Math.min(1, SHADER_MAX_EDGE / Math.max(width * scale, height * scale, 1));
-      const report = renderer?.render(
-        bg,
-        input.shaderSeconds ?? posterSeconds(bg),
-        Math.max(1, Math.round(width * scale * k)),
-        Math.max(1, Math.round(height * scale * k)),
-        { allowCode: () => input.trustCustomCode === true },
-      );
-      if (renderer && report?.drawn) {
-        ctx.save();
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = "high";
-        ctx.drawImage(renderer.canvas, 0, 0, width, height);
-        ctx.restore();
-      } else {
-        ctx.fillStyle = cssColor(bg.fallback);
-        ctx.fillRect(0, 0, width, height);
-      }
+    case "shader":
+      drawShaderBackground(ctx, bg, width, height, scale, {
+        seconds: input.shaderSeconds ?? posterSeconds(bg),
+        trustCustomCode: input.trustCustomCode === true,
+      });
       break;
-    }
     default:
       break;
   }

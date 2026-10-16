@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { ProjectSchema, ShaderBackgroundSchema } from "@/document/schema";
 import {
   aiBrief,
+  formatPragma,
+  uniformTypeOf,
   assembleCustom,
   checkCustomCode,
   customValues,
@@ -136,7 +138,7 @@ describe("time", () => {
       expect(Math.sin(almostEnd.a)).toBeCloseTo(Math.sin(start.a), 6);
       expect(almostEnd.ph + 1e-6).toBeGreaterThan(speed === 0 ? 0 : 0.99);
     }
-    const back = layerTime({ ...newLayer(kind), speed: 1, reverse: true }, 0.25);
+    const back = layerTime({ ...newLayer(kind), speed: 1, direction: "left" }, 0.25);
     expect(back.a).toBeCloseTo(-Math.PI / 2, 9);
     expect(back.ph).toBeCloseTo(0.75, 9);
   });
@@ -389,6 +391,45 @@ describe("code you write", () => {
     );
     expect(params.map((p) => p.spec.id)).toEqual(["d"]);
     expect(problems.map((p) => p.line)).toEqual([1, 2, 3, 4, 6, 7]);
+  });
+
+  it("reads a step, a group and choices, and writes them back the same way", () => {
+    const lines = [
+      '// @param float speed = 1.0 [0.0, 4.0] step 0.25 "Speed" in "Motion"',
+      '// @param choice mode = Hard [Soft, Hard, Glow] "Mode"',
+      '// @param int count = 3 [1, 8] "Count"',
+      '// @param bool soft = true "Soft edges"',
+      '// @param color tint = #C8FF2E "Tint" in "Colour"',
+    ];
+    const { params, problems } = parsePragmas(lines.join("\n"));
+    expect(problems).toEqual([]);
+    expect(params[0]?.spec).toMatchObject({ step: 0.25, group: "Motion", label: "Speed" });
+    expect(params[1]?.spec).toMatchObject({ type: "enum", default: "Hard" });
+    expect(params[1]?.spec).toMatchObject({
+      options: [{ id: "Soft" }, { id: "Hard" }, { id: "Glow" }],
+    });
+    for (const [i, entry] of params.entries()) {
+      const again = parsePragmas(formatPragma(entry.spec)).params[0]?.spec;
+      expect(again, lines[i]).toEqual(entry.spec);
+    }
+    expect(params.map((p) => uniformTypeOf(p.spec))).toEqual([
+      "float",
+      "float",
+      "float",
+      "bool",
+      "vec3",
+    ]);
+    expect(parsePragmas("// @param choice a = X [X]").problems).toHaveLength(1);
+    expect(parsePragmas("// @param choice a = Z [X, Y]").problems).toHaveLength(1);
+    expect(parsePragmas('// @param float a = 1 "unclosed').problems).toHaveLength(1);
+    const own = customLayerValues(
+      newScene(),
+      newCustomLayer("generator", "T", lines.join("\n"), { mode: "Glow" }),
+      0,
+      10,
+      10,
+    );
+    expect(own["mode"]).toBe(2);
   });
 
   it("makes labels from names", () => {
