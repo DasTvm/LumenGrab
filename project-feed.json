@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-16T23:39:14.415Z",
+  "generatedAt": "2026-10-16T23:40:01.165Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -646,6 +646,13 @@
       "category": "new",
       "title": "the Animated tab, animated looks, still frame and Use this frame as picture (M5b stage 4)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/1768fcf9865515acdf79382e73d5d072e35a614f"
+    },
+    {
+      "id": "90c3d1761da26ef35a9208a2a09a464803c4e902",
+      "date": "2026-10-16T23:39:46Z",
+      "category": "fixed",
+      "title": "a test hook and an unneeded type assertion",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/90c3d1761da26ef35a9208a2a09a464803c4e902"
     }
   ],
   "releases": [],
@@ -741,7 +748,8 @@
     "96e27c955d5048148012c1ec1fe351d8931a3bb3",
     "18dc15bfb77b3734f1d73002cd83dff07c2db835",
     "ebfda904c2b2ae2c95b884f4f6d8c833e0640957",
-    "1768fcf9865515acdf79382e73d5d072e35a614f"
+    "1768fcf9865515acdf79382e73d5d072e35a614f",
+    "90c3d1761da26ef35a9208a2a09a464803c4e902"
   ],
   "roadmap": {
     "schemaVersion": 1,
