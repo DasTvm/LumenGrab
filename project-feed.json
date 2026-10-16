@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-16T23:36:42.806Z",
+  "generatedAt": "2026-10-16T23:39:14.415Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -625,6 +625,27 @@
       "category": "internal",
       "title": "the cancel-Save-changes test changes the document through the store instead of the mouse (it was timing dependent on CI)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/96e27c955d5048148012c1ec1fe351d8931a3bb3"
+    },
+    {
+      "id": "18dc15bfb77b3734f1d73002cd83dff07c2db835",
+      "date": "2026-10-16T23:16:15Z",
+      "category": "internal",
+      "title": "milestone M5b, animated backgrounds",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/18dc15bfb77b3734f1d73002cd83dff07c2db835"
+    },
+    {
+      "id": "ebfda904c2b2ae2c95b884f4f6d8c833e0640957",
+      "date": "2026-10-16T23:33:15Z",
+      "category": "new",
+      "title": "format v4 and the WebGL renderer for animated backgrounds (M5b stages 1 to 3)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/ebfda904c2b2ae2c95b884f4f6d8c833e0640957"
+    },
+    {
+      "id": "1768fcf9865515acdf79382e73d5d072e35a614f",
+      "date": "2026-10-16T23:39:02Z",
+      "category": "new",
+      "title": "the Animated tab, animated looks, still frame and Use this frame as picture (M5b stage 4)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/1768fcf9865515acdf79382e73d5d072e35a614f"
     }
   ],
   "releases": [],
@@ -717,7 +738,10 @@
     "0835f9dbbcb84651824f2eeff514cd9791a48aeb",
     "01b6636867eb09b29df1cda125841180c059e2b9",
     "ec523abb2702f42932e67534de6b2b1212325153",
-    "96e27c955d5048148012c1ec1fe351d8931a3bb3"
+    "96e27c955d5048148012c1ec1fe351d8931a3bb3",
+    "18dc15bfb77b3734f1d73002cd83dff07c2db835",
+    "ebfda904c2b2ae2c95b884f4f6d8c833e0640957",
+    "1768fcf9865515acdf79382e73d5d072e35a614f"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -945,6 +969,69 @@
         ]
       },
       {
+        "id": "M5b",
+        "title": "Animated backgrounds",
+        "description": "Moving WebGL backgrounds made from layers and effects, a Background Studio with a shader editor for your own code, a still frame, and loops as MP4, WebM or GIF.",
+        "status": "building",
+        "tasks": [
+          {
+            "id": "task-1",
+            "title": "Animated backgrounds as a new background type (file format v4, loops without a jump)",
+            "done": false
+          },
+          {
+            "id": "task-2",
+            "title": "Building blocks: gradient, orbs, aurora, waves, liquid, cells, ripples, pattern, light rays, stars and solid",
+            "done": false
+          },
+          {
+            "id": "task-3",
+            "title": "Effects: warp, swirl, chromatic shift, pixelate, posterize, vignette, film grain, glow and colour grade",
+            "done": false
+          },
+          {
+            "id": "task-4",
+            "title": "Fourteen animated looks in the Presentation panel, a still frame and a switch for the animation",
+            "done": false
+          },
+          {
+            "id": "task-5",
+            "title": "Background Studio: layers, palette, inspector, timeline, seam check, undo and Apply / Cancel",
+            "done": false
+          },
+          {
+            "id": "task-6",
+            "title": "Shader editor with your own GLSL code: settings from comments, examples, reference, Copy for AI",
+            "done": false
+          },
+          {
+            "id": "task-7",
+            "title": "My shaders: save a shader once and add it to any look; custom code from other people asks first",
+            "done": false
+          },
+          {
+            "id": "task-8",
+            "title": "Use this frame as a picture, and export the background as PNG, JPG or WebP",
+            "done": false
+          },
+          {
+            "id": "task-9",
+            "title": "Export a loop as MP4, WebM or GIF with progress and cancel",
+            "done": false
+          },
+          {
+            "id": "task-10",
+            "title": "Animated default look for new screenshots (uses the still frame)",
+            "done": false
+          },
+          {
+            "id": "task-11",
+            "title": "Complete native checks of animated backgrounds on macOS and Windows",
+            "done": false
+          }
+        ]
+      },
+      {
         "id": "M6",
         "title": "History, pin and OCR",
         "description": "History, pinned captures, copy text, QR, all-in-one mode.",
@@ -1020,11 +1107,6 @@
       }
     ],
     "later": [
-      {
-        "id": "animated-backgrounds",
-        "title": "Animated backgrounds, exported as video",
-        "icon": "sparkles"
-      },
       {
         "id": "video-editor",
         "title": "Video editor with smart zooms",
