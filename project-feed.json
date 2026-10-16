@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-16T11:37:29.293Z",
+  "generatedAt": "2026-10-16T11:52:59.041Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -604,6 +604,13 @@
       "category": "new",
       "title": "the public update key, and a missing release counts as up to date",
       "url": "https://github.com/DasTvm/LumenGrab/commit/0835f9dbbcb84651824f2eeff514cd9791a48aeb"
+    },
+    {
+      "id": "01b6636867eb09b29df1cda125841180c059e2b9",
+      "date": "2026-10-16T11:52:46Z",
+      "category": "fixed",
+      "title": "a lint in a test of the update texts (clippy --all-targets), and say so in AGENTS.md",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/01b6636867eb09b29df1cda125841180c059e2b9"
     }
   ],
   "releases": [],
@@ -693,7 +700,8 @@
     "00fcc330123a665f711eb0b2bad10ffd3f67d409",
     "ea62f5723ec6402bdbe36ceb8a155d479e7baf23",
     "d1b8b677dcbb4ec84903ff59d6a8ca814c6902ff",
-    "0835f9dbbcb84651824f2eeff514cd9791a48aeb"
+    "0835f9dbbcb84651824f2eeff514cd9791a48aeb",
+    "01b6636867eb09b29df1cda125841180c059e2b9"
   ],
   "roadmap": {
     "schemaVersion": 1,
