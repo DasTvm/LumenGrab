@@ -167,7 +167,7 @@ pnpm format           # Prettier (docs/FORMAT.md, AGENTS.md etc. are in .prettie
 pnpm test:e2e         # Playwright in browser mock mode; screenshots land in test-results/
 pnpm tauri build      # local installer build (.dmg on macOS, NSIS .exe on Windows)
 pnpm licenses:update  # regenerate THIRD_PARTY_LICENSES (needs cargo-about: cargo install cargo-about --locked --features cli)
-cd src-tauri && cargo fmt --check && cargo clippy -- -D warnings   # Rust checks
+cd src-tauri && cargo fmt --check && cargo clippy --all-targets -- -D warnings   # Rust checks (CI also lints the tests)
 ```
 
 Notes:

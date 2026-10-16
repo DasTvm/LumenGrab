@@ -339,7 +339,7 @@ mod tests {
             "39 of 40 MB · a few seconds left"
         );
         assert_eq!(
-            download_text(1 * MB, Some(400 * MB), secs(10)),
+            download_text(MB, Some(400 * MB), secs(10)),
             "1 of 400 MB · about 67 minutes left"
         );
         assert_eq!(download_text(5 * MB, None, secs(10)), "5 MB");
