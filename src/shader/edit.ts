@@ -161,3 +161,25 @@ export function sceneProblem(scene: ShaderScene): string | null {
   if (code > SHADER_LIMITS.maxTotalCodeLength) return "too much code";
   return null;
 }
+
+/** The name, role, code and settings of a layer with code, changed together (the shader editor's Apply). */
+export function setCustom(
+  scene: ShaderScene,
+  id: string,
+  change: { name: string; role: LayerRole; code: string; params: ShaderLayer["params"] },
+): ShaderScene {
+  return replace(
+    scene,
+    scene.layers.map((l) =>
+      l.id === id
+        ? {
+            ...l,
+            name: change.name,
+            role: change.role,
+            code: change.code,
+            params: { ...l.params, ...change.params },
+          }
+        : l,
+    ),
+  );
+}

@@ -35,6 +35,7 @@ export function commonValues(
     u_phase: phase,
     u_seed: layerSeed(scene, layer),
     u_palette: flat3(paddedPalette(scene), 8),
+    u_palette_count: scene.palette.length,
   };
 }
 

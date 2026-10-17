@@ -8,7 +8,7 @@ import {
   ensureFrameFonts,
 } from "@/presentation/draw-presentation";
 import { patchLayer } from "@/shader/edit";
-import { webglAvailable } from "@/shader/renderer";
+import { sharedRenderer, webglAvailable } from "@/shader/renderer";
 import type { ShaderScene } from "@/shader/types";
 import type { BaseImage } from "../base-image";
 import { useEditor, useUi } from "../context";
@@ -127,15 +127,20 @@ export function Preview({ base }: { base: BaseImage }) {
     } else {
       ctx.save();
       ctx.scale(scale, scale);
-      const report = drawShaderBackground(ctx, shown, shape.width, shape.height, scale, {
+      drawShaderBackground(ctx, shown, shape.width, shape.height, scale, {
         seconds: time,
         purpose: "studio",
-        ...(measure ? { measure: true } : {}),
       });
       ctx.restore();
+    }
+    if (measure) {
+      // A small timed picture of the scene: a layer with code that takes too long is switched off.
+      const report = sharedRenderer("measure")?.render(shown, time, 480, 270, { measure: true });
       if (report && report.heavy.length > 0) {
-        for (const id of report.heavy)
+        for (const id of report.heavy) {
           store.getState().change((s) => patchLayer(s, id, { enabled: false }));
+          store.getState().markHeavy(id);
+        }
         store.getState().setNotice("A shader was switched off because it slowed the preview down.");
       }
     }

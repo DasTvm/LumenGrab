@@ -4,11 +4,15 @@ import { Button } from "@/ui/components/button";
 import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import { randomize, sceneProblem } from "@/shader/edit";
 import { ANIMATED_LOOKS, TEMPLATES } from "@/shader/scenes";
+import type { ShaderLayer as ShaderLayerLike } from "@/shader/types";
 import type { BaseImage } from "../base-image";
 import { isTyping } from "../commands";
 import { useStores } from "../context";
 import { StudioProvider, useStudio, useStudioStore } from "./context";
-import { DiscardDialog, TooLargeDialog } from "./dialogs";
+import { DiscardDialog, NewShaderDialog, SaveShaderDialog, TooLargeDialog } from "./dialogs";
+import { ShaderEditor } from "./ShaderEditor";
+import { customValues, parsePragmas } from "@/shader/custom";
+import { shadersStore } from "@/shader/shader-instance";
 import {
   FreezeDialog,
   SaveLookDialog,
@@ -190,6 +194,13 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
   const dialog = useStudio((s) => s.dialog);
   const name = useStudio((s) => s.name);
   const notice = useStudio((s) => s.notice);
+  const editorTarget = useStudio((s) => s.editor);
+  const dialogLayer = useStudio((s) => s.dialogLayer);
+  const sceneNow = useStudio((s) => s.scene);
+  const [replaceShader, setReplaceShader] = useState<{
+    name: string;
+    keepSettings: boolean;
+  } | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const { ui, session } = useStores();
   const width = usePictureWidth();
@@ -230,6 +241,28 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialog]);
+
+  const saveShader = async (choice: { name: string; keepSettings: boolean }, replace: boolean) => {
+    const layer = store.getState().scene.layers.find((l) => l.id === store.getState().dialogLayer);
+    if (!layer?.code) return;
+    const specs = parsePragmas(layer.code).params.map((p) => p.spec);
+    const result = await shadersStore.getState().saveShader(
+      {
+        name: choice.name,
+        role: layer.role ?? "generator",
+        code: layer.code,
+        values: choice.keepSettings ? customValues(specs, layer.params) : {},
+      },
+      { replace },
+    );
+    if (result.status === "exists") {
+      setReplaceShader(choice);
+      return;
+    }
+    setReplaceShader(null);
+    store.getState().setDialog(null);
+    ui.getState().pushToast({ icon: "saved", text: `Saved “${result.shader.name}” to My shaders` });
+  };
 
   const saveLook = async (choice: SaveLookChoice, replace: boolean) => {
     const presentation = {
@@ -312,17 +345,31 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
         aria-label="Background Studio"
         data-studio
         tabIndex={-1}
-        className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-[0_20px_60px_rgb(0_0_0/0.35)] outline-none"
+        className="relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-[0_20px_60px_rgb(0_0_0/0.35)] outline-none"
       >
         <Header onApply={apply} onCancel={cancel} />
         <div className="flex min-h-0 flex-1">
-          <StackPanel onWriteShader={() => undefined} />
+          <StackPanel
+            onWriteShader={() => {
+              store.getState().setDialog("new-shader");
+            }}
+          />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <Preview base={base} />
             <Timeline />
           </div>
           <Inspector />
         </div>
+        {editorTarget ? (
+          <ShaderEditor
+            key={editorTarget.kind === "layer" ? editorTarget.id : "new"}
+            target={editorTarget}
+            base={base}
+            onClose={() => {
+              store.getState().openEditor(null);
+            }}
+          />
+        ) : null}
         {notice ? (
           <div
             role="status"
@@ -420,6 +467,42 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
           }}
         />
       ) : null}
+      {dialog === "new-shader" ? (
+        <NewShaderDialog
+          onCancel={() => {
+            store.getState().setDialog(null);
+          }}
+          onOpen={(choice) => {
+            store.getState().setDialog(null);
+            store.getState().openEditor({ kind: "new", ...choice });
+          }}
+        />
+      ) : null}
+      {dialog === "save-shader" && dialogLayer ? (
+        <SaveShaderDialog
+          initialName={sceneNow.layers.find((l) => l.id === dialogLayer)?.name ?? "My shader"}
+          summary={shaderSummary(sceneNow.layers.find((l) => l.id === dialogLayer))}
+          onCancel={() => {
+            store.getState().setDialog(null);
+          }}
+          onSave={(choice) => {
+            void saveShader(choice, false);
+          }}
+        />
+      ) : null}
+      {replaceShader ? (
+        <ConfirmDialog
+          title={`Replace “${replaceShader.name}”?`}
+          body="You already have a shader with this name. Replacing it can't be undone."
+          confirm="Replace"
+          onCancel={() => {
+            setReplaceShader(null);
+          }}
+          onConfirm={() => {
+            void saveShader(replaceShader, true);
+          }}
+        />
+      ) : null}
       {dialog === "too-large" ? (
         <TooLargeDialog
           onReview={() => {
@@ -460,4 +543,20 @@ export function StudioHost({ base }: { base: BaseImage }) {
       />
     </StudioProvider>
   );
+}
+
+/** The settings of a layer with code in words: `Speed 1.0, tint #C8FF2E, soft edges on`. */
+function shaderSummary(layer: ShaderLayerLike | undefined): string {
+  if (!layer?.code) return "No settings.";
+  const specs = parsePragmas(layer.code).params.map((p) => p.spec);
+  if (specs.length === 0) return "This shader has no settings.";
+  const values = customValues(specs, layer.params);
+  return specs
+    .map((spec) => {
+      const v = values[spec.id];
+      if (typeof v === "boolean") return `${spec.label.toLowerCase()} ${v ? "on" : "off"}`;
+      if (typeof v === "number") return `${spec.label} ${v.toFixed(spec.type === "int" ? 0 : 1)}`;
+      return `${spec.label.toLowerCase()} ${typeof v === "string" ? v : ""}`.trim();
+    })
+    .join(", ");
 }

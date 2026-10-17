@@ -5,7 +5,8 @@ import type { ShaderScene } from "@/shader/types";
 export const PREVIEW_SPEEDS = [0.25, 0.5, 1, 2] as const;
 export type PreviewSpeed = (typeof PREVIEW_SPEEDS)[number];
 
-export type StudioDialog = "discard" | "export" | "freeze" | "save-look" | "too-large" | null;
+export type StudioDialog =
+  "discard" | "export" | "freeze" | "save-look" | "too-large" | "new-shader" | "save-shader" | null;
 
 /** The shader editor on top of the Studio: which layer it edits, or a new one that is not in the stack yet. */
 export type ShaderEditorTarget =
@@ -37,9 +38,13 @@ export interface StudioState {
   /** The scene before the running gesture (a slider drag is one undo step). */
   gesture: ShaderScene | null;
   dialog: StudioDialog;
+  /** The layer a dialog is about (Save to My shaders). */
+  dialogLayer: string | null;
   editor: ShaderEditorTarget | null;
   /** A short message in the Studio (a layer that was switched off, a full stack). */
   notice: string | null;
+  /** Layers with code that were switched off because they were too slow. */
+  heavy: string[];
 }
 
 export interface StudioActions {
@@ -58,9 +63,12 @@ export interface StudioActions {
   setSpeed(speed: PreviewSpeed): void;
   setSeam(on: boolean): void;
   setScreenshot(on: boolean): void;
-  setDialog(dialog: StudioDialog): void;
+  setDialog(dialog: StudioDialog, layerId?: string | null): void;
   openEditor(target: ShaderEditorTarget | null): void;
   setNotice(notice: string | null): void;
+  /** A layer with code was switched off for being too slow (`enabled: false` is set by the caller). */
+  markHeavy(id: string): void;
+  clearHeavy(id: string): void;
   /** A scene that is not an edit of this one (a template, a look): replaces everything, one undo step. */
   replaceScene(scene: ShaderScene): void;
 }
@@ -99,8 +107,10 @@ export function createStudioStore(
       future: [],
       gesture: null,
       dialog: null,
+      dialogLayer: null,
       editor: null,
       notice: null,
+      heavy: [],
 
       change: (recipe) => {
         const next = recipe(get().scene);
@@ -173,14 +183,20 @@ export function createStudioStore(
       setScreenshot: (screenshot) => {
         set({ screenshot });
       },
-      setDialog: (dialog) => {
-        set({ dialog });
+      setDialog: (dialog, layerId = null) => {
+        set({ dialog, dialogLayer: layerId });
       },
       openEditor: (editor) => {
         set({ editor });
       },
       setNotice: (notice) => {
         set({ notice });
+      },
+      markHeavy: (id) => {
+        if (!get().heavy.includes(id)) set({ heavy: [...get().heavy, id] });
+      },
+      clearHeavy: (id) => {
+        set({ heavy: get().heavy.filter((h) => h !== id) });
       },
       replaceScene: (next) => {
         push(next);

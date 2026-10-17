@@ -1,3 +1,6 @@
+import { EXAMPLES } from "@/shader/custom";
+import { kindById } from "@/shader/kinds";
+import { newCustomLayer, newLayer, newScene } from "@/shader/scene";
 import { strToU8 } from "fflate";
 import { writeContainer, type ContainerEntry } from "../../document/container";
 import { sha256Hex } from "../../document/hash";
@@ -208,6 +211,19 @@ async function marginsDocument(touching = false) {
 
 export async function buildScenario(scenario: string): Promise<Uint8Array> {
   switch (scenario) {
+    case "shader-code": {
+      // A file from somebody else with a background that runs their own shader code.
+      const doc = await newDocument();
+      if (!doc.project) throw new Error("project");
+      const scene = newScene({
+        layers: [
+          newLayer(kindById("gradient") ?? (undefined as never), "g"),
+          newCustomLayer("generator", "Glow", EXAMPLES[0]?.code ?? "", { speed: 2 }, "c"),
+        ],
+      });
+      doc.project.presentation = { ...doc.project.presentation, enabled: true, background: scene };
+      return save(doc);
+    }
     case "margins":
       return save(await marginsDocument());
     case "margins-edge":

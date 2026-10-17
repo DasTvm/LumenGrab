@@ -28,7 +28,10 @@ import { layerLabel } from "@/shader/scene";
 import { TEMPLATES } from "@/shader/scenes";
 import { BLEND_MODES, type BlendMode, type LayerPatch, type ShaderLayer } from "@/shader/types";
 import { ColorPicker } from "../ColorPicker";
+import { useShaders } from "@/shader/shader-instance";
+import { addCustom } from "@/shader/edit";
 import { useStudio, useStudioStore } from "./context";
+import { useStores } from "../context";
 import { DecimalBox, KIND_ICONS, KindChip, MenuItem, MenuLabel, Popover } from "./parts";
 
 /** The Palette card: the colours the layers paint with. */
@@ -393,6 +396,8 @@ export function remove(store: Store, id: string): void {
 /** Add: a layer or an effect of any kind, or your own shader. */
 function AddMenu({ onWriteShader }: { onWriteShader: () => void }) {
   const store = useStudioStore();
+  const { session } = useStores();
+  const mine = useShaders((s) => s.shaders);
   const [open, setOpen] = useState(false);
   const full = !useStudio((s) => canAddLayer(s.scene));
   const add = (kind: string) => {
@@ -455,6 +460,29 @@ function AddMenu({ onWriteShader }: { onWriteShader: () => void }) {
           >
             <Code aria-hidden className="size-4" /> Write new shader…
           </button>
+          {mine.length > 0 ? <MenuLabel>My shaders</MenuLabel> : null}
+          {mine.map((shader) => (
+            <MenuItem
+              key={shader.id}
+              icon={<Code aria-hidden className="size-4" />}
+              label={shader.name}
+              hint={shader.role === "effect" ? "Effect" : "Generator"}
+              onClick={() => {
+                setOpen(false);
+                const made = addCustom(
+                  store.getState().scene,
+                  shader.role,
+                  shader.name,
+                  shader.code,
+                  shader.values,
+                );
+                if (!made) return;
+                session.noteOwnCode(shader.code);
+                store.getState().change(() => made.scene);
+                store.getState().select(made.id);
+              }}
+            />
+          ))}
         </div>
       </Popover>
     </div>
