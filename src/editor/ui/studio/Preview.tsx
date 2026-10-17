@@ -11,7 +11,7 @@ import { patchLayer } from "@/shader/edit";
 import { webglAvailable } from "@/shader/renderer";
 import type { ShaderScene } from "@/shader/types";
 import type { BaseImage } from "../base-image";
-import { useEditor } from "../context";
+import { useEditor, useUi } from "../context";
 import { renderPicture } from "../picture";
 import { ColorChip } from "../presentation/fields";
 import { useStudio, useStudioStore } from "./context";
@@ -28,14 +28,7 @@ export function viewScene(scene: ShaderScene, solo: string | null): ShaderScene 
 }
 
 /** The picture in the middle of the Studio: the scene with the screenshot on it, or the scene alone. */
-export function Preview({
-  base,
-  trust,
-}: {
-  base: BaseImage;
-  /** Whether custom code may run in this preview (the user's own code, or code they allowed). */
-  trust: boolean;
-}) {
+export function Preview({ base }: { base: BaseImage }) {
   const store = useStudioStore();
   const project = useEditor((s) => s.project);
   const scene = useStudio((s) => s.scene);
@@ -43,6 +36,7 @@ export function Preview({
   const time = useStudio((s) => s.time);
   const screenshot = useStudio((s) => s.screenshot);
   const playing = useStudio((s) => s.playing);
+  const codeVersion = useUi((s) => s.codeVersion);
   const area = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -103,7 +97,7 @@ export function Preview({
     if (!el || size.width === 0) return;
     const dpr = window.devicePixelRatio || 1;
     // The shader needs no more pixels than the screen shows; a lot bigger only costs time.
-    const w = Math.min(Math.round(cssW * dpr), 2400);
+    const w = Math.min(Math.round(cssW * dpr), 1600);
     const h = Math.max(1, Math.round((w * shape.height) / shape.width));
     if (el.width !== w || el.height !== h) {
       el.width = w;
@@ -118,9 +112,7 @@ export function Preview({
     // Every 20th frame a layer with code is timed: one that is too slow is switched off.
     frames.current += 1;
     const measure =
-      trust &&
-      frames.current % 20 === 0 &&
-      shown.layers.some((l) => l.kind === "custom" && l.enabled);
+      frames.current % 20 === 0 && shown.layers.some((l) => l.kind === "custom" && l.enabled);
     if (screenshot) {
       drawComposition(
         ctx,
@@ -128,7 +120,6 @@ export function Preview({
           content,
           presentation: { ...presentation, background: shown },
           shaderSeconds: time,
-          trustCustomCode: trust,
         },
         layout,
         scale,
@@ -138,7 +129,6 @@ export function Preview({
       ctx.scale(scale, scale);
       const report = drawShaderBackground(ctx, shown, shape.width, shape.height, scale, {
         seconds: time,
-        trustCustomCode: trust,
         purpose: "studio",
         ...(measure ? { measure: true } : {}),
       });
@@ -161,13 +151,12 @@ export function Preview({
     content,
     presentation,
     layout,
-    trust,
     store,
   ]);
 
   useEffect(() => {
     paint();
-  }, [paint, fontRev, playing]);
+  }, [paint, fontRev, playing, codeVersion]);
 
   return (
     <div ref={area} className="relative flex min-h-0 min-w-0 flex-1 flex-col bg-muted/50">

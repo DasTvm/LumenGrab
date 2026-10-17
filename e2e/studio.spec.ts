@@ -15,6 +15,11 @@ const open = async (page: Page) => {
     .click();
   await page.getByRole("button", { name: "Open Background Studio" }).click();
   await expect(page.getByRole("dialog", { name: "Background Studio" })).toBeVisible();
+  // The preview plays by itself; a test that is not about playing holds it still (software WebGL is slow).
+  await page
+    .getByRole("dialog", { name: "Background Studio" })
+    .getByRole("button", { name: "Pause" })
+    .click();
 };
 const studio = (page: Page) => page.getByRole("dialog", { name: "Background Studio" });
 const rows = (page: Page) =>
@@ -172,6 +177,7 @@ test.describe("Background Studio (browser mock)", () => {
     await open(page);
     await rows(page).nth(2).getByRole("button", { name: "Aurora", exact: true }).click();
     const inspector = studio(page).getByRole("complementary", { name: "Inspector" });
+    await expect(inspector.getByText("Generator · Aurora")).toBeVisible();
     await expect(inspector.getByRole("region", { name: "Shape" })).toBeVisible();
     await expect(inspector.getByRole("region", { name: "Motion" })).toBeVisible();
     await expect(inspector.getByRole("region", { name: "Colour" })).toBeVisible();
@@ -196,7 +202,6 @@ test.describe("Background Studio (browser mock)", () => {
   }) => {
     await open(page);
     const timeText = studio(page).getByTestId("studio-time");
-    await studio(page).getByRole("button", { name: "Pause" }).click();
     await studio(page).getByRole("slider", { name: "Time" }).focus();
     await page.keyboard.press("Home");
     await expect(timeText).toHaveText("0.0 / 8.0 s");

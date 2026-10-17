@@ -79,6 +79,7 @@ export interface MockSubmission {
     | "docCloseCancelled"
     | "presentReady"
     | "looksSave"
+    | "shadersSave"
     | "writeFile"
     | "openUrl"
     | "quit"
@@ -153,6 +154,7 @@ async function fetchSample(): Promise<Uint8Array> {
 
 const SETTINGS_KEY = "lumengrab.mock.settings";
 const LOOKS_KEY = "lumengrab.mock.looks";
+const SHADERS_KEY = "lumengrab.mock.shaders";
 /** The background pictures of saved looks (the real app keeps them as files; the mock only for this page load). */
 const lookAssets = new Map<string, Uint8Array>();
 
@@ -644,6 +646,26 @@ export const mockPlatform: Platform = {
   onLooksChanged(listener: () => void): Promise<() => void> {
     const handler = (e: StorageEvent) => {
       if (e.key === LOOKS_KEY) listener();
+    };
+    window.addEventListener("storage", handler);
+    return Promise.resolve(() => {
+      window.removeEventListener("storage", handler);
+    });
+  },
+
+  shadersLoad(name: "my-shaders" | "trusted"): Promise<string | null> {
+    return Promise.resolve(window.localStorage.getItem(`${SHADERS_KEY}.${name}`));
+  },
+
+  shadersSave(name: "my-shaders" | "trusted", json: string): Promise<void> {
+    record({ kind: "shadersSave" });
+    window.localStorage.setItem(`${SHADERS_KEY}.${name}`, json);
+    return Promise.resolve();
+  },
+
+  onShadersChanged(listener: () => void): Promise<() => void> {
+    const handler = (e: StorageEvent) => {
+      if (e.key?.startsWith(SHADERS_KEY)) listener();
     };
     window.addEventListener("storage", handler);
     return Promise.resolve(() => {

@@ -318,7 +318,7 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
         <div className="flex min-h-0 flex-1">
           <StackPanel onWriteShader={() => undefined} />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <Preview base={base} trust />
+            <Preview base={base} />
             <Timeline />
           </div>
           <Inspector />

@@ -73,6 +73,7 @@ export function EditorCanvas({ base }: Props) {
   const presenting = mode === "presentation" && project.presentation.enabled;
   const animateOn = useUi((s) => s.animate);
   const studioOpen = useUi((s) => s.studio);
+  const codeVersion = useUi((s) => s.codeVersion);
   const reduced = useReducedMotion();
   const scene =
     project.presentation.background.type === "shader" ? project.presentation.background : null;
@@ -177,7 +178,6 @@ export function EditorCanvas({ base }: Props) {
           presentation: project.presentation,
           backgroundImage: background,
           shaderSeconds: playing && clock.current ? clock.current.seconds : stillSeconds,
-          trustCustomCode: true,
         },
         layout,
         dpr * view.zoom,
@@ -231,7 +231,7 @@ export function EditorCanvas({ base }: Props) {
   ]);
   useEffect(() => {
     paint();
-  }, [paint, fontRev]);
+  }, [paint, fontRev, codeVersion]);
 
   // The animation: about 30 pictures a second, from the still frame, round and round the loop.
   useEffect(() => {

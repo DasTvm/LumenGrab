@@ -9,6 +9,7 @@ import { linearLine, radialCircle, sortedStops } from "./gradient";
 import { meshFieldSize, renderMeshField } from "./mesh";
 import { posterSeconds } from "@/shader/scene";
 import { sharedRenderer, type RenderReport } from "@/shader/renderer";
+import { allowAllCode } from "@/shader/trust";
 import type { ShaderScene } from "@/shader/types";
 
 /**
@@ -27,7 +28,7 @@ export interface CompositionInput {
   backgroundImage?: CanvasImageSource | null;
   /** The moment of a shader background to draw, in seconds. Without it the scene's still frame (docs/FORMAT.md section 4c). */
   shaderSeconds?: number;
-  /** Whether the custom code of a shader background may run. Off unless the caller says it is the user's own. */
+  /** Every custom shader may run (the user's own looks). Without it the page's gate decides (`src/shader/trust.ts`). */
   trustCustomCode?: boolean;
 }
 
@@ -127,7 +128,7 @@ export function drawShaderBackground(
       Math.max(1, Math.round(width * scale * k)),
       Math.max(1, Math.round(height * scale * k)),
       {
-        allowCode: () => options.trustCustomCode === true,
+        ...(options.trustCustomCode === true ? { allowCode: allowAllCode } : {}),
         ...(options.measure ? { measure: true } : {}),
       },
     ) ?? null;
@@ -233,7 +234,7 @@ function drawBackground(
     case "shader":
       drawShaderBackground(ctx, bg, width, height, scale, {
         seconds: input.shaderSeconds ?? posterSeconds(bg),
-        trustCustomCode: input.trustCustomCode === true,
+        ...(input.trustCustomCode === true ? { trustCustomCode: true } : {}),
       });
       break;
     default:

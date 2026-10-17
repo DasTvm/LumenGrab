@@ -1,3 +1,4 @@
+import { allowAllCode, setCodeGate } from "@/shader/trust";
 import { useEffect, useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import { DEFAULT_SETTINGS, type Settings } from "@/platform";
@@ -79,6 +80,8 @@ export function PresentationPage({
   const own = useLooks((s) => s.looks);
   const defaultLook = useLooks((s) => s.defaultLook);
   useEffect(() => {
+    // The previews draw the user's own looks: their code may run here.
+    setCodeGate(allowAllCode);
     void looksStore.getState().init();
   }, []);
   const [renaming, setRenaming] = useState<string | null>(null);

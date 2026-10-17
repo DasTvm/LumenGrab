@@ -70,6 +70,10 @@ export interface UiState {
   animate: boolean;
   /** The Background Studio is open on top of the editor. */
   studio: boolean;
+  /** The custom shader code of this document may run (false for a file from outside until the user allows it). */
+  codeAllowed: boolean;
+  /** Counts changes of what code may run, so the pictures are drawn again. */
+  codeVersion: number;
 }
 
 export interface UiActions {
@@ -94,6 +98,8 @@ export interface UiActions {
   setCrop(crop: CropDraft | null): void;
   setAnimate(animate: boolean): void;
   setStudio(open: boolean): void;
+  setCodeAllowed(allowed: boolean): void;
+  bumpCode(): void;
 }
 
 export type UiStore = UiState & UiActions;
@@ -121,6 +127,8 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     crop: null,
     animate: true,
     studio: false,
+    codeAllowed: true,
+    codeVersion: 0,
 
     setTool: (tool) => {
       set({ tool });
@@ -189,6 +197,12 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setStudio: (studio) => {
       set({ studio });
+    },
+    setCodeAllowed: (codeAllowed) => {
+      set({ codeAllowed, codeVersion: get().codeVersion + 1 });
+    },
+    bumpCode: () => {
+      set({ codeVersion: get().codeVersion + 1 });
     },
   }));
 }

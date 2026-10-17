@@ -3,6 +3,7 @@ import { BLIT_FRAGMENT, COMPOSITE_FRAGMENT, VERTEX_SHADER } from "./glsl";
 import { kindById, kindFragment } from "./kinds";
 import { layerRole, phaseAt, posterSeconds, rgb01 } from "./scene";
 import type { ShaderLayer, ShaderScene } from "./types";
+import { canRunCode } from "./trust";
 import { builtinValues, compositeValues, customLayerValues, type UniformValues } from "./uniforms";
 
 /**
@@ -34,7 +35,7 @@ export interface RenderReport {
 }
 
 export interface RenderOptions {
-  /** Whether a layer with code may run (the trust gate). Default: yes. */
+  /** Whether a layer with code may run (the trust gate). Default: the gate of the page (`trust.ts`). */
   allowCode?: (layer: ShaderLayer) => boolean;
   /** Time every layer (slower: it waits for the graphics card). */
   measure?: boolean;
@@ -345,7 +346,7 @@ export class ShaderRenderer {
     if (!composite || !blit) return report;
 
     const phase = phaseAt(scene, seconds);
-    const canRun = options.allowCode ?? (() => true);
+    const canRun = options.allowCode ?? canRunCode;
     let [acc, tmp, spare] = this.targets as [Target, Target, Target];
 
     gl.disable(gl.BLEND);

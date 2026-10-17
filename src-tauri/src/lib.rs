@@ -13,6 +13,7 @@ mod present;
 mod quick_access;
 mod recovery;
 mod settings;
+mod shaders;
 mod tray;
 mod updater;
 mod updates_ui;
@@ -94,6 +95,8 @@ pub fn run() {
             looks::looks_read_asset,
             looks::looks_write_asset,
             looks::looks_prune_assets,
+            shaders::shaders_load,
+            shaders::shaders_save,
             present::present_ready,
             present::present_take,
             present::present_result,

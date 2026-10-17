@@ -50,12 +50,10 @@ describe("the Studio's own history", () => {
   it("forgets a selection that undo took away", () => {
     const store = make();
     const before = store.getState().scene;
-    store
-      .getState()
-      .change((s) => ({
-        ...s,
-        layers: [...s.layers, { ...before.layers[0], id: "extra" } as never],
-      }));
+    store.getState().change((s) => ({
+      ...s,
+      layers: [...s.layers, { ...before.layers[0], id: "extra" } as never],
+    }));
     store.getState().select("extra");
     store.getState().undo();
     expect(store.getState().selected).toBeNull();

@@ -339,6 +339,26 @@ export const nativePlatform: Platform = {
     });
   },
 
+  async shadersLoad(name: "my-shaders" | "trusted"): Promise<string | null> {
+    const text = await call<string>("shaders_load", { name });
+    return text === "" ? null : text;
+  },
+
+  async shadersSave(name: "my-shaders" | "trusted", json: string): Promise<void> {
+    try {
+      await invoke("shaders_save", { name, json, source: getCurrentWindow().label });
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "Your shaders could not be saved.");
+    }
+  },
+
+  async onShadersChanged(listener: () => void): Promise<() => void> {
+    const mine = getCurrentWindow().label;
+    return listen<{ source: string }>("shaders-changed", (event) => {
+      if (event.payload.source !== mine) listener();
+    });
+  },
+
   async presentReady(): Promise<void> {
     await call("present_ready");
   },

@@ -328,6 +328,12 @@ export interface Platform {
   looksPruneAssets(keep: string[]): Promise<void>;
   /** Calls `listener` when another window changed the looks. */
   onLooksChanged(listener: () => void): Promise<() => void>;
+  /** One of the shader files, `my-shaders` (your saved shaders) or `trusted` (documents whose code may run): its text, or `null` if there is none yet. */
+  shadersLoad(name: "my-shaders" | "trusted"): Promise<string | null>;
+  /** Writes one of the shader files (atomically) and tells the other windows. */
+  shadersSave(name: "my-shaders" | "trusted", json: string): Promise<void>;
+  /** Calls `listener` when another window changed a shader file. */
+  onShadersChanged(listener: () => void): Promise<() => void>;
   /** The hidden page of the automatic look listens: the native side may send requests. */
   presentReady(): Promise<void>;
   /** Calls `listener` with a new request: a capture (its size; the pixels come from `presentTake`) to put the default look on. */

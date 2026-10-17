@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { platform } from "@/platform";
 import { renderDefaultLook } from "@/presentation/auto-look";
 import { looksStore } from "@/editor/ui/presentation/looks-instance";
+import { allowAllCode, setCodeGate } from "@/shader/trust";
 
 /**
  * The hidden page behind the automatic look (`?window=present`, docs/adr/0007): it waits for the native
@@ -10,6 +11,8 @@ import { looksStore } from "@/editor/ui/presentation/looks-instance";
  */
 export function PresentWindow() {
   useEffect(() => {
+    // This page draws the user's own default look for new captures: their code may run.
+    setCodeGate(allowAllCode);
     let stop: (() => void) | null = null;
     const life = { alive: true };
     void (async () => {

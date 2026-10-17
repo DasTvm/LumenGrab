@@ -1,4 +1,8 @@
 import type { RgbaImage } from "@/document/render/pixels";
+import { hasCustomCode } from "@/shader/scene";
+import { shadersStore } from "@/shader/shader-instance";
+import { setCodeGate } from "@/shader/trust";
+import type { ShaderLayer } from "@/shader/types";
 import { assetNameOf, pruneAssets } from "@/presentation/assets";
 import type { DocumentFile } from "@/document/types";
 import { serializeDocument } from "@/document/write";
@@ -63,10 +67,63 @@ export class DocumentSession {
   private meta: Meta;
   private flat: { project: unknown; image: Promise<RgbaImage> } | null = null;
 
+  /**
+   * Custom shader code that came with a file the user opened does not run until they allow it. Code they write
+   * here (or add from My shaders or their looks) runs at once; `own` is that code.
+   */
+  private allowed: boolean;
+  private readonly own = new Set<string>();
+
   constructor(private readonly d: Deps) {
     this.meta = { fileName: d.info.fileName, kind: d.info.kind };
     // Recovered work was never saved: it counts as changed from the first moment.
     if (d.info.kind === "recovered") d.editor.getState().markUnsaved();
+    const background = d.editor.getState().project.presentation.background;
+    this.allowed = background.type !== "shader" || !hasCustomCode(background);
+    d.ui.getState().setCodeAllowed(this.allowed);
+  }
+
+  /** Makes this session's gate the one the pages of this window draw with, and asks whether the user allowed this document before. */
+  openGate(): () => void {
+    setCodeGate((layer) => this.canRun(layer));
+    void shadersStore
+      .getState()
+      .init()
+      .then(() => {
+        if (shadersStore.getState().trusted.includes(this.d.doc.manifest.documentId))
+          this.setAllowed();
+      });
+    return () => {
+      setCodeGate(() => false);
+    };
+  }
+
+  private setAllowed(): void {
+    this.allowed = true;
+    this.d.ui.getState().setCodeAllowed(true);
+  }
+
+  /** Whether the code of a layer may run now. */
+  canRun(layer: ShaderLayer): boolean {
+    return this.allowed || (layer.code !== undefined && this.own.has(layer.code));
+  }
+
+  /** Whether this document has code that is still switched off. */
+  get codeAllowed(): boolean {
+    return this.allowed;
+  }
+
+  /** "Run custom code": allows the code of this document, now and whenever it is opened again on this computer. */
+  async allowCode(): Promise<void> {
+    this.setAllowed();
+    await shadersStore.getState().trustDocument(this.d.doc.manifest.documentId);
+  }
+
+  /** Code the user wrote or chose themselves: it runs. */
+  noteOwnCode(code: string): void {
+    this.own.add(code);
+    // The pages draw again: the gate answers differently now.
+    this.d.ui.getState().bumpCode();
   }
 
   get fileName(): string {

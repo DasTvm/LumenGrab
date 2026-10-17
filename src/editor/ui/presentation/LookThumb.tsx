@@ -49,7 +49,12 @@ export function LookThumb({ look, width, height, fill = false, backgroundImage =
         (canvas.width - layout.canvas.width * scale) / 2,
         (canvas.height - layout.canvas.height * scale) / 2,
       );
-      drawComposition(ctx, { content: skeleton(), presentation, backgroundImage }, layout, scale);
+      drawComposition(
+        ctx,
+        { content: skeleton(), presentation, backgroundImage, trustCustomCode: true },
+        layout,
+        scale,
+      );
     });
     return () => {
       alive = false;

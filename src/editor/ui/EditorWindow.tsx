@@ -105,6 +105,7 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
   }, [editor, ui, session]);
 
   useEffect(() => session.start(), [session]);
+  useEffect(() => session.openGate(), [session]);
 
   // The kept original of an automatic-look capture: the look goes on as a presentation (Annotate can still edit).
   useEffect(() => {
