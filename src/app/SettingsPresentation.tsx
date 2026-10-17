@@ -1,6 +1,8 @@
 import { allowAllCode, setCodeGate } from "@/shader/trust";
 import { useEffect, useState } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, WandSparkles } from "lucide-react";
+import { Button } from "@/ui/components/button";
+import { SettingsStudio } from "./SettingsStudio";
 import { DEFAULT_SETTINGS, type Settings } from "@/platform";
 import { Segmented } from "@/ui/components/segmented";
 import { Switch } from "@/ui/components/switch";
@@ -85,10 +87,12 @@ export function PresentationPage({
     void looksStore.getState().init();
   }, []);
   const [renaming, setRenaming] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState<Look | null>(null);
 
   const factory = builtinById(FACTORY_LOOK_ID);
   const active = defaultLook ?? factory;
+  const shader = active?.parts.background?.type === "shader" ? active.parts.background : null;
   const set = (patch: Partial<Settings["presentation"]>) => {
     onChange({ ...current, presentation: { ...current.presentation, ...patch } });
   };
@@ -102,6 +106,14 @@ export function PresentationPage({
         </p>
       ) : null}
 
+      {editing && active ? (
+        <SettingsStudio
+          look={active}
+          onClose={() => {
+            setEditing(false);
+          }}
+        />
+      ) : null}
       <Section title="Default look">
         <div className="flex gap-6">
           <div className="flex w-[360px] shrink-0 flex-col gap-2">
@@ -113,9 +125,31 @@ export function PresentationPage({
                 <LookThumb look={active} width={358} height={224} fill />
               </div>
             ) : null}
-            <p className="text-xs text-muted-foreground">
-              {`${active?.name ?? ""} · preview. Used for every new capture, until you pick another look in the editor.`}
-            </p>
+            {shader ? (
+              <div className="flex items-start gap-3">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-sm font-medium">{`${active?.name ?? ""} · animated`}</span>
+                  <span className="text-xs text-muted-foreground">{`${String(shader.loop)} s loop`}</span>
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    Used for every new capture. Animated looks play in the editor and export as
+                    their still frame.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="h-8 shrink-0 gap-1.5 text-[13px]"
+                  onClick={() => {
+                    setEditing(true);
+                  }}
+                >
+                  <WandSparkles aria-hidden className="size-3.5" /> Edit look
+                </Button>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {`${active?.name ?? ""} · preview. Used for every new capture, until you pick another look in the editor.`}
+              </p>
+            )}
           </div>
           <div
             className="grid flex-1 grid-cols-3 content-start gap-x-3 gap-y-3"

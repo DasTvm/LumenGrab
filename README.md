@@ -11,7 +11,7 @@ presentation-ready visuals.
 
 - Fast capture (area, window, fullscreen, later scrolling) via global hotkey
 - Editor: crop, arrows, shapes, text, counters, highlighter, spotlight, blur / pixelate / solid redaction
-- Presentation layer: gradient, mesh, image and blurred-screenshot backgrounds, padding with auto-balance, rounded corners, shadows, window frames, social media sizes, your own saved looks, and a default look for every new screenshot (animated backgrounds later)
+- Presentation layer: gradient, mesh, image and blurred-screenshot backgrounds, padding with auto-balance, rounded corners, shadows, window frames, social media sizes, your own saved looks, and a default look for every new screenshot, and animated backgrounds you build yourself (layers, effects, your own shader code) that export as a picture, MP4, WebM or GIF
 - Our own single-file, editable format, **`.lumengrab`**: reopen any capture later and keep editing, with only that one file
   ([format spec](docs/FORMAT.md))
 - History, pinned screenshots, local OCR (copy text, QR codes)
@@ -29,6 +29,8 @@ to open it in the editor. Files from a newer version open read-only instead of b
 **The editor** (Quick Access **Edit**, or any `.lumengrab`): arrows, lines, shapes, text, counters, highlighter, pencil, spotlight,
 blur / pixelate / solid redaction, crop, layers with groups, undo and redo. Export as PNG, JPG or WebP (at 0.5×, 1×, 2× or a custom
 size), copy to the clipboard, or save a `.lumengrab`. Your work is autosaved to a recovery copy, and after a crash LumenGrab offers it back.
+
+**Animated backgrounds** (Presentation > Background > Animated): 14 moving looks, and the **Background Studio** to make your own from layers (gradient, orbs, aurora, waves, liquid, cells, ripples, patterns, light rays, stars) and effects (warp, swirl, pixelate, glow, grain, colour grade). A shader editor lets you write your own layer in GLSL, with settings made from comments, examples and a brief you can copy for an AI of your choice (nothing is sent anywhere). Code in a file from somebody else does not run until you allow it. Pick a still frame for exports, turn a frame into a normal background, or render the loop as MP4, WebM or GIF.
 
 **Updates:** LumenGrab tells you when a new version is out (Settings > Updates, a card in the corner, the menu bar entry) and updates itself with one click; documents with unsaved changes ask first.
 

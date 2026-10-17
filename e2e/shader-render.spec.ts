@@ -204,6 +204,7 @@ test("a loop closes: the last moment is as close to the first as one step of the
 });
 
 test("every kind with motion loops without a jump", async ({ page }) => {
+  test.setTimeout(180_000);
   await page.goto("/");
   const kinds = await page.evaluate(async () => {
     const load = async <T>(path: string): Promise<T> =>

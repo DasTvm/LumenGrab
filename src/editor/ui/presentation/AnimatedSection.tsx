@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image as ImageIcon, Play, Plus, Info, WandSparkles } from "lucide-react";
+import { Image as ImageIcon, Play, Plus, Info, Star, WandSparkles } from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { Switch } from "@/ui/components/switch";
 import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
@@ -34,33 +34,66 @@ function sameLook(a: ShaderScene, b: ShaderScene): boolean {
 const WIDTH = 88;
 const HEIGHT = 58;
 
-function Tile({ look, selected, onApply }: { look: Look; selected: boolean; onApply: () => void }) {
+function Tile({
+  look,
+  selected,
+  isDefault,
+  onApply,
+  onMakeDefault,
+}: {
+  look: Look;
+  selected: boolean;
+  isDefault: boolean;
+  onApply: () => void;
+  onMakeDefault: () => void;
+}) {
   return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      aria-label={look.name}
-      className="group flex min-w-0 flex-col gap-1.5 text-left text-[11px] font-medium"
-      onClick={onApply}
-    >
-      <span
-        className={cn(
-          "relative block overflow-hidden rounded-lg",
-          selected ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : "ring-1 ring-border",
-        )}
-      >
-        <LookThumb look={look} width={WIDTH} height={HEIGHT} fill />
+    <div className="group relative flex min-w-0 flex-col gap-1.5 text-[11px] font-medium">
+      {isDefault ? (
         <span
-          aria-hidden
-          className="absolute bottom-1 left-1 flex size-4 items-center justify-center rounded-full bg-white/90 text-neutral-900"
+          role="img"
+          aria-label="Default look"
+          className="pointer-events-none absolute top-1 right-1 z-10 flex size-[18px] items-center justify-center rounded-full bg-brand text-brand-foreground shadow-sm"
         >
-          <Play className="size-2 fill-current" />
+          <Star aria-hidden className="size-3 fill-current" />
         </span>
-      </span>
-      <span className={cn("truncate", selected ? "text-foreground" : "text-muted-foreground")}>
-        {look.name}
-      </span>
-    </button>
+      ) : (
+        <button
+          type="button"
+          aria-label={`Use ${look.name} as default`}
+          title="Use as default"
+          className="absolute top-1 right-1 z-10 flex size-[22px] items-center justify-center rounded-full bg-card/90 opacity-0 shadow-sm group-focus-within:opacity-100 group-hover:opacity-100"
+          onClick={onMakeDefault}
+        >
+          <Star aria-hidden className="size-3.5" />
+        </button>
+      )}
+      <button
+        type="button"
+        aria-pressed={selected}
+        aria-label={look.name}
+        className="flex min-w-0 flex-col gap-1.5 text-left"
+        onClick={onApply}
+      >
+        <span
+          className={cn(
+            "relative block overflow-hidden rounded-lg",
+            selected ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : "ring-1 ring-border",
+          )}
+        >
+          <LookThumb look={look} width={WIDTH} height={HEIGHT} fill />
+          <span
+            aria-hidden
+            className="absolute bottom-1 left-1 flex size-4 items-center justify-center rounded-full bg-white/90 text-neutral-900"
+          >
+            <Play className="size-2 fill-current" />
+          </span>
+        </span>
+        <span className={cn("truncate", selected ? "text-foreground" : "text-muted-foreground")}>
+          {look.name}
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -82,6 +115,11 @@ export function AnimatedEditor({ bg }: { bg: ShaderScene }) {
 
   const apply = (look: Look) => {
     void applyLookToDocument(look, { editor, ui, session, width });
+  };
+  const defaultLook = useLooks((s) => s.defaultLook);
+  const makeDefault = (look: Look) => {
+    void looksStore.getState().setDefault(look);
+    ui.getState().pushToast({ icon: "default", text: `${look.name} is now your default look` });
   };
   const sceneOf = (look: Look): ShaderScene | null => {
     const b = look.parts.background;
@@ -150,8 +188,12 @@ export function AnimatedEditor({ bg }: { bg: ShaderScene }) {
             key={look.id}
             look={look}
             selected={active(look)}
+            isDefault={defaultLook?.id === look.id}
             onApply={() => {
               apply(look);
+            }}
+            onMakeDefault={() => {
+              makeDefault(look);
             }}
           />
         ))}
@@ -171,8 +213,12 @@ export function AnimatedEditor({ bg }: { bg: ShaderScene }) {
                 key={look.id}
                 look={look}
                 selected={active(look)}
+                isDefault={defaultLook?.id === look.id}
                 onApply={() => {
                   apply(look);
+                }}
+                onMakeDefault={() => {
+                  makeDefault(look);
                 }}
               />
             ))}

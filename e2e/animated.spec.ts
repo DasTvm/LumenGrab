@@ -166,3 +166,40 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
     await expect(page.getByTestId("editor-canvas")).toBeVisible();
   });
 });
+
+test.describe("an animated default look (browser mock)", () => {
+  test("a star makes an animated look the default, and Settings shows it and edits it in the Studio", async ({
+    page,
+  }) => {
+    await open(page);
+    await toAnimated(page);
+    const region = page.getByRole("region", { name: "Background" });
+    await region.getByRole("button", { name: "Use Lava as default" }).click();
+    await expect(page.getByText("Lava is now your default look")).toBeVisible();
+    await expect(region.getByRole("img", { name: "Default look" })).toBeVisible();
+
+    await page.goto("/?window=settings&page=presentation");
+    await expect(page.getByText("Lava · animated")).toBeVisible();
+    await expect(page.getByText("8 s loop")).toBeVisible();
+    await expect(
+      page.getByText("Animated looks play in the editor and export as their still frame."),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Edit look" }).click();
+    const studio = page.getByRole("dialog", { name: "Background Studio" });
+    await expect(studio).toBeVisible();
+    await studio.getByRole("button", { name: "Pause" }).click();
+    await studio.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Vignette" }).click();
+    await studio.getByRole("button", { name: "Apply" }).click();
+    await expect(studio).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        const raw = await page.evaluate(() => window.localStorage.getItem("lumengrab.mock.looks"));
+        const file = JSON.parse(raw ?? "{}") as {
+          defaultLook?: { parts?: { background?: { layers?: { kind: string }[] } } };
+        };
+        return file.defaultLook?.parts?.background?.layers?.map((l) => l.kind) ?? [];
+      })
+      .toContain("vignette");
+  });
+});

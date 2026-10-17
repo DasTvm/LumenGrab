@@ -112,7 +112,7 @@ export interface DocumentInfo {
   applyLook?: boolean;
 }
 
-export type SaveFormat = "png" | "jpg" | "webp" | "lumengrab";
+export type SaveFormat = "png" | "jpg" | "webp" | "lumengrab" | "mp4" | "webm" | "gif";
 
 /** Work the editor's autosave left behind (design: Recover unsaved work). */
 export interface Recoverable {

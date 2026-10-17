@@ -637,6 +637,9 @@ fn filter_for(format: &str) -> Option<(&'static str, &'static str)> {
         "jpg" => Some(("JPEG image", "jpg")),
         "webp" => Some(("WebP image", "webp")),
         "lumengrab" => Some(("LumenGrab document", "lumengrab")),
+        "mp4" => Some(("MP4 video", "mp4")),
+        "webm" => Some(("WebM video", "webm")),
+        "gif" => Some(("GIF image", "gif")),
         _ => None,
     }
 }

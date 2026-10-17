@@ -11,6 +11,7 @@ import { useStores } from "../context";
 import { StudioProvider, useStudio, useStudioStore } from "./context";
 import { DiscardDialog, NewShaderDialog, SaveShaderDialog, TooLargeDialog } from "./dialogs";
 import { ShaderEditor } from "./ShaderEditor";
+import { StudioExportDialog } from "./ExportDialog";
 import { customValues, parsePragmas } from "@/shader/custom";
 import { shadersStore } from "@/shader/shader-instance";
 import {
@@ -464,6 +465,14 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
           }}
           onConfirm={() => {
             void saveLook(replaceLook, true);
+          }}
+        />
+      ) : null}
+      {dialog === "export" ? (
+        <StudioExportDialog
+          base={base}
+          onClose={() => {
+            store.getState().setDialog(null);
           }}
         />
       ) : null}
