@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-19T15:37:21.668Z",
+  "generatedAt": "2026-10-19T19:22:38.565Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -653,6 +653,41 @@
       "category": "fixed",
       "title": "a test hook and an unneeded type assertion",
       "url": "https://github.com/DasTvm/LumenGrab/commit/90c3d1761da26ef35a9208a2a09a464803c4e902"
+    },
+    {
+      "id": "b6d6dd09a0a70d0090b41041475cf282f225f194",
+      "date": "2026-10-16T23:58:20Z",
+      "category": "new",
+      "title": "the Background Studio with stack, inspector, preview and timeline (M5b stage 5), and a direction for every layer",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/b6d6dd09a0a70d0090b41041475cf282f225f194"
+    },
+    {
+      "id": "6b0f97e9a48e98e0aa685eb028508379637d67ae",
+      "date": "2026-10-17T00:04:46Z",
+      "category": "new",
+      "title": "the code gate, My shaders storage and a calmer Studio preview (M5b stage 6, part 1)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/6b0f97e9a48e98e0aa685eb028508379637d67ae"
+    },
+    {
+      "id": "fd0a6db9990a9a2715d5b604ca37baa1550d2e55",
+      "date": "2026-10-17T17:44:14Z",
+      "category": "new",
+      "title": "the shader editor with your own GLSL, settings builder, reference, examples, Copy for AI, My shaders and the code gate (M5b stage 6)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/fd0a6db9990a9a2715d5b604ca37baa1550d2e55"
+    },
+    {
+      "id": "094432c11a4d7cf918fa91cbd894ac4319ea5745",
+      "date": "2026-10-17T18:00:13Z",
+      "category": "new",
+      "title": "export as video, GIF or picture, the animated default look in Settings, docs and licences (M5b stages 7 to 9)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/094432c11a4d7cf918fa91cbd894ac4319ea5745"
+    },
+    {
+      "id": "42dec9e4803e4194abe57afe889efd6bc95d4615",
+      "date": "2026-10-19T19:22:24Z",
+      "category": "improved",
+      "title": "the playing background is drawn at most 1024 px wide; roadmap: tasks 1 to 9 of M5b done",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/42dec9e4803e4194abe57afe889efd6bc95d4615"
     }
   ],
   "releases": [],
@@ -749,7 +784,12 @@
     "18dc15bfb77b3734f1d73002cd83dff07c2db835",
     "ebfda904c2b2ae2c95b884f4f6d8c833e0640957",
     "1768fcf9865515acdf79382e73d5d072e35a614f",
-    "90c3d1761da26ef35a9208a2a09a464803c4e902"
+    "90c3d1761da26ef35a9208a2a09a464803c4e902",
+    "b6d6dd09a0a70d0090b41041475cf282f225f194",
+    "6b0f97e9a48e98e0aa685eb028508379637d67ae",
+    "fd0a6db9990a9a2715d5b604ca37baa1550d2e55",
+    "094432c11a4d7cf918fa91cbd894ac4319ea5745",
+    "42dec9e4803e4194abe57afe889efd6bc95d4615"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -985,47 +1025,47 @@
           {
             "id": "task-1",
             "title": "Animated backgrounds as a new background type (file format v4, loops without a jump)",
-            "done": false
+            "done": true
           },
           {
             "id": "task-2",
             "title": "Building blocks: gradient, orbs, aurora, waves, liquid, cells, ripples, pattern, light rays, stars and solid",
-            "done": false
+            "done": true
           },
           {
             "id": "task-3",
             "title": "Effects: warp, swirl, chromatic shift, pixelate, posterize, vignette, film grain, glow and colour grade",
-            "done": false
+            "done": true
           },
           {
             "id": "task-4",
             "title": "Fourteen animated looks in the Presentation panel, a still frame and a switch for the animation",
-            "done": false
+            "done": true
           },
           {
             "id": "task-5",
             "title": "Background Studio: layers, palette, inspector, timeline, seam check, undo and Apply / Cancel",
-            "done": false
+            "done": true
           },
           {
             "id": "task-6",
             "title": "Shader editor with your own GLSL code: settings from comments, examples, reference, Copy for AI",
-            "done": false
+            "done": true
           },
           {
             "id": "task-7",
             "title": "My shaders: save a shader once and add it to any look; custom code from other people asks first",
-            "done": false
+            "done": true
           },
           {
             "id": "task-8",
             "title": "Use this frame as a picture, and export the background as PNG, JPG or WebP",
-            "done": false
+            "done": true
           },
           {
             "id": "task-9",
             "title": "Export a loop as MP4, WebM or GIF with progress and cancel",
-            "done": false
+            "done": true
           },
           {
             "id": "task-10",
