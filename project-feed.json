@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-19T19:45:16.404Z",
+  "generatedAt": "2026-10-19T19:56:36.047Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -702,6 +702,13 @@
       "category": "fixed",
       "title": "animations wait twice as long as the last picture took, and the Studio tests start paused (CI timed out on software WebGL)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/ca987ba64c97731a17cf9b3b0da34c1c0520a224"
+    },
+    {
+      "id": "da30bc5ce9d0536e89b2e0b9173e56b33dacd68b",
+      "date": "2026-10-19T19:56:21Z",
+      "category": "fixed",
+      "title": "export yields after every frame, longer timeouts for the encoder tests, no screenshot of a moving panel",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/da30bc5ce9d0536e89b2e0b9173e56b33dacd68b"
     }
   ],
   "releases": [],
@@ -805,7 +812,8 @@
     "094432c11a4d7cf918fa91cbd894ac4319ea5745",
     "42dec9e4803e4194abe57afe889efd6bc95d4615",
     "f3eb151ea259e8c0d7f75d8595d3fc482b4abb43",
-    "ca987ba64c97731a17cf9b3b0da34c1c0520a224"
+    "ca987ba64c97731a17cf9b3b0da34c1c0520a224",
+    "da30bc5ce9d0536e89b2e0b9173e56b33dacd68b"
   ],
   "roadmap": {
     "schemaVersion": 1,
