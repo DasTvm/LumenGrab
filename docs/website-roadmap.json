@@ -232,47 +232,47 @@
         {
           "id": "task-1",
           "title": "Animated backgrounds as a new background type (file format v4, loops without a jump)",
-          "done": false
+          "done": true
         },
         {
           "id": "task-2",
           "title": "Building blocks: gradient, orbs, aurora, waves, liquid, cells, ripples, pattern, light rays, stars and solid",
-          "done": false
+          "done": true
         },
         {
           "id": "task-3",
           "title": "Effects: warp, swirl, chromatic shift, pixelate, posterize, vignette, film grain, glow and colour grade",
-          "done": false
+          "done": true
         },
         {
           "id": "task-4",
           "title": "Fourteen animated looks in the Presentation panel, a still frame and a switch for the animation",
-          "done": false
+          "done": true
         },
         {
           "id": "task-5",
           "title": "Background Studio: layers, palette, inspector, timeline, seam check, undo and Apply / Cancel",
-          "done": false
+          "done": true
         },
         {
           "id": "task-6",
           "title": "Shader editor with your own GLSL code: settings from comments, examples, reference, Copy for AI",
-          "done": false
+          "done": true
         },
         {
           "id": "task-7",
           "title": "My shaders: save a shader once and add it to any look; custom code from other people asks first",
-          "done": false
+          "done": true
         },
         {
           "id": "task-8",
           "title": "Use this frame as a picture, and export the background as PNG, JPG or WebP",
-          "done": false
+          "done": true
         },
         {
           "id": "task-9",
           "title": "Export a loop as MP4, WebM or GIF with progress and cancel",
-          "done": false
+          "done": true
         },
         {
           "id": "task-10",

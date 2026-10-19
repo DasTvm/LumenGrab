@@ -28,6 +28,8 @@ export interface CompositionInput {
   backgroundImage?: CanvasImageSource | null;
   /** The moment of a shader background to draw, in seconds. Without it the scene's still frame (docs/FORMAT.md section 4c). */
   shaderSeconds?: number;
+  /** While the background plays, the shader is drawn no bigger than this on its long side (the picture is smooth; the screen scales it up). */
+  shaderMaxEdge?: number;
   /** Every custom shader may run (the user's own looks). Without it the page's gate decides (`src/shader/trust.ts`). */
   trustCustomCode?: boolean;
 }
@@ -117,10 +119,14 @@ export function drawShaderBackground(
     trustCustomCode?: boolean;
     purpose?: string;
     measure?: boolean;
+    maxEdge?: number;
   } = {},
 ): RenderReport | null {
   const renderer = sharedRenderer(options.purpose ?? "still");
-  const k = Math.min(1, SHADER_MAX_EDGE / Math.max(width * scale, height * scale, 1));
+  const k = Math.min(
+    1,
+    (options.maxEdge ?? SHADER_MAX_EDGE) / Math.max(width * scale, height * scale, 1),
+  );
   const report =
     renderer?.render(
       scene,
@@ -234,6 +240,7 @@ function drawBackground(
     case "shader":
       drawShaderBackground(ctx, bg, width, height, scale, {
         seconds: input.shaderSeconds ?? posterSeconds(bg),
+        ...(input.shaderMaxEdge ? { maxEdge: input.shaderMaxEdge } : {}),
         ...(input.trustCustomCode === true ? { trustCustomCode: true } : {}),
       });
       break;

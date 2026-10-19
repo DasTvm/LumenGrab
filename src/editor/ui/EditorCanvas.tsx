@@ -29,6 +29,9 @@ interface Props {
   base: BaseImage;
 }
 
+/** While the background plays it is drawn at this size at most: it is smooth, and the graphics card has 30 pictures a second to make. */
+const PLAY_EDGE = 1024;
+
 const isMac = typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
 
 /**
@@ -178,6 +181,7 @@ export function EditorCanvas({ base }: Props) {
           presentation: project.presentation,
           backgroundImage: background,
           shaderSeconds: playing && clock.current ? clock.current.seconds : stillSeconds,
+          ...(playing ? { shaderMaxEdge: PLAY_EDGE } : {}),
         },
         layout,
         dpr * view.zoom,

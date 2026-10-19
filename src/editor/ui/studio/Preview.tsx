@@ -120,6 +120,7 @@ export function Preview({ base }: { base: BaseImage }) {
           content,
           presentation: { ...presentation, background: shown },
           shaderSeconds: time,
+          ...(playing ? { shaderMaxEdge: 1024 } : {}),
         },
         layout,
         scale,
@@ -130,6 +131,7 @@ export function Preview({ base }: { base: BaseImage }) {
       drawShaderBackground(ctx, shown, shape.width, shape.height, scale, {
         seconds: time,
         purpose: "studio",
+        ...(playing ? { maxEdge: 1024 } : {}),
       });
       ctx.restore();
     }
@@ -152,6 +154,7 @@ export function Preview({ base }: { base: BaseImage }) {
     scene,
     solo,
     time,
+    playing,
     screenshot,
     content,
     presentation,
