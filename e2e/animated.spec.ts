@@ -50,10 +50,6 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
     await expect(page.getByText("No animated looks of your own yet")).toBeVisible();
     await expect(page.getByText("Still frame", { exact: true })).toBeVisible();
     await expect(page.getByRole("switch", { name: "Animate in editor" })).toBeChecked();
-    await page.getByTestId("presentation-panel").screenshot({
-      path: "test-results/animated-tab.png",
-      animations: "disabled",
-    });
   });
 
   test("a look applies at once, is marked, and one undo takes it back", async ({ page }) => {

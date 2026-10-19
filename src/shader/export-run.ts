@@ -164,7 +164,7 @@ export async function makeVideo(options: {
       await video.add(frameTime(i, fps), 1 / fps);
       report(i + 1);
       // Give the page a moment, so the window does not freeze while it works.
-      if (i % 4 === 3) await new Promise((r) => setTimeout(r, 0));
+      await new Promise((r) => setTimeout(r, 0));
     }
     await output.finalize();
   } catch (error) {
@@ -206,7 +206,7 @@ export async function makeGif(options: {
       repeat: 0,
     });
     report(i + 1);
-    if (i % 2 === 1) await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
   }
   gif.finish();
   return gif.bytes();

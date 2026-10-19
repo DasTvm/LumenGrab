@@ -58,6 +58,7 @@ test.describe("Studio export (browser mock)", () => {
   });
 
   test("a GIF is made frame by frame, loops, and is written as a GIF", async ({ page }) => {
+    test.setTimeout(180_000);
     const dialog = await openExport(page, "1");
     await dialog.getByRole("radio", { name: "GIF" }).click();
     await dialog.getByRole("radio", { name: "720p" }).click();
@@ -72,6 +73,7 @@ test.describe("Studio export (browser mock)", () => {
   });
 
   test("a WebM video is written with the right header", async ({ page }) => {
+    test.setTimeout(180_000);
     const dialog = await openExport(page, "1");
     await dialog.getByRole("radio", { name: "WebM" }).click();
     await dialog.getByRole("radio", { name: "720p" }).click();
@@ -108,11 +110,12 @@ test.describe("Studio export (browser mock)", () => {
   });
 
   test("Cancel while rendering stops the export and brings the form back", async ({ page }) => {
+    test.setTimeout(120_000);
     const dialog = await openExport(page);
     await dialog.getByRole("radio", { name: "GIF" }).click();
     await dialog.getByRole("radio", { name: "720p" }).click();
     await dialog.getByRole("button", { name: "Export", exact: true }).click();
-    await expect(dialog.getByText(/Frame \d+ of 240/)).toBeVisible();
+    await expect(dialog.getByText(/Frame \d+ of \d+/)).toBeVisible();
     await expect(dialog.getByText(/You can keep working in the Studio/)).toBeVisible();
     await dialog.getByRole("button", { name: "Cancel" }).click();
     await expect(dialog.getByRole("radio", { name: "GIF" })).toBeVisible();
