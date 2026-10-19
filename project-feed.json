@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-19T19:22:38.565Z",
+  "generatedAt": "2026-10-19T19:45:16.404Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -688,6 +688,20 @@
       "category": "improved",
       "title": "the playing background is drawn at most 1024 px wide; roadmap: tasks 1 to 9 of M5b done",
       "url": "https://github.com/DasTvm/LumenGrab/commit/42dec9e4803e4194abe57afe889efd6bc95d4615"
+    },
+    {
+      "id": "f3eb151ea259e8c0d7f75d8595d3fc482b4abb43",
+      "date": "2026-10-19T19:23:44Z",
+      "category": "internal",
+      "title": "the animated default look works natively on macOS (2560x1440 in 2.5 s in a debug build)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/f3eb151ea259e8c0d7f75d8595d3fc482b4abb43"
+    },
+    {
+      "id": "ca987ba64c97731a17cf9b3b0da34c1c0520a224",
+      "date": "2026-10-19T19:45:02Z",
+      "category": "fixed",
+      "title": "animations wait twice as long as the last picture took, and the Studio tests start paused (CI timed out on software WebGL)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/ca987ba64c97731a17cf9b3b0da34c1c0520a224"
     }
   ],
   "releases": [],
@@ -789,7 +803,9 @@
     "6b0f97e9a48e98e0aa685eb028508379637d67ae",
     "fd0a6db9990a9a2715d5b604ca37baa1550d2e55",
     "094432c11a4d7cf918fa91cbd894ac4319ea5745",
-    "42dec9e4803e4194abe57afe889efd6bc95d4615"
+    "42dec9e4803e4194abe57afe889efd6bc95d4615",
+    "f3eb151ea259e8c0d7f75d8595d3fc482b4abb43",
+    "ca987ba64c97731a17cf9b3b0da34c1c0520a224"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -1070,7 +1086,7 @@
           {
             "id": "task-10",
             "title": "Animated default look for new screenshots (uses the still frame)",
-            "done": false
+            "done": true
           },
           {
             "id": "task-11",
