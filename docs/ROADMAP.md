@@ -61,7 +61,7 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] My shaders: save a shader once and add it to any look; custom code from other people asks first
   - [x] Use this frame as a picture, and export the background as PNG, JPG or WebP
   - [x] Export a loop as MP4, WebM or GIF with progress and cancel
-  - [ ] Animated default look for new screenshots (uses the still frame)
+  - [x] Animated default look for new screenshots (uses the still frame)
   - [ ] Complete native checks of animated backgrounds on macOS and Windows
 - [ ] **M6 History, pin and OCR**: History, pinned captures, copy text, QR, all-in-one mode.
   - Status: planned.

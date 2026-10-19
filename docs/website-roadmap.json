@@ -277,7 +277,7 @@
         {
           "id": "task-10",
           "title": "Animated default look for new screenshots (uses the still frame)",
-          "done": false
+          "done": true
         },
         {
           "id": "task-11",
