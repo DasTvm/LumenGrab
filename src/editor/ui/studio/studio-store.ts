@@ -81,7 +81,7 @@ export const isDirty = (state: Pick<StudioState, "scene" | "base">): boolean =>
 
 export function createStudioStore(
   scene: ShaderScene,
-  options: { name?: string; playing?: boolean } = {},
+  options: { name?: string; playing?: boolean; time?: number } = {},
 ): StudioStoreApi {
   return createStore<StudioStore>()((set, get) => {
     const push = (next: ShaderScene) => {
@@ -99,7 +99,7 @@ export function createStudioStore(
       selected: scene.layers.at(-1)?.id ?? null,
       solo: null,
       playing: options.playing ?? true,
-      time: scene.poster,
+      time: options.time ?? scene.poster,
       speed: 1,
       seam: false,
       screenshot: true,

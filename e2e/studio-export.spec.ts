@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
-test.use({ viewport: { width: 1440, height: 900 } });
+// The preview plays by itself; with Reduce Motion it starts paused (software WebGL is slow, and these tests are not about playing).
+test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
 
 const openExport = async (page: Page, loop?: string) => {
   await page.goto("/?window=document&label=doc-1&scenario=stack");
@@ -10,7 +11,6 @@ const openExport = async (page: Page, loop?: string) => {
   await page.getByRole("radio", { name: "Animated", exact: true }).click();
   await page.getByRole("button", { name: "Open Background Studio" }).click();
   const studio = page.getByRole("dialog", { name: "Background Studio" });
-  await studio.getByRole("button", { name: "Pause" }).click();
   if (loop) {
     const field = studio.getByRole("textbox", { name: "Loop length" });
     await field.fill(loop);
@@ -127,7 +127,6 @@ test.describe("Studio export (browser mock)", () => {
     await page.getByRole("radio", { name: "Animated", exact: true }).click();
     await page.getByRole("button", { name: "Open Background Studio" }).click();
     const studio = page.getByRole("dialog", { name: "Background Studio" });
-    await studio.getByRole("button", { name: "Pause" }).click();
     await studio.getByRole("button", { name: "Export" }).click();
     const dialog = page.getByRole("dialog", { name: "Export" });
     await dialog.getByRole("radio", { name: "Picture" }).click();

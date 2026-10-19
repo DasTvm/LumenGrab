@@ -21,6 +21,7 @@ import { computeLayout } from "@/presentation/compose";
 import { drawComposition, ensureFrameFonts } from "@/presentation/draw-presentation";
 import { useBackgroundBitmap } from "./background-image";
 import { renderPicture } from "./picture";
+import { minFrameGap, recordPaint } from "@/shader/pace";
 import { posterSeconds, sceneMoves } from "@/shader/scene";
 import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import { SafeAreaOverlay } from "./SafeAreaOverlay";
@@ -251,12 +252,13 @@ export function EditorCanvas({ base }: Props) {
     let last = 0;
     const tick = (now: number) => {
       frame = requestAnimationFrame(tick);
-      if (now - last < 33) return;
+      if (now - last < minFrameGap()) return;
       last = now;
       const state = clock.current;
       if (!state) return;
       state.seconds = (state.from + (now - state.at) / 1000) % loop;
       paint();
+      recordPaint(performance.now() - now);
     };
     frame = requestAnimationFrame(tick);
     return () => {

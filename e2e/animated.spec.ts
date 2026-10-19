@@ -171,6 +171,7 @@ test.describe("an animated default look (browser mock)", () => {
   test("a star makes an animated look the default, and Settings shows it and edits it in the Studio", async ({
     page,
   }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
     await toAnimated(page);
     const region = page.getByRole("region", { name: "Background" });
@@ -187,7 +188,6 @@ test.describe("an animated default look (browser mock)", () => {
     await page.getByRole("button", { name: "Edit look" }).click();
     const studio = page.getByRole("dialog", { name: "Background Studio" });
     await expect(studio).toBeVisible();
-    await studio.getByRole("button", { name: "Pause" }).click();
     await studio.getByRole("button", { name: "Add", exact: true }).click();
     await page.getByRole("menuitem", { name: "Vignette" }).click();
     await studio.getByRole("button", { name: "Apply" }).click();

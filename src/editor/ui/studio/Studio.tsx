@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Dices, Download, Pencil, Snowflake, Bookmark } from "
 import { Button } from "@/ui/components/button";
 import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
 import { randomize, sceneProblem } from "@/shader/edit";
+import { minFrameGap } from "@/shader/pace";
 import { ANIMATED_LOOKS, TEMPLATES } from "@/shader/scenes";
 import type { ShaderLayer as ShaderLayerLike } from "@/shader/types";
 import type { BaseImage } from "../base-image";
@@ -57,7 +58,7 @@ function useTransport(): void {
       } else {
         t = (state.time + dt * state.speed) % loop;
       }
-      if (now - shown < 33) return;
+      if (now - shown < minFrameGap()) return;
       shown = now;
       state.setTime(t);
     };
@@ -538,7 +539,11 @@ export function StudioHost({ base }: { base: BaseImage }) {
     const known = ANIMATED_LOOKS.find(
       (l) => JSON.stringify({ ...l.make(), poster: 0 }) === JSON.stringify({ ...scene, poster: 0 }),
     );
-    return createStudioStore(scene, { name: known?.name ?? "New look", playing: !reduced });
+    return createStudioStore(scene, {
+      name: known?.name ?? "New look",
+      playing: !reduced,
+      ...(reduced ? { time: 0 } : {}),
+    });
     // The Studio starts from what the document has when it opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

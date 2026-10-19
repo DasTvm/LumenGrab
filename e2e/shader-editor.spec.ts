@@ -1,7 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { Presentation } from "../src/document/schema";
 
-test.use({ viewport: { width: 1440, height: 900 } });
+// The preview plays by itself; with Reduce Motion it starts paused (software WebGL is slow, and these tests are not about playing).
+test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
 
 const openStudio = async (page: Page, scenario = "stack") => {
   await page.goto(`/?window=document&label=doc-1&scenario=${scenario}`);
@@ -12,7 +13,6 @@ const openStudio = async (page: Page, scenario = "stack") => {
   await page.getByRole("button", { name: "Open Background Studio" }).click();
   const studio = page.getByRole("dialog", { name: "Background Studio" });
   await expect(studio).toBeVisible();
-  await studio.getByRole("button", { name: "Pause" }).click();
   return studio;
 };
 const doc = (page: Page) =>

@@ -8,6 +8,7 @@ import {
   ensureFrameFonts,
 } from "@/presentation/draw-presentation";
 import { patchLayer } from "@/shader/edit";
+import { recordPaint } from "@/shader/pace";
 import { sharedRenderer, webglAvailable } from "@/shader/renderer";
 import type { ShaderScene } from "@/shader/types";
 import type { BaseImage } from "../base-image";
@@ -93,6 +94,7 @@ export function Preview({ base }: { base: BaseImage }) {
   const cssH = Math.max(1, Math.round(shape.height * factor));
 
   const paint = useCallback(() => {
+    const started = performance.now();
     const el = canvas.current;
     if (!el || size.width === 0) return;
     const dpr = window.devicePixelRatio || 1;
@@ -146,6 +148,7 @@ export function Preview({ base }: { base: BaseImage }) {
         store.getState().setNotice("A shader was switched off because it slowed the preview down.");
       }
     }
+    recordPaint(performance.now() - started);
   }, [
     size.width,
     cssW,
