@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-20T19:04:56.207Z",
+  "generatedAt": "2026-10-20T19:23:22.218Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -737,6 +737,13 @@
       "category": "new",
       "title": "a simpler way to write your own shader (design: Shader flow)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/97d68f29cb39b1f2a494487fd7f6a7ffc5035592"
+    },
+    {
+      "id": "d7b589375e173fad659af79d7a51244d10f1feaa",
+      "date": "2026-10-20T19:23:04Z",
+      "category": "internal",
+      "title": "pin every workflow action to a commit, weekly dependency audit, SECURITY.md; remove the kickoff prompt and the finished capture spike from the public repo",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/d7b589375e173fad659af79d7a51244d10f1feaa"
     }
   ],
   "releases": [],
@@ -845,7 +852,8 @@
     "7d4f6c29a83ce7f6660728dd88cd2b8e50fa92a0",
     "9f3bf0953ac04ba6cc65a13dba02df2df7ad1005",
     "7fd225d6de0a647bdf821772db05c2eeefd27e0a",
-    "97d68f29cb39b1f2a494487fd7f6a7ffc5035592"
+    "97d68f29cb39b1f2a494487fd7f6a7ffc5035592",
+    "d7b589375e173fad659af79d7a51244d10f1feaa"
   ],
   "roadmap": {
     "schemaVersion": 1,
