@@ -55,13 +55,15 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Animated backgrounds as a new background type (file format v4, loops without a jump)
   - [x] Building blocks: gradient, orbs, aurora, waves, liquid, cells, ripples, pattern, light rays, stars and solid
   - [x] Effects: warp, swirl, chromatic shift, pixelate, posterize, vignette, film grain, glow and colour grade
-  - [x] Fourteen animated looks in the Presentation panel, a still frame and a switch for the animation
+  - [x] Twelve animated looks in the Presentation panel, a still frame and a switch for the animation
   - [x] Background Studio: layers, palette, inspector, timeline, seam check, undo and Apply / Cancel
   - [x] Shader editor with your own GLSL code: settings from comments, examples, reference, Copy for AI
   - [x] My shaders: save a shader once and add it to any look; custom code from other people asks first
   - [x] Use this frame as a picture, and export the background as PNG, JPG or WebP
   - [x] Export a loop as MP4, WebM or GIF with progress and cancel
   - [x] Animated default look for new screenshots (uses the still frame)
+  - [x] Calmer, softer animated looks that you can tune (speed, colours, key sliders) without the Studio
+  - [x] A simpler way to write your own shader: New shader in one click, saved by itself, one Done button, Your shaders with a menu
   - [ ] Complete native checks of animated backgrounds on macOS and Windows
 - [ ] **M6 History, pin and OCR**: History, pinned captures, copy text, QR, all-in-one mode.
   - Status: planned.

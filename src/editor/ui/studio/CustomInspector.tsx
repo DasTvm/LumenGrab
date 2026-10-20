@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Code, Lock, Save, TriangleAlert, CircleCheck } from "lucide-react";
+import { Code, Lock, TriangleAlert, CircleCheck } from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { cn } from "@/ui/lib/utils";
 import { patchLayer, setParam } from "@/shader/edit";
@@ -252,16 +252,6 @@ export function CustomInspector({ layer }: { layer: ShaderLayer }) {
           <div className="flex flex-col gap-2">
             <Button variant="outline" className="h-9 gap-1.5 text-[13px]" onClick={open}>
               <Code aria-hidden className="size-3.5" /> Edit in shader editor
-            </Button>
-            <Button
-              variant="outline"
-              className="h-9 gap-1.5 text-[13px]"
-              disabled={!allowed}
-              onClick={() => {
-                store.getState().setDialog("save-shader", layer.id);
-              }}
-            >
-              <Save aria-hidden className="size-3.5" /> Save to My shaders
             </Button>
           </div>
         </>

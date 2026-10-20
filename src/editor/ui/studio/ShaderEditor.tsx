@@ -5,53 +5,45 @@ import {
   Check,
   CircleAlert,
   CircleCheck,
-  Code,
+  CircleQuestionMark,
+  Copy,
   FileCode2,
   Lock,
   Pause,
   Play,
   Plus,
   Redo2,
-  Search,
+  Scale,
   ShieldAlert,
   SlidersHorizontal,
-  Sparkles,
   Undo2,
   WandSparkles,
-  AlignLeft,
-  ChevronDown,
   X,
-  Copy,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/ui/components/button";
-import { Switch } from "@/ui/components/switch";
 import { cn } from "@/ui/lib/utils";
-import { computeLayout } from "@/presentation/compose";
-import { drawComposition, drawShaderBackground } from "@/presentation/draw-presentation";
-import { addCustom, setCustom } from "@/shader/edit";
+import { drawShaderBackground } from "@/presentation/draw-presentation";
+import { setCustom } from "@/shader/edit";
+import { addSetting, uniqueName } from "@/shader/code-edit";
 import {
   aiBrief,
   checkCustomCode,
   customValues,
+  detectRole,
   EXAMPLES,
   parsePragmas,
   type Example,
 } from "@/shader/custom";
 import { sharedRenderer } from "@/shader/renderer";
-import type { LayerRole, ShaderLayer, ShaderParamValue, ShaderScene } from "@/shader/types";
-import type { BaseImage } from "../base-image";
-import { useEditor, useStores, useUi } from "../context";
-import { renderPicture } from "../picture";
+import { shadersStore, useShaders } from "@/shader/shader-instance";
+import type { ShaderLayer, ShaderParamValue, ShaderScene } from "@/shader/types";
+import { useStores, useUi } from "../context";
 import { CodeEditor, type CodeEditorHandle } from "./CodeEditor";
 import { useStudio, useStudioStore } from "./context";
-import { DiscardDialog } from "./dialogs";
-import { MenuItem, MenuLabel, Popover } from "./parts";
-import { ReferencePanel } from "./ReferencePanel";
+import { MenuLabel, Popover } from "./parts";
 import { SettingControl } from "./SettingControl";
-import { SettingsBuilder } from "./SettingsBuilder";
 import type { ShaderEditorTarget } from "./studio-store";
-
-type Tab = "code" | "settings" | "reference";
 
 type Status =
   | { state: "idle" }
@@ -59,16 +51,9 @@ type Status =
   | { state: "error"; line: number | null; message: string }
   | { state: "too-long"; message: string };
 
-const SNIPPETS: { label: string; text: string }[] = [
-  { label: "Loop-safe wave", text: "sin(u_phase * 6.28318 * 2.0 + uv.x * 6.0)" },
-  { label: "Palette mix", text: "mix(u_palette[0], u_palette[1], uv.y)" },
-  {
-    label: "Centred coordinates",
-    text: "(gl_FragCoord.xy - 0.5 * u_resolution) / min(u_resolution.x, u_resolution.y)",
-  },
-  { label: "Soft circle", text: "smoothstep(0.5, 0.45, length(uv - 0.5))" },
-  { label: "Rotate a point", text: "rot(u_phase * 6.28318) * (uv - 0.5)" },
-];
+/** How long after the last key the shader is checked, put in the layer and kept in Your shaders. */
+const COMMIT_MS = 400;
+const KEEP_MS = 700;
 
 function ToolButton({
   label,
@@ -77,7 +62,7 @@ function ToolButton({
   onClick,
 }: {
   label: string;
-  icon: typeof Code;
+  icon: typeof Undo2;
   off: boolean;
   onClick: () => void;
 }) {
@@ -94,8 +79,6 @@ function ToolButton({
     </button>
   );
 }
-
-const kb = (n: number) => `${(n / 1024).toFixed(1)} KB`;
 
 /** The little round gradient of an example. */
 function Chip({ example }: { example: Example }) {
@@ -116,64 +99,161 @@ function Chip({ example }: { example: Example }) {
   );
 }
 
+/** What a shader can use, on one page (design: Shader flow / 4): the inputs, the helpers, the settings, and a brief for an AI. */
+function Help({
+  effect,
+  paletteSize,
+  brief,
+  onCopy,
+  onClose,
+}: {
+  effect: boolean;
+  paletteSize: number;
+  brief: string;
+  onCopy: (text: string) => void;
+  onClose: () => void;
+}) {
+  const root = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const away = (e: PointerEvent) => {
+      const parent = root.current?.parentElement;
+      if (parent && !parent.contains(e.target as Node)) onClose();
+    };
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("pointerdown", away, true);
+    window.addEventListener("keydown", key, true);
+    return () => {
+      window.removeEventListener("pointerdown", away, true);
+      window.removeEventListener("keydown", key, true);
+    };
+  }, [onClose]);
+  const row = (name: string, meaning: string) => (
+    <div key={name} className="grid grid-cols-[130px_1fr] gap-3">
+      <dt className="font-mono">{name}</dt>
+      <dd className="text-muted-foreground">{meaning}</dd>
+    </div>
+  );
+  return (
+    <div
+      ref={root}
+      role="dialog"
+      aria-label="Help for shaders"
+      className="absolute top-full right-0 z-40 mt-1 flex max-h-[640px] w-[380px] flex-col gap-3 overflow-y-auto rounded-lg border border-border bg-card p-4 text-[13px] shadow-[0_8px_24px_rgb(0_0_0/0.18)]"
+    >
+      <div className="flex items-center">
+        <h2 className="flex-1 text-sm font-semibold">What you can use</h2>
+        <button
+          type="button"
+          aria-label="Close help"
+          className="flex size-7 items-center justify-center rounded-md hover:bg-muted"
+          onClick={onClose}
+        >
+          <X aria-hidden className="size-4" />
+        </button>
+      </div>
+      <section aria-label="Inputs" className="flex flex-col gap-1.5">
+        <h3 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          Inputs
+        </h3>
+        <dl className="flex flex-col gap-1 text-xs">
+          {effect ? row("u_input", "sampler2D · the layers below") : null}
+          {row("u_resolution", "vec2 · size in pixels")}
+          {row("u_phase", "float · 0 to 1 over the loop")}
+          {row("u_seed", "float · from the Seed field")}
+          {effect
+            ? null
+            : row("u_palette[8]", `vec3 · ${String(paletteSize)} colours of the Studio`)}
+        </dl>
+      </section>
+      <section aria-label="Helpers" className="flex flex-col gap-1.5">
+        <h3 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          Helpers
+        </h3>
+        <dl className="flex flex-col gap-1 text-xs">
+          {row("noise(vec2)", "smooth value noise")}
+          {row("fbm(vec2)", "layered noise")}
+          {row("hsv2rgb(vec3)", "colour conversion")}
+          {row("rot(float)", "2 × 2 rotation")}
+        </dl>
+      </section>
+      <section aria-label="Settings" className="flex flex-col gap-1.5">
+        <h3 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          Settings
+        </h3>
+        <dl className="flex flex-col gap-1 text-xs">
+          {row("// @param float a = 1.0 [0, 4]", "slider")}
+          {row("// @param color c = #C8FF2E", "colour field")}
+          {row("// @param bool b = true", "switch")}
+        </dl>
+      </section>
+      <section aria-label="Ask an AI" className="flex flex-col gap-2">
+        <h3 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          Ask an AI
+        </h3>
+        <p>
+          Copy a ready-made prompt, paste it into any chat assistant, then paste its answer into the
+          editor. LumenGrab has no AI of its own and sends nothing anywhere.
+        </p>
+        <Button
+          variant="outline"
+          className="h-8 w-fit gap-1.5 text-[13px]"
+          onClick={() => {
+            onCopy(brief);
+          }}
+        >
+          <Copy aria-hidden className="size-3.5" /> Copy prompt for an AI
+        </Button>
+      </section>
+      <p className="flex gap-2 rounded-md bg-muted p-2.5 text-xs text-muted-foreground">
+        <Scale aria-hidden className="mt-0.5 size-3.5 shrink-0" />
+        Shaders from other people: check the licence first. Code from Shadertoy and similar sites is
+        often not free to reuse. Use your own code, or code under MIT, CC0 or a similar licence.
+      </p>
+    </div>
+  );
+}
+
 /**
- * The shader editor (design: Studio / Shader editor): your own GLSL, checked as you type, with a live
- * preview, the settings your @param lines make, examples, a reference and a brief to copy for an AI. It
- * works on a draft; Apply puts the layer in the stack, Cancel drops the draft.
+ * The shader editor (design: Shader flow / 2): your own GLSL, checked as you type, with a live preview and the
+ * settings your @param lines make. There is nothing to save or apply: every change goes into the layer, and a shader
+ * that works is kept in Your shaders by itself. Done only closes it.
  */
 export function ShaderEditor({
   target,
-  base,
   onClose,
 }: {
   target: ShaderEditorTarget;
-  base: BaseImage;
   onClose: () => void;
 }) {
   const store = useStudioStore();
   const { session, ui } = useStores();
-  const project = useEditor((s) => s.project);
   const studioScene = useStudio((s) => s.scene);
   const heavy = useStudio((s) => s.heavy);
-  const existing: ShaderLayer | undefined =
-    target.kind === "layer" ? studioScene.layers.find((l) => l.id === target.id) : undefined;
+  const mine = useShaders((s) => s.shaders);
+  const existing: ShaderLayer | undefined = studioScene.layers.find((l) => l.id === target.id);
 
-  const initial = useMemo(() => {
-    if (target.kind === "new") {
-      return {
-        name: target.name,
-        role: target.role,
-        code: target.code,
-        values: {},
-      };
-    }
-    return {
-      name: existing?.name ?? "Shader",
-      role: existing?.role ?? "generator",
+  // What the layer is when the editor opens; the draft is compared with it to know that something changed.
+  const initial = useMemo(
+    () => ({
+      name: existing?.name ?? "Untitled shader",
       code: existing?.code ?? "",
       values: { ...(existing?.params ?? {}) },
-    };
+    }),
     // The draft starts from the layer as it is when the editor opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    [],
+  );
   const [name, setName] = useState(initial.name);
-  const [role, setRole] = useState<LayerRole>(initial.role);
   const [code, setCode] = useState(initial.code);
   const [values, setValues] = useState(initial.values);
-  const [tab, setTab] = useState<Tab>("code");
-  const [view, setView] = useState<"background" | "screenshot" | "result" | "input">(
-    initial.role === "effect" ? "result" : "background",
-  );
-  const [live, setLive] = useState(true);
   const [status, setStatus] = useState<Status>({ state: "idle" });
-  const [cursor, setCursor] = useState({ line: 1, column: 1 });
-  const [aiOpen, setAiOpen] = useState(false);
-  const [aiCode, setAiCode] = useState(true);
-  const [aiExample, setAiExample] = useState(true);
-  const [copied, setCopied] = useState(false);
-  const [menu, setMenu] = useState<"examples" | "insert" | null>(null);
-  const [find, setFind] = useState<string | null>(null);
-  const [discard, setDiscard] = useState(false);
+  const [menu, setMenu] = useState<"examples" | "help" | null>(null);
   const [time, setTime] = useState(studioScene.poster);
   const [playing, setPlaying] = useState(true);
   const [hist, setHist] = useState({ undo: false, redo: false });
@@ -182,21 +262,37 @@ export function ShaderEditor({
   const lastMs = useRef(0);
   const frames = useRef(0);
 
+  // The saved shader this layer is, when it is one: the same name and the same code as when the editor opened.
+  const [linkedId, setLinkedId] = useState<string | null>(
+    () =>
+      mine.find(
+        (m) => m.name.toLowerCase() === initial.name.toLowerCase() && m.code === initial.code,
+      )?.id ?? null,
+  );
+  const kept = linkedId !== null;
+
   // Code from a file that came from outside is read-only and does not run until the user allows it.
   const layerLike = { ...(existing ?? {}), code } as ShaderLayer;
   const documentAllowed = useUi((s) => s.codeAllowed);
-  const allowed = target.kind === "new" || documentAllowed || session.canRun(layerLike);
+  // The gate can change under the editor (the user allows the code, or code of their own is noted).
+  useUi((s) => s.codeVersion);
+  const allowed = documentAllowed || session.canRun(layerLike);
   const switchedOff = existing !== undefined && heavy.includes(existing.id);
 
+  const role = detectRole(code);
   const params = useMemo(() => parsePragmas(code), [code]);
   const specs = params.params.map((p) => p.spec);
   const resolved = useMemo(() => customValues(specs, values), [specs, values]);
+  const signature = JSON.stringify([name, code, values]);
+  const initialSignature = target.fresh
+    ? ""
+    : JSON.stringify([initial.name, initial.code, initial.values]);
+  const changed = signature !== initialSignature;
 
-  // Compile as you type (or when asked), and say what happened.
-  const [runTick, setRunTick] = useState(0);
+  // Check the code as it is written, and say what happened.
   useEffect(() => {
     if (!allowed) return;
-    const run = () => {
+    const timer = setTimeout(() => {
       const check = checkCustomCode(code);
       if (!check.ok && check.kind === "too-long") {
         setStatus({ state: "too-long", message: check.message });
@@ -224,17 +320,71 @@ export function ShaderEditor({
       } else {
         setStatus({ state: "error", line: result.line, message: result.message });
       }
-    };
-    if (!live && runTick === 0) {
-      run();
-      return;
-    }
-    if (!live) return;
-    const timer = setTimeout(run, 250);
+    }, 250);
     return () => {
       clearTimeout(timer);
     };
-  }, [code, live, runTick, allowed]);
+  }, [code, allowed]);
+
+  /** Puts the draft in the layer (one undo step of the Studio), so the stack, the background and the document follow. */
+  const commit = () => {
+    if (!existing || !allowed) return;
+    const own = { ...values, ...resolved } as ShaderLayer["params"];
+    session.noteOwnCode(code);
+    store.getState().change((s) =>
+      setCustom(s, existing.id, {
+        name: name.trim() === "" ? "Untitled shader" : name.trim(),
+        role,
+        code,
+        params: own,
+      }),
+    );
+  };
+
+  /** Keeps the shader in Your shaders (a new one, or the change of the one this already is). */
+  const keep = async () => {
+    const own = { ...values, ...resolved } as Record<string, number | boolean | string>;
+    const saved = await shadersStore.getState().keepShader(
+      {
+        name: name.trim() === "" ? "Untitled shader" : name.trim(),
+        role,
+        code,
+        values: own,
+      },
+      linkedId ?? undefined,
+    );
+    setLinkedId(saved.id);
+  };
+  const compiled = status.state === "compiled";
+
+  useEffect(() => {
+    if (!changed) return;
+    const timer = setTimeout(commit, COMMIT_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+    // The draft is what `signature` says: the timer is set again when it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature, changed]);
+  useEffect(() => {
+    if (!changed || !compiled || !allowed) return;
+    const timer = setTimeout(() => {
+      void keep();
+    }, KEEP_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+    // The draft is what `signature` says: the timer is set again when it changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signature, changed, compiled, allowed]);
+
+  const done = () => {
+    if (changed) {
+      commit();
+      if (compiled && allowed) void keep();
+    }
+    onClose();
+  };
 
   // The playhead of the little preview.
   useEffect(() => {
@@ -257,7 +407,7 @@ export function ShaderEditor({
     };
   }, [playing, studioScene.loop]);
 
-  // What the preview shows: this layer alone, or on what is below it.
+  // What the preview shows: this layer alone, or on what is below it (an effect).
   const draft: ShaderLayer = useMemo(
     () => ({
       id: "draft",
@@ -278,25 +428,16 @@ export function ShaderEditor({
     if (existing) return studioScene.layers.slice(0, studioScene.layers.indexOf(existing));
     return studioScene.layers;
   }, [role, existing, studioScene.layers]);
-  const previewScene = useMemo((): ShaderScene => {
-    const layers = view === "input" ? below : [...below, draft];
-    return { ...studioScene, layers };
-  }, [studioScene, below, draft, view]);
-
-  const picture = useMemo(
-    () => project.crop ?? { x: 0, y: 0, width: base.width, height: base.height },
-    [project.crop, base.width, base.height],
-  );
-  const content = useMemo(
-    () => renderPicture(base, project.layers, project.crop),
-    [base, project.layers, project.crop],
+  const previewScene = useMemo(
+    (): ShaderScene => ({ ...studioScene, layers: [...below, draft] }),
+    [studioScene, below, draft],
   );
 
   const draw = useCallback(() => {
     const el = preview.current;
     if (!el || !allowed) return;
     const dpr = window.devicePixelRatio || 1;
-    const w = Math.round(408 * dpr);
+    const w = Math.round(388 * dpr);
     const h = Math.round(230 * dpr);
     if (el.width !== w || el.height !== h) {
       el.width = w;
@@ -307,102 +448,32 @@ export function ShaderEditor({
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, w, h);
     frames.current += 1;
-    const trusted = true;
-    if (view === "screenshot") {
-      const presentation = { ...project.presentation, enabled: true, background: previewScene };
-      const layout = computeLayout(picture, presentation);
-      const scale = Math.min(w / layout.canvas.width, h / layout.canvas.height);
-      ctx.translate((w - layout.canvas.width * scale) / 2, (h - layout.canvas.height * scale) / 2);
-      drawComposition(
-        ctx,
-        { content, presentation, shaderSeconds: time, trustCustomCode: trusted },
-        layout,
-        scale,
-      );
-    } else {
-      const measure = frames.current % 20 === 0;
-      const report = drawShaderBackground(ctx, previewScene, w, h, 1, {
-        seconds: time,
-        trustCustomCode: trusted,
-        purpose: "shader-editor",
-        ...(measure ? { measure: true } : {}),
-      });
-      if (report && existing && report.heavy.includes("draft")) {
-        store.getState().change((s) => ({
-          ...s,
-          layers: s.layers.map((l) => (l.id === existing.id ? { ...l, enabled: false } : l)),
-        }));
-        store.getState().markHeavy(existing.id);
-      }
+    const measure = frames.current % 20 === 0;
+    const report = drawShaderBackground(ctx, previewScene, w, h, 1, {
+      seconds: time,
+      trustCustomCode: true,
+      purpose: "shader-editor",
+      ...(measure ? { measure: true } : {}),
+    });
+    if (report && existing && report.heavy.includes("draft")) {
+      store.getState().change((s) => ({
+        ...s,
+        layers: s.layers.map((l) => (l.id === existing.id ? { ...l, enabled: false } : l)),
+      }));
+      store.getState().markHeavy(existing.id);
     }
-  }, [allowed, view, previewScene, project.presentation, picture, content, time, existing, store]);
+  }, [allowed, previewScene, time, existing, store]);
   useEffect(() => {
     draw();
   }, [draw]);
 
-  const doUndo = () => {
-    editorRef.current?.undo();
-  };
-  const doRedo = () => {
-    editorRef.current?.redo();
-  };
-  const doTidy = () => {
-    editorRef.current?.tidy();
-  };
-  const toggleFind = () => {
-    setFind((f) => (f === null ? "" : null));
-  };
-
-  const dirty =
-    name !== initial.name ||
-    role !== initial.role ||
-    code !== initial.code ||
-    JSON.stringify(values) !== JSON.stringify(initial.values);
-  const compiledOk = status.state === "compiled";
-  const canApply = allowed && compiledOk && !switchedOff && name.trim() !== "";
-
-  const apply = () => {
-    if (!canApply) return;
-    const params = { ...values, ...resolved } as ShaderLayer["params"];
-    if (target.kind === "new") {
-      const made = addCustom(store.getState().scene, role, name.trim(), code, params);
-      if (!made) {
-        store.getState().setNotice("The stack is full. Remove a layer first.");
-        onClose();
-        return;
-      }
-      session.noteOwnCode(code);
-      store.getState().change(() => made.scene);
-      store.getState().select(made.id);
-    } else if (existing) {
-      session.noteOwnCode(code);
-      store
-        .getState()
-        .change((s) => setCustom(s, existing.id, { name: name.trim(), role, code, params }));
-    }
-    onClose();
-  };
-  const cancel = () => {
-    if (dirty) setDiscard(true);
-    else onClose();
-  };
-
-  // Keys of the editor: Esc leaves it, the Studio's own keys stay out of it.
+  // Keys of the editor: Esc is Done (unless a menu is open), the Studio's own keys stay out of it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (discard) return;
-      if (e.key === "Escape" && menu === null && !aiOpen && find === null) {
+      if (e.key === "Escape" && menu === null) {
         e.preventDefault();
         e.stopPropagation();
-        cancel();
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        setRunTick((n) => n + 1);
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") {
-        e.preventDefault();
-        setFind((f) => f ?? "");
+        done();
       }
     };
     window.addEventListener("keydown", onKey, true);
@@ -414,26 +485,21 @@ export function ShaderEditor({
   const loadExample = (example: Example) => {
     setMenu(null);
     setCode(example.code);
-    setRole(example.role);
-    setView(example.role === "effect" ? "result" : "background");
-    if (name === "Untitled shader" || EXAMPLES.some((e) => e.name === name)) setName(example.name);
     setValues({});
-    setTab("code");
+    if (name === "Untitled shader" || EXAMPLES.some((e) => e.name === name)) setName(example.name);
   };
 
   const copy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      return true;
+      ui.getState().pushToast({ icon: "saved", text: "Prompt copied. Paste it into your AI." });
     } catch {
-      return false;
+      ui.getState().pushToast({ icon: "default", text: "The prompt could not be copied." });
     }
   };
   const brief = aiBrief({
-    ...(aiCode ? { code } : {}),
-    ...(aiExample
-      ? { example: (EXAMPLES.find((e) => e.role === role) ?? EXAMPLES[0])?.code ?? "" }
-      : {}),
+    code,
+    example: (EXAMPLES.find((e) => e.role === role) ?? EXAMPLES[0])?.code ?? "",
   });
 
   const errorLine = status.state === "error" ? status.line : null;
@@ -446,9 +512,17 @@ export function ShaderEditor({
           dot: "bg-muted-foreground",
         }
       : status.state === "compiled"
-        ? { label: "Compiled", tone: "bg-[#e7f7ec] text-[#1a7f45]", dot: "bg-[#1a9b54]" }
+        ? {
+            label: kept ? "Saved · works" : "Works",
+            tone: "bg-[#e7f7ec] text-[#1a7f45]",
+            dot: "bg-[#1a9b54]",
+          }
         : status.state === "error"
-          ? { label: "Error", tone: "bg-[#fdeaea] text-[#b42318]", dot: "bg-[#d92d20]" }
+          ? {
+              label: kept ? "Saved · has a mistake" : "Has a mistake",
+              tone: "bg-[#fdeaea] text-[#b42318]",
+              dot: "bg-[#d92d20]",
+            }
           : status.state === "too-long"
             ? { label: "Too long", tone: "bg-[#fdeaea] text-[#b42318]", dot: "bg-[#d92d20]" }
             : {
@@ -456,27 +530,6 @@ export function ShaderEditor({
                 tone: "bg-muted text-muted-foreground",
                 dot: "bg-muted-foreground",
               };
-
-  const tabs: { id: Tab; label: string; icon: typeof Code }[] = [
-    { id: "code", label: "fragment.glsl", icon: FileCode2 },
-    { id: "settings", label: "Settings", icon: SlidersHorizontal },
-    { id: "reference", label: "Reference", icon: BookOpen },
-  ];
-
-  const inputsList =
-    role === "effect"
-      ? [
-          ["u_input", "the layers below, as a picture"],
-          ["u_phase", "0 to 1, repeats every loop"],
-          ["u_resolution", "size of the background in pixels"],
-          ["u_seed", "from the Seed field"],
-        ]
-      : [
-          ["u_palette", `${String(studioScene.palette.length)} colours from the Studio palette`],
-          ["u_phase", "0 to 1, repeats every loop"],
-          ["u_resolution", "size of the background in pixels"],
-          ["u_seed", "from the Seed field"],
-        ];
 
   return (
     <div
@@ -489,15 +542,13 @@ export function ShaderEditor({
       <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
         <button
           type="button"
-          aria-label="Back to the Studio"
+          aria-label="Back"
           className="flex size-8 items-center justify-center rounded-md hover:bg-muted"
-          onClick={cancel}
+          onClick={done}
         >
           <ArrowLeft aria-hidden className="size-4" />
         </button>
-        <h1 className="text-sm font-semibold">Shader editor</h1>
-        <span className="h-5 w-px bg-border" aria-hidden />
-        <label className="flex h-9 w-[180px] items-center gap-2 rounded-lg bg-muted px-3 text-[13px] focus-within:ring-2 focus-within:ring-ring">
+        <label className="flex h-9 w-[220px] items-center gap-2 rounded-lg bg-muted px-3 text-[13px] focus-within:ring-2 focus-within:ring-ring">
           <WandSparkles aria-hidden className="size-3.5 text-muted-foreground" />
           <input
             aria-label="Shader name"
@@ -512,38 +563,6 @@ export function ShaderEditor({
             }}
           />
         </label>
-        <div
-          role="radiogroup"
-          aria-label="Kind of shader"
-          className="flex gap-0.5 rounded-lg bg-muted p-0.5"
-        >
-          {(
-            [
-              ["generator", "Generator", Sparkles],
-              ["effect", "Effect", WandSparkles],
-            ] as const
-          ).map(([id, label, Icon]) => (
-            <button
-              key={id}
-              type="button"
-              role="radio"
-              aria-checked={role === id}
-              disabled={!allowed}
-              className={cn(
-                "flex h-8 items-center gap-1.5 rounded-md px-3 text-[13px]",
-                role === id
-                  ? "bg-background font-medium shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => {
-                setRole(id);
-                setView(id === "effect" ? "result" : "background");
-              }}
-            >
-              <Icon aria-hidden className="size-3.5" /> {label}
-            </button>
-          ))}
-        </div>
         <span className="flex-1" />
         <span
           role="status"
@@ -615,138 +634,87 @@ export function ShaderEditor({
             </div>
           </Popover>
         </div>
-        <Button
-          variant="outline"
-          className="h-9 gap-1.5 text-[13px]"
-          onClick={() => {
-            setAiOpen(true);
-          }}
-        >
-          <Sparkles aria-hidden className="size-3.5" /> Copy for AI
-        </Button>
-        <Button variant="outline" className="h-9 text-[13px]" onClick={cancel}>
-          Cancel
-        </Button>
+        <div className="relative">
+          <Button
+            variant="outline"
+            className="h-9 gap-1.5 text-[13px]"
+            aria-haspopup="dialog"
+            aria-expanded={menu === "help"}
+            onClick={() => {
+              setMenu(menu === "help" ? null : "help");
+            }}
+          >
+            <CircleQuestionMark aria-hidden className="size-3.5" /> Help
+          </Button>
+          {menu === "help" ? (
+            <Help
+              effect={role === "effect"}
+              paletteSize={studioScene.palette.length}
+              brief={brief}
+              onCopy={(text) => {
+                void copy(text);
+              }}
+              onClose={() => {
+                setMenu(null);
+              }}
+            />
+          ) : null}
+        </div>
         <button
           type="button"
-          disabled={!canApply}
-          className="flex h-9 items-center gap-1.5 rounded-lg bg-brand px-4 text-[13px] font-medium text-brand-foreground hover:opacity-90 disabled:opacity-40"
-          onClick={apply}
+          className="flex h-9 items-center gap-1.5 rounded-lg bg-brand px-4 text-[13px] font-medium text-brand-foreground hover:opacity-90"
+          onClick={done}
         >
-          <Check aria-hidden className="size-3.5" /> Apply
+          <Check aria-hidden className="size-3.5" /> Done
         </button>
       </header>
 
       <div className="relative flex min-h-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col border-r border-border">
           <div className="flex h-12 shrink-0 items-center gap-1 border-b border-border px-3">
-            <div role="tablist" aria-label="Editor tabs" className="flex gap-1">
-              {tabs.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === t.id}
-                  className={cn(
-                    "relative flex h-12 items-center gap-1.5 px-3 text-[13px]",
-                    t.id === "code" && "font-mono",
-                    tab === t.id
-                      ? "font-medium text-foreground after:absolute after:right-2 after:bottom-0 after:left-2 after:h-0.5 after:rounded-full after:bg-brand"
-                      : "text-muted-foreground hover:text-foreground",
-                  )}
-                  onClick={() => {
-                    setTab(t.id);
-                  }}
-                >
-                  <t.icon aria-hidden className="size-3.5" />
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            <span className="relative flex h-12 items-center gap-1.5 px-3 font-mono text-[13px] font-medium after:absolute after:right-2 after:bottom-0 after:left-2 after:h-0.5 after:rounded-full after:bg-brand">
+              <FileCode2 aria-hidden className="size-3.5" /> Code
+            </span>
             {!allowed ? (
               <span className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[11px] text-muted-foreground">
                 <Lock aria-hidden className="size-3" /> Read-only
               </span>
             ) : null}
             <span className="flex-1" />
-            {find !== null ? (
-              <label className="flex h-8 items-center gap-1.5 rounded-md bg-muted px-2 text-xs">
-                <Search aria-hidden className="size-3.5" />
-                <input
-                  autoFocus
-                  aria-label="Find in the code"
-                  value={find}
-                  className="w-32 bg-transparent outline-none"
-                  onChange={(e) => {
-                    setFind(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    e.stopPropagation();
-                    if (e.key === "Enter") editorRef.current?.find(find);
-                    if (e.key === "Escape") {
-                      setFind(null);
-                      editorRef.current?.focus();
-                    }
-                  }}
-                />
-              </label>
-            ) : null}
             <ToolButton
               label="Undo"
               icon={Undo2}
-              off={!hist.undo || tab !== "code"}
-              onClick={doUndo}
+              off={!hist.undo}
+              onClick={() => editorRef.current?.undo()}
             />
             <ToolButton
               label="Redo"
               icon={Redo2}
-              off={!hist.redo || tab !== "code"}
-              onClick={doRedo}
+              off={!hist.redo}
+              onClick={() => editorRef.current?.redo()}
             />
-            <ToolButton label="Find" icon={Search} off={tab !== "code"} onClick={toggleFind} />
-            <ToolButton
-              label="Tidy the code"
-              icon={AlignLeft}
-              off={!allowed || tab !== "code"}
-              onClick={doTidy}
-            />
-            <div className="relative">
-              <Button
-                variant="outline"
-                className="h-8 gap-1 px-2.5 text-[13px]"
-                aria-haspopup="menu"
-                aria-expanded={menu === "insert"}
-                disabled={!allowed}
-                onClick={() => {
-                  setMenu(menu === "insert" ? null : "insert");
-                }}
-              >
-                <Plus aria-hidden className="size-3.5" /> Insert{" "}
-                <ChevronDown aria-hidden className="size-3" />
-              </Button>
-              <Popover
-                open={menu === "insert"}
-                onClose={() => {
-                  setMenu(null);
-                }}
-                className="top-full right-0 mt-1 w-[300px]"
-              >
-                <div role="menu" aria-label="Insert">
-                  <MenuLabel>Inside your code</MenuLabel>
-                  {SNIPPETS.map((s) => (
-                    <MenuItem
-                      key={s.label}
-                      label={s.label}
-                      onClick={() => {
-                        setMenu(null);
-                        setTab("code");
-                        requestAnimationFrame(() => editorRef.current?.insert(s.text));
-                      }}
-                    />
-                  ))}
-                </div>
-              </Popover>
-            </div>
+            <Button
+              variant="outline"
+              className="h-8 gap-1 px-2.5 text-[13px]"
+              disabled={!allowed || params.params.length >= 16}
+              onClick={() => {
+                setCode(
+                  addSetting(code, {
+                    id: uniqueName(code),
+                    label: "Setting",
+                    group: "Settings",
+                    type: "number",
+                    min: 0,
+                    max: 1,
+                    step: 0.01,
+                    default: 0.5,
+                    decimals: 2,
+                  }),
+                );
+              }}
+            >
+              <Plus aria-hidden className="size-3.5" /> Add a setting
+            </Button>
           </div>
 
           {!allowed ? (
@@ -804,43 +772,20 @@ export function ShaderEditor({
             </div>
           ) : null}
 
-          {tab === "code" ? (
-            <CodeEditor
-              ref={editorRef}
-              value={code}
-              readOnly={!allowed}
-              errorLine={errorLine}
-              onChange={setCode}
-              onCursor={setCursor}
-              onHistory={() => {
-                setHist({
-                  undo: editorRef.current?.canUndo() ?? false,
-                  redo: editorRef.current?.canRedo() ?? false,
-                });
-              }}
-            />
-          ) : null}
-          {tab === "settings" ? (
-            <SettingsBuilder code={code} values={resolved} readOnly={!allowed} onCode={setCode} />
-          ) : null}
-          {tab === "reference" ? (
-            <ReferencePanel
-              role={role}
-              onInsert={(text) => {
-                setTab("code");
-                requestAnimationFrame(() => editorRef.current?.insert(text));
-              }}
-              onInsertUniform={(line) => {
-                setTab("code");
-                requestAnimationFrame(() =>
-                  editorRef.current?.insertAfterLast(/^\s*uniform\b/, line),
-                );
-              }}
-              onCopy={(text) => {
-                void copy(text);
-              }}
-            />
-          ) : null}
+          <CodeEditor
+            ref={editorRef}
+            value={code}
+            readOnly={!allowed}
+            errorLine={errorLine}
+            onChange={setCode}
+            onCursor={() => undefined}
+            onHistory={() => {
+              setHist({
+                undo: editorRef.current?.canUndo() ?? false,
+                redo: editorRef.current?.canRedo() ?? false,
+              });
+            }}
+          />
 
           <div
             role="status"
@@ -889,13 +834,15 @@ export function ShaderEditor({
                 </>
               ) : status.state === "compiled" ? (
                 <>
-                  <span className="text-[13px] font-semibold text-[#1a7f45]">Compiled</span>
+                  <span className="text-[13px] font-semibold text-[#1a7f45]">Works</span>
                   <span className="text-muted-foreground">
-                    {`${String(status.ms)} ms · ${
+                    {`Compiled in ${String(status.ms)} ms · ${
+                      role === "effect" ? "changes the picture below" : "draws the background"
+                    } · ${
                       status.names.length === 1
-                        ? "1 parameter"
-                        : `${String(status.names.length)} parameters`
-                    } found${status.names.length > 0 ? `: ${status.names.join(", ")}` : ""}${
+                        ? "1 setting"
+                        : `${String(status.names.length)} settings`
+                    } found${
                       status.problems > 0
                         ? ` · ${String(status.problems)} @param line not understood`
                         : ""
@@ -910,7 +857,7 @@ export function ShaderEditor({
                       : status.message}
                   </span>
                   <span className="text-muted-foreground">
-                    The preview keeps showing the last working version.
+                    The preview keeps showing the last version that worked.
                   </span>
                 </>
               ) : status.state === "too-long" ? (
@@ -926,41 +873,6 @@ export function ShaderEditor({
                 <span className="text-muted-foreground">Checking the code…</span>
               )}
             </div>
-            <label className="flex items-center gap-2 text-xs text-muted-foreground">
-              Run while I type
-              <Switch
-                aria-label="Run while I type"
-                checked={live}
-                onCheckedChange={(on) => {
-                  setLive(on);
-                  if (on) setRunTick((n) => n + 1);
-                }}
-              />
-            </label>
-            {!live ? (
-              <Button
-                variant="outline"
-                className="h-8 text-[13px]"
-                onClick={() => {
-                  setRunTick((n) => n + 1);
-                }}
-              >
-                Run
-              </Button>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-4 border-t border-border px-5 py-2 text-xs text-muted-foreground">
-            <span data-testid="cursor">
-              {allowed ? `Ln ${String(cursor.line)}, Col ${String(cursor.column)}` : "Read-only"}
-            </span>
-            <span>GLSL ES 1.00 · WebGL 1</span>
-            <span className="flex-1" />
-            <span
-              className={cn(status.state === "too-long" && "text-[#b42318]")}
-              data-testid="code-size"
-            >
-              {status.state === "too-long" ? "Too long" : kb(new Blob([code]).size)}
-            </span>
           </div>
         </div>
 
@@ -969,43 +881,7 @@ export function ShaderEditor({
           className="flex min-h-0 w-[420px] shrink-0 flex-col gap-5 overflow-y-auto p-4"
         >
           <section aria-label="Preview" className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[13px] font-semibold">Preview</h2>
-              <div
-                role="radiogroup"
-                aria-label="Preview content"
-                className="flex gap-0.5 rounded-lg bg-muted p-0.5 text-xs"
-              >
-                {(role === "effect"
-                  ? ([
-                      ["result", "Result"],
-                      ["input", "Input"],
-                    ] as const)
-                  : ([
-                      ["background", "Background only"],
-                      ["screenshot", "With screenshot"],
-                    ] as const)
-                ).map(([id, label]) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="radio"
-                    aria-checked={view === id}
-                    className={cn(
-                      "h-7 rounded-md px-2.5",
-                      view === id
-                        ? "bg-background font-medium shadow-sm"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                    onClick={() => {
-                      setView(id);
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <h2 className="text-[13px] font-semibold">Preview</h2>
             <div className="relative h-[230px] w-[388px] overflow-hidden rounded-lg border border-border bg-muted">
               {allowed ? (
                 <canvas
@@ -1074,15 +950,12 @@ export function ShaderEditor({
             </div>
           </section>
           <hr className="border-border" />
-          <section
-            aria-label={tab === "settings" ? "How your settings look" : "Parameters"}
-            className="flex flex-col gap-3"
-          >
+          <section aria-label="Settings" className="flex flex-col gap-3">
             <div className="flex items-baseline justify-between">
-              <h2 className="text-[13px] font-semibold">
-                {tab === "settings" ? "How your settings look" : "Parameters"}
-              </h2>
-              <span className="font-mono text-[11px] text-muted-foreground">from // @param</span>
+              <h2 className="text-[13px] font-semibold">Settings</h2>
+              <span className="font-mono text-[11px] text-muted-foreground">
+                made from // @param
+              </span>
             </div>
             {!allowed ? (
               <p className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2.5 text-[13px] text-muted-foreground">
@@ -1091,7 +964,7 @@ export function ShaderEditor({
               </p>
             ) : specs.length === 0 ? (
               <p className="rounded-lg bg-muted px-3 py-2.5 text-[13px] text-muted-foreground">
-                No settings yet. Write a // @param line in the code, or add one in the Settings tab.
+                No settings yet. Press Add a setting, or write a // @param line in the code.
               </p>
             ) : (
               specs.map((spec) => (
@@ -1106,142 +979,13 @@ export function ShaderEditor({
                 />
               ))
             )}
-          </section>
-          <hr className="border-border" />
-          <section aria-label="Inputs your shader receives" className="flex flex-col gap-2.5">
-            <h2 className="text-[13px] font-semibold">Inputs your shader receives</h2>
-            <dl className="flex flex-col gap-1.5 text-xs">
-              {inputsList.map(([n, text]) => (
-                <div key={n} className="grid grid-cols-[110px_1fr] gap-3">
-                  <dt className="font-mono">{n}</dt>
-                  <dd className="text-muted-foreground">{text}</dd>
-                </div>
-              ))}
-            </dl>
+            <p className="text-[11px] leading-snug font-medium text-muted-foreground">
+              These controls come from the // @param lines at the top of your code. Change a line
+              and the control follows.
+            </p>
           </section>
         </aside>
-
-        {aiOpen ? (
-          <div
-            role="dialog"
-            aria-label="Ask an AI to write your shader"
-            className="absolute top-0 right-0 bottom-0 z-20 flex w-[480px] flex-col gap-4 overflow-y-auto border-l border-border bg-card p-5 shadow-[-8px_0_24px_rgb(0_0_0/0.1)]"
-          >
-            <div className="flex items-center gap-3">
-              <span className="flex size-9 items-center justify-center rounded-full bg-brand/40">
-                <Sparkles aria-hidden className="size-4" />
-              </span>
-              <h2 className="flex-1 text-[15px] font-semibold">Ask an AI to write your shader</h2>
-              <button
-                type="button"
-                aria-label="Close"
-                className="flex size-8 items-center justify-center rounded-md hover:bg-muted"
-                onClick={() => {
-                  setAiOpen(false);
-                }}
-              >
-                <X aria-hidden className="size-4" />
-              </button>
-            </div>
-            <p className="text-[13px] text-muted-foreground">
-              LumenGrab has no built-in AI and sends nothing anywhere. You copy a brief, paste it
-              into the AI you already use, and paste its answer back into the editor.
-            </p>
-            <ol className="flex flex-col gap-3 text-[13px]">
-              {[
-                "Copy the brief below.",
-                "Paste it into your AI and describe your effect where it says MY REQUEST.",
-                "Paste the code you get back into fragment.glsl.",
-              ].map((step, i) => (
-                <li key={step} className="flex items-start gap-3">
-                  <span
-                    className={cn(
-                      "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium",
-                      i === 0 ? "bg-brand" : "bg-muted",
-                    )}
-                  >
-                    {i + 1}
-                  </span>
-                  {step}
-                </li>
-              ))}
-            </ol>
-            <hr className="border-border" />
-            {(
-              [
-                [
-                  "Include my current code",
-                  "The AI can improve what you already have.",
-                  aiCode,
-                  setAiCode,
-                ],
-                [
-                  "Include a working example",
-                  "Helps the AI follow the rules.",
-                  aiExample,
-                  setAiExample,
-                ],
-              ] as const
-            ).map(([label, hint, on, set]) => (
-              <div key={label} className="flex items-center justify-between gap-4">
-                <div className="flex flex-col">
-                  <span className="text-[13px] font-medium">{label}</span>
-                  <span className="text-xs text-muted-foreground">{hint}</span>
-                </div>
-                <Switch aria-label={label} checked={on} onCheckedChange={set} />
-              </div>
-            ))}
-            <div className="flex items-baseline justify-between text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-              <h3>The brief</h3>
-              <span className="font-normal normal-case">Plain text, ready to paste</span>
-            </div>
-            <pre
-              data-testid="ai-brief"
-              className="max-h-[260px] min-h-[160px] overflow-auto rounded-lg border border-border bg-muted/50 p-3 font-mono text-xs leading-5 whitespace-pre-wrap"
-            >
-              {brief}
-            </pre>
-            <button
-              type="button"
-              className="flex h-11 items-center justify-center gap-2 rounded-lg bg-brand text-[13px] font-medium text-brand-foreground hover:opacity-90"
-              onClick={() => {
-                void copy(brief).then((ok) => {
-                  setCopied(ok);
-                  if (ok) {
-                    ui.getState().pushToast({
-                      icon: "saved",
-                      text: "Brief copied. Paste it into your AI.",
-                    });
-                    setTimeout(() => {
-                      setCopied(false);
-                    }, 2500);
-                  }
-                });
-              }}
-            >
-              {copied ? (
-                <Check aria-hidden className="size-4" />
-              ) : (
-                <Copy aria-hidden className="size-4" />
-              )}
-              {copied ? "Copied" : "Copy brief"}
-            </button>
-            <p className="text-xs text-muted-foreground">
-              Read code from any source before you run it. Files from other people ask for
-              permission before custom code runs.
-            </p>
-          </div>
-        ) : null}
       </div>
-      {discard ? (
-        <DiscardDialog
-          name={name}
-          onKeep={() => {
-            setDiscard(false);
-          }}
-          onDiscard={onClose}
-        />
-      ) : null}
     </div>
   );
 }

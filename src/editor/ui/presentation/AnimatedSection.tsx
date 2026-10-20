@@ -1,5 +1,18 @@
-import { useState } from "react";
-import { Image as ImageIcon, Play, Plus, Info, Star, WandSparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  Code,
+  Copy,
+  Ellipsis,
+  Image as ImageIcon,
+  Pencil,
+  Play,
+  Plus,
+  Info,
+  Star,
+  Trash2,
+  Type,
+  WandSparkles,
+} from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { Switch } from "@/ui/components/switch";
 import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
@@ -10,12 +23,16 @@ import { renderFramePng } from "@/shader/freeze";
 import { webglAvailable } from "@/shader/renderer";
 import { setParam } from "@/shader/edit";
 import { colourCount, loopAt, quickSettings, speedPosition, withLoop } from "@/shader/quick";
-import { ANIMATED_LOOKS, TEMPLATES } from "@/shader/scenes";
+import { shadersStore, useShaders } from "@/shader/shader-instance";
+import type { MyShader } from "@/shader/my-shaders";
+import { ANIMATED_LOOKS, findShaderLayer, sceneWithShader, TEMPLATES } from "@/shader/scenes";
 import { posterSeconds } from "@/shader/scene";
 import type { ShaderScene } from "@/shader/types";
 import { Slider } from "../controls";
 import { useStores, useUi } from "../context";
 import { ColorPicker } from "../ColorPicker";
+import { RenameShaderDialog } from "../studio/dialogs";
+import { MenuItem, Popover } from "../studio/parts";
 import { applyLookToDocument } from "./apply-look";
 import { FreezeDialog } from "./dialogs";
 import { looksStore, useLooks } from "./looks-instance";
@@ -127,6 +144,228 @@ function Swatch({
       style={{ background: color }}
       onClick={onClick}
     />
+  );
+}
+
+/** One of your shaders as a tile: its picture, the code badge and a menu (design: Shader flow / 1 and 5). */
+function ShaderTile({
+  shader,
+  selected,
+  menuOpen,
+  onApply,
+  onMenu,
+  onEdit,
+  onDuplicate,
+  onRename,
+  onDelete,
+}: {
+  shader: MyShader;
+  selected: boolean;
+  menuOpen: boolean;
+  onApply: () => void;
+  onMenu: (open: boolean) => void;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onRename: () => void;
+  onDelete: () => void;
+}) {
+  const look = useMemo(
+    (): Look => ({
+      id: shader.id,
+      name: shader.name,
+      parts: { background: sceneWithShader(shader, null).scene },
+    }),
+    [shader],
+  );
+  return (
+    <div className="group relative flex min-w-0 flex-col gap-1.5 text-[11px] font-medium">
+      <button
+        type="button"
+        aria-pressed={selected}
+        aria-label={shader.name}
+        className="flex min-w-0 flex-col gap-1.5 text-left"
+        onClick={onApply}
+      >
+        <span
+          className={cn(
+            "relative block overflow-hidden rounded-lg",
+            selected ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : "ring-1 ring-border",
+          )}
+        >
+          <LookThumb look={look} width={WIDTH} height={HEIGHT} fill />
+          <span
+            aria-hidden
+            className="absolute bottom-1 left-1 flex size-4 items-center justify-center rounded-full bg-white/90 text-neutral-900"
+          >
+            <Code className="size-2.5" />
+          </span>
+        </span>
+        <span className={cn("truncate", selected ? "text-foreground" : "text-muted-foreground")}>
+          {shader.name}
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label={`More for ${shader.name}`}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        className="absolute top-1 right-1 flex size-[22px] items-center justify-center rounded-full bg-card/90 opacity-0 shadow-sm group-focus-within:opacity-100 group-hover:opacity-100 aria-expanded:opacity-100"
+        onClick={() => {
+          onMenu(!menuOpen);
+        }}
+      >
+        <Ellipsis aria-hidden className="size-3.5" />
+      </button>
+      <Popover
+        open={menuOpen}
+        onClose={() => {
+          onMenu(false);
+        }}
+        className="top-7 right-0 w-[168px]"
+      >
+        <div role="menu" aria-label={`${shader.name} menu`}>
+          <MenuItem
+            icon={<Pencil aria-hidden className="size-3.5" />}
+            label="Edit shader"
+            onClick={onEdit}
+          />
+          <MenuItem
+            icon={<Copy aria-hidden className="size-3.5" />}
+            label="Duplicate"
+            onClick={onDuplicate}
+          />
+          <MenuItem
+            icon={<Type aria-hidden className="size-3.5" />}
+            label="Rename"
+            onClick={onRename}
+          />
+          <MenuItem
+            icon={<Trash2 aria-hidden className="size-3.5" />}
+            label="Delete"
+            danger
+            onClick={onDelete}
+          />
+        </div>
+      </Popover>
+    </div>
+  );
+}
+
+/**
+ * Your shaders: the ones you wrote, saved by themselves, and New shader, which opens the editor on a working
+ * example with nothing to fill in first (design: Shader flow / 0 and 1).
+ */
+function YourShaders({ bg }: { bg: ShaderScene }) {
+  const { ui, session } = useStores();
+  const { set } = usePresentation();
+  const mine = useShaders((s) => s.shaders);
+  const [menu, setMenu] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<MyShader | null>(null);
+
+  const use = (shader: MyShader) => {
+    session.noteOwnCode(shader.code);
+    const made = sceneWithShader(shader, bg);
+    set((draft) => {
+      draft.background = made.scene;
+      draft.enabled = true;
+    });
+  };
+  const remove = async (shader: MyShader) => {
+    const gone = await shadersStore.getState().removeShader(shader.id);
+    if (!gone) return;
+    ui.getState().pushToast({
+      icon: "deleted",
+      text: `Deleted “${gone.name}”`,
+      action: {
+        label: "Undo",
+        run: () => {
+          void shadersStore
+            .getState()
+            .keepShader({ name: gone.name, role: gone.role, code: gone.code, values: gone.values });
+        },
+      },
+    });
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between">
+        <h4 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+          Your shaders
+        </h4>
+        {mine.length > 0 ? (
+          <span className="text-[11px] text-muted-foreground">Saved automatically</span>
+        ) : null}
+      </div>
+      <div className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+        {mine.map((shader) => (
+          <ShaderTile
+            key={shader.id}
+            shader={shader}
+            selected={findShaderLayer(bg, shader) !== undefined}
+            menuOpen={menu === shader.id}
+            onApply={() => {
+              use(shader);
+            }}
+            onMenu={(open) => {
+              setMenu(open ? shader.id : null);
+            }}
+            onEdit={() => {
+              setMenu(null);
+              ui.getState().openShaderEditor({ kind: "shader", shaderId: shader.id });
+            }}
+            onDuplicate={() => {
+              setMenu(null);
+              void shadersStore.getState().duplicateShader(shader.id);
+            }}
+            onRename={() => {
+              setMenu(null);
+              setRenaming(shader);
+            }}
+            onDelete={() => {
+              setMenu(null);
+              void remove(shader);
+            }}
+          />
+        ))}
+        <button
+          type="button"
+          className="flex min-w-0 flex-col gap-1.5 text-left text-[11px] font-semibold"
+          onClick={() => {
+            ui.getState().openShaderEditor({ kind: "new-shader" });
+          }}
+        >
+          <span className="flex h-[58px] flex-col items-center justify-center gap-0.5 rounded-lg bg-[#F6FFD6] ring-2 ring-brand">
+            <Plus aria-hidden className="size-[18px]" />
+            <Code aria-hidden className="size-3 text-muted-foreground" />
+          </span>
+          <span className="truncate">New shader</span>
+        </button>
+        {mine.length === 0 ? (
+          <p className="col-span-2 self-center text-[11px] leading-snug text-muted-foreground">
+            Write your own background with a little code. It starts from a working example, and
+            every change is saved by itself.
+          </p>
+        ) : null}
+      </div>
+      {renaming ? (
+        <RenameShaderDialog
+          initialName={renaming.name}
+          onCancel={() => {
+            setRenaming(null);
+          }}
+          onSave={(name) => {
+            void shadersStore
+              .getState()
+              .keepShader(
+                { name, role: renaming.role, code: renaming.code, values: renaming.values },
+                renaming.id,
+              );
+            setRenaming(null);
+          }}
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -393,6 +632,7 @@ export function AnimatedEditor({ bg }: { bg: ShaderScene }) {
           </div>
         )}
       </div>
+      <YourShaders bg={bg} />
       <button
         type="button"
         className="flex h-[38px] items-center justify-center gap-1.5 rounded-lg bg-primary px-3 text-[13px] font-medium text-primary-foreground hover:opacity-90"

@@ -120,10 +120,10 @@ export class DocumentSession {
   }
 
   /** Code the user wrote or chose themselves: it runs. */
-  noteOwnCode(code: string): void {
+  noteOwnCode(code: string, notify = true): void {
     this.own.add(code);
     // The pages draw again: the gate answers differently now.
-    this.d.ui.getState().bumpCode();
+    if (notify) this.d.ui.getState().bumpCode();
   }
 
   get fileName(): string {

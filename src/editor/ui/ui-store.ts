@@ -26,6 +26,9 @@ export interface Toast {
   action?: { label: string; run: () => void };
 }
 
+/** Where the Studio starts when it opens straight into the shader editor. */
+export type StudioStart = { kind: "new-shader" } | { kind: "shader"; shaderId: string };
+
 /** A look that could not be applied as it was saved (its background picture is gone). */
 export interface LookNotice {
   lookId: string;
@@ -72,6 +75,8 @@ export interface UiState {
   animatedLook: string | null;
   /** The Background Studio is open on top of the editor. */
   studio: boolean;
+  /** Why the Studio was opened when it was not for the background itself: straight into the shader editor. */
+  studioStart: StudioStart | null;
   /** The custom shader code of this document may run (false for a file from outside until the user allows it). */
   codeAllowed: boolean;
   /** Counts changes of what code may run, so the pictures are drawn again. */
@@ -101,6 +106,8 @@ export interface UiActions {
   setAnimate(animate: boolean): void;
   setAnimatedLook(id: string | null): void;
   setStudio(open: boolean): void;
+  /** Opens the Studio on the shader editor (a new shader, or one of My shaders), without the Studio around it. */
+  openShaderEditor(start: StudioStart): void;
   setCodeAllowed(allowed: boolean): void;
   bumpCode(): void;
 }
@@ -131,6 +138,7 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     animate: true,
     animatedLook: null,
     studio: false,
+    studioStart: null,
     codeAllowed: true,
     codeVersion: 0,
 
@@ -203,7 +211,10 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
       set({ animate });
     },
     setStudio: (studio) => {
-      set({ studio });
+      set({ studio, studioStart: null });
+    },
+    openShaderEditor: (studioStart) => {
+      set({ studio: true, studioStart });
     },
     setCodeAllowed: (codeAllowed) => {
       set({ codeAllowed, codeVersion: get().codeVersion + 1 });

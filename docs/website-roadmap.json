@@ -246,7 +246,7 @@
         },
         {
           "id": "task-4",
-          "title": "Fourteen animated looks in the Presentation panel, a still frame and a switch for the animation",
+          "title": "Twelve animated looks in the Presentation panel, a still frame and a switch for the animation",
           "done": true
         },
         {
@@ -277,6 +277,16 @@
         {
           "id": "task-10",
           "title": "Animated default look for new screenshots (uses the still frame)",
+          "done": true
+        },
+        {
+          "id": "task-12",
+          "title": "Calmer, softer animated looks that you can tune (speed, colours, key sliders) without the Studio",
+          "done": true
+        },
+        {
+          "id": "task-13",
+          "title": "A simpler way to write your own shader: New shader in one click, saved by itself, one Done button, Your shaders with a menu",
           "done": true
         },
         {

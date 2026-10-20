@@ -328,6 +328,12 @@ export function customValues(
   return out;
 }
 
+/** What a shader is, read from its code: one that reads `u_input` changes the picture below it, any other draws one. */
+export function detectRole(code: string): LayerRole {
+  const bare = code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  return /\bu_input\b/.test(bare) ? "effect" : "generator";
+}
+
 export interface Example {
   id: string;
   name: string;

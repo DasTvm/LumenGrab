@@ -5,13 +5,15 @@ import type { ShaderScene } from "@/shader/types";
 export const PREVIEW_SPEEDS = [0.25, 0.5, 1, 2] as const;
 export type PreviewSpeed = (typeof PREVIEW_SPEEDS)[number];
 
-export type StudioDialog =
-  "discard" | "export" | "freeze" | "save-look" | "too-large" | "new-shader" | "save-shader" | null;
+export type StudioDialog = "discard" | "export" | "freeze" | "save-look" | "too-large" | null;
 
-/** The shader editor on top of the Studio: which layer it edits, or a new one that is not in the stack yet. */
-export type ShaderEditorTarget =
-  | { kind: "layer"; id: string }
-  | { kind: "new"; role: "generator" | "effect"; name: string; code: string };
+/** The shader editor on top of the Studio: the layer it edits (a new shader is a layer from the start). */
+export type ShaderEditorTarget = {
+  kind: "layer";
+  id: string;
+  /** A shader that was just made from the example: it counts as changed from the start, so it is kept in Your shaders at once. */
+  fresh?: boolean;
+};
 
 const MAX_HISTORY = 100;
 
@@ -38,8 +40,9 @@ export interface StudioState {
   /** The scene before the running gesture (a slider drag is one undo step). */
   gesture: ShaderScene | null;
   dialog: StudioDialog;
-  /** The layer a dialog is about (Save to My shaders). */
   dialogLayer: string | null;
+  /** The Studio was opened only for the shader editor: closing the editor applies the scene and closes the Studio. */
+  standalone: boolean;
   editor: ShaderEditorTarget | null;
   /** A short message in the Studio (a layer that was switched off, a full stack). */
   notice: string | null;
@@ -81,7 +84,13 @@ export const isDirty = (state: Pick<StudioState, "scene" | "base">): boolean =>
 
 export function createStudioStore(
   scene: ShaderScene,
-  options: { name?: string; playing?: boolean; time?: number } = {},
+  options: {
+    name?: string;
+    playing?: boolean;
+    time?: number;
+    standalone?: boolean;
+    editor?: ShaderEditorTarget;
+  } = {},
 ): StudioStoreApi {
   return createStore<StudioStore>()((set, get) => {
     const push = (next: ShaderScene) => {
@@ -108,7 +117,8 @@ export function createStudioStore(
       gesture: null,
       dialog: null,
       dialogLayer: null,
-      editor: null,
+      standalone: options.standalone ?? false,
+      editor: options.editor ?? null,
       notice: null,
       heavy: [],
 

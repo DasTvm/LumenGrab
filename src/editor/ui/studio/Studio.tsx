@@ -2,18 +2,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Check, Dices, Download, Pencil, Snowflake, Bookmark } from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { useReducedMotion } from "@/ui/lib/use-reduced-motion";
-import { randomize, sceneProblem } from "@/shader/edit";
+import { addCustom, randomize, sceneProblem } from "@/shader/edit";
 import { minFrameGap } from "@/shader/pace";
-import { ANIMATED_LOOKS, TEMPLATES } from "@/shader/scenes";
-import type { ShaderLayer as ShaderLayerLike } from "@/shader/types";
+import { ANIMATED_LOOKS, findShaderLayer, sceneWithShader, TEMPLATES } from "@/shader/scenes";
 import type { BaseImage } from "../base-image";
 import { isTyping } from "../commands";
 import { useStores } from "../context";
 import { StudioProvider, useStudio, useStudioStore } from "./context";
-import { DiscardDialog, NewShaderDialog, SaveShaderDialog, TooLargeDialog } from "./dialogs";
+import { DiscardDialog, TooLargeDialog } from "./dialogs";
 import { ShaderEditor } from "./ShaderEditor";
 import { StudioExportDialog } from "./ExportDialog";
-import { customValues, parsePragmas } from "@/shader/custom";
+import { EXAMPLES } from "@/shader/custom";
 import { shadersStore } from "@/shader/shader-instance";
 import {
   FreezeDialog,
@@ -197,12 +196,6 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
   const name = useStudio((s) => s.name);
   const notice = useStudio((s) => s.notice);
   const editorTarget = useStudio((s) => s.editor);
-  const dialogLayer = useStudio((s) => s.dialogLayer);
-  const sceneNow = useStudio((s) => s.scene);
-  const [replaceShader, setReplaceShader] = useState<{
-    name: string;
-    keepSettings: boolean;
-  } | null>(null);
   const root = useRef<HTMLDivElement>(null);
   const { ui, session } = useStores();
   const width = usePictureWidth();
@@ -244,26 +237,19 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialog]);
 
-  const saveShader = async (choice: { name: string; keepSettings: boolean }, replace: boolean) => {
-    const layer = store.getState().scene.layers.find((l) => l.id === store.getState().dialogLayer);
-    if (!layer?.code) return;
-    const specs = parsePragmas(layer.code).params.map((p) => p.spec);
-    const result = await shadersStore.getState().saveShader(
-      {
-        name: choice.name,
-        role: layer.role ?? "generator",
-        code: layer.code,
-        values: choice.keepSettings ? customValues(specs, layer.params) : {},
-      },
-      { replace },
-    );
-    if (result.status === "exists") {
-      setReplaceShader(choice);
+  /** "Write new shader": a layer that already runs an example, and the editor on it. */
+  const writeShader = () => {
+    const example = EXAMPLES[0];
+    if (!example) return;
+    const made = addCustom(store.getState().scene, example.role, "Untitled shader", example.code);
+    if (!made) {
+      store.getState().setNotice("The stack is full. Remove a layer first.");
       return;
     }
-    setReplaceShader(null);
-    store.getState().setDialog(null);
-    ui.getState().pushToast({ icon: "saved", text: `Saved “${result.shader.name}” to My shaders` });
+    session.noteOwnCode(example.code);
+    store.getState().change(() => made.scene);
+    store.getState().select(made.id);
+    store.getState().openEditor({ kind: "layer", id: made.id, fresh: true });
   };
 
   const saveLook = async (choice: SaveLookChoice, replace: boolean) => {
@@ -351,11 +337,7 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
       >
         <Header onApply={apply} onCancel={cancel} />
         <div className="flex min-h-0 flex-1">
-          <StackPanel
-            onWriteShader={() => {
-              store.getState().setDialog("new-shader");
-            }}
-          />
+          <StackPanel onWriteShader={writeShader} />
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <Preview base={base} />
             <Timeline />
@@ -364,11 +346,12 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
         </div>
         {editorTarget ? (
           <ShaderEditor
-            key={editorTarget.kind === "layer" ? editorTarget.id : "new"}
+            key={editorTarget.id}
             target={editorTarget}
-            base={base}
             onClose={() => {
               store.getState().openEditor(null);
+              // Opened from the Animated tab: Done is the end of the whole thing, the shader is the background.
+              if (store.getState().standalone) apply();
             }}
           />
         ) : null}
@@ -477,42 +460,6 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
           }}
         />
       ) : null}
-      {dialog === "new-shader" ? (
-        <NewShaderDialog
-          onCancel={() => {
-            store.getState().setDialog(null);
-          }}
-          onOpen={(choice) => {
-            store.getState().setDialog(null);
-            store.getState().openEditor({ kind: "new", ...choice });
-          }}
-        />
-      ) : null}
-      {dialog === "save-shader" && dialogLayer ? (
-        <SaveShaderDialog
-          initialName={sceneNow.layers.find((l) => l.id === dialogLayer)?.name ?? "My shader"}
-          summary={shaderSummary(sceneNow.layers.find((l) => l.id === dialogLayer))}
-          onCancel={() => {
-            store.getState().setDialog(null);
-          }}
-          onSave={(choice) => {
-            void saveShader(choice, false);
-          }}
-        />
-      ) : null}
-      {replaceShader ? (
-        <ConfirmDialog
-          title={`Replace “${replaceShader.name}”?`}
-          body="You already have a shader with this name. Replacing it can't be undone."
-          confirm="Replace"
-          onCancel={() => {
-            setReplaceShader(null);
-          }}
-          onConfirm={() => {
-            void saveShader(replaceShader, true);
-          }}
-        />
-      ) : null}
       {dialog === "too-large" ? (
         <TooLargeDialog
           onReview={() => {
@@ -529,12 +476,40 @@ function Shell({ base, onClose }: { base: BaseImage; onClose: () => void }) {
 
 /** The Background Studio (design: Studio / Overview): opens on the document's background, works on a copy, and Apply puts it back as one undo step. */
 export function StudioHost({ base }: { base: BaseImage }) {
-  const { ui, editor } = useStores();
+  const { ui, editor, session } = useStores();
   const reduced = useReducedMotion();
   const store = useMemo(() => {
     const background = editor.getState().project.presentation.background;
-    const scene =
-      background.type === "shader" ? structuredClone(background) : (TEMPLATES[0]?.make() ?? null);
+    const current = background.type === "shader" ? structuredClone(background) : null;
+    const start = ui.getState().studioStart;
+    // Straight into the shader editor: a new shader (it already runs an example), or one of My shaders.
+    if (start) {
+      const example = EXAMPLES[0];
+      const mine =
+        start.kind === "shader"
+          ? shadersStore.getState().shaders.find((x) => x.id === start.shaderId)
+          : undefined;
+      const source =
+        mine ??
+        (example
+          ? { name: "Untitled shader", role: example.role, code: example.code, values: {} }
+          : null);
+      if (source) {
+        const own = current ? findShaderLayer(current, source) : undefined;
+        const made =
+          own && current ? { scene: current, layerId: own.id } : sceneWithShader(source, current);
+        // No notification while rendering: the pages are told once the Studio is on screen.
+        session.noteOwnCode(source.code, false);
+        return createStudioStore(made.scene, {
+          name: source.name,
+          playing: !reduced,
+          ...(reduced ? { time: 0 } : {}),
+          standalone: true,
+          editor: { kind: "layer", id: made.layerId, ...(mine ? {} : { fresh: true }) },
+        });
+      }
+    }
+    const scene = current ?? TEMPLATES[0]?.make() ?? null;
     if (!scene) throw new Error("There is no template to start from.");
     const known = ANIMATED_LOOKS.find(
       (l) => JSON.stringify({ ...l.make(), poster: 0 }) === JSON.stringify({ ...scene, poster: 0 }),
@@ -547,6 +522,9 @@ export function StudioHost({ base }: { base: BaseImage }) {
     // The Studio starts from what the document has when it opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  useEffect(() => {
+    if (ui.getState().studioStart) ui.getState().bumpCode();
+  }, [ui]);
   return (
     <StudioProvider store={store}>
       <Shell
@@ -557,20 +535,4 @@ export function StudioHost({ base }: { base: BaseImage }) {
       />
     </StudioProvider>
   );
-}
-
-/** The settings of a layer with code in words: `Speed 1.0, tint #C8FF2E, soft edges on`. */
-function shaderSummary(layer: ShaderLayerLike | undefined): string {
-  if (!layer?.code) return "No settings.";
-  const specs = parsePragmas(layer.code).params.map((p) => p.spec);
-  if (specs.length === 0) return "This shader has no settings.";
-  const values = customValues(specs, layer.params);
-  return specs
-    .map((spec) => {
-      const v = values[spec.id];
-      if (typeof v === "boolean") return `${spec.label.toLowerCase()} ${v ? "on" : "off"}`;
-      if (typeof v === "number") return `${spec.label} ${v.toFixed(spec.type === "int" ? 0 : 1)}`;
-      return `${spec.label.toLowerCase()} ${typeof v === "string" ? v : ""}`.trim();
-    })
-    .join(", ");
 }

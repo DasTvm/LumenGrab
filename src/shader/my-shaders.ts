@@ -82,6 +82,24 @@ export interface ShadersState {
   error: string | null;
 }
 
+const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/** `base`, or `base 2`, `base 3`... when the name is taken by another shader (ignoring case). */
+export function uniqueShaderName(
+  shaders: readonly MyShader[],
+  base: string,
+  exceptId?: string,
+): string {
+  const clean = base.trim().slice(0, SHADER_NAME_MAX) || "Untitled shader";
+  const taken = (name: string) => shaders.some((s) => s.id !== exceptId && sameName(s.name, name));
+  if (!taken(clean)) return clean;
+  for (let n = 2; ; n += 1) {
+    const suffix = ` ${String(n)}`;
+    const candidate = `${clean.slice(0, SHADER_NAME_MAX - suffix.length)}${suffix}`;
+    if (!taken(candidate)) return candidate;
+  }
+}
+
 export type SaveShaderResult =
   { status: "saved"; shader: MyShader } | { status: "exists"; existing: MyShader };
 
@@ -92,6 +110,13 @@ export interface ShadersActions {
     shader: Omit<MyShader, "id">,
     options?: { replace?: boolean },
   ): Promise<SaveShaderResult>;
+  /**
+   * Keeps what the editor writes, as it is written: a new shader (named so that no other has the name) or
+   * the change of one it made before (`id`). Returns the shader as stored.
+   */
+  keepShader(shader: Omit<MyShader, "id">, id?: string): Promise<MyShader>;
+  /** A copy under a free name ("Glow copy"). */
+  duplicateShader(id: string): Promise<MyShader | null>;
   removeShader(id: string): Promise<MyShader | null>;
   /** The code of this document may run from now on. */
   trustDocument(documentId: string): Promise<void>;
@@ -99,8 +124,6 @@ export interface ShadersActions {
 
 export type ShadersStore = ShadersState & ShadersActions;
 export type ShadersStoreApi = StoreApi<ShadersStore>;
-
-const sameName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 
 export function createShadersStore(
   backend: ShadersBackend,
@@ -149,6 +172,29 @@ export function createShadersStore(
             : [...get().shaders, saved],
         );
         return { status: "saved", shader: saved };
+      },
+
+      keepShader: async (shader, id) => {
+        const current = id ? get().shaders.find((s) => s.id === id) : undefined;
+        const name = uniqueShaderName(get().shaders, shader.name, current?.id);
+        const saved: MyShader = { ...shader, name, id: current?.id ?? makeId() };
+        await persistShaders(
+          current
+            ? get().shaders.map((s) => (s.id === current.id ? saved : s))
+            : [...get().shaders, saved],
+        );
+        return saved;
+      },
+
+      duplicateShader: async (id) => {
+        const found = get().shaders.find((s) => s.id === id);
+        if (!found) return null;
+        return get().keepShader({
+          name: `${found.name} copy`,
+          role: found.role,
+          code: found.code,
+          values: { ...found.values },
+        });
       },
 
       removeShader: async (id) => {

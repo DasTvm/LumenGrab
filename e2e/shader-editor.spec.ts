@@ -4,12 +4,15 @@ import type { Presentation } from "../src/document/schema";
 // The preview plays by itself; with Reduce Motion it starts paused (software WebGL is slow, and these tests are not about playing).
 test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
 
-const openStudio = async (page: Page, scenario = "stack") => {
+const openAnimated = async (page: Page, scenario = "stack") => {
   await page.goto(`/?window=document&label=doc-1&scenario=${scenario}`);
   await expect(page.getByTestId("editor-canvas")).toBeVisible();
   await page.waitForFunction(() => window.__lumengrabEditor?.ui.getState().view != null);
   await page.getByRole("radio", { name: "Presentation" }).click();
   await page.getByRole("radio", { name: "Animated", exact: true }).click();
+};
+const openStudio = async (page: Page, scenario = "stack") => {
+  await openAnimated(page, scenario);
   await page.getByRole("button", { name: "Open Background Studio" }).click();
   const studio = page.getByRole("dialog", { name: "Background Studio" });
   await expect(studio).toBeVisible();
@@ -32,181 +35,210 @@ const layers = async (page: Page) =>
   ((await doc(page)).background as unknown as { layers: Layer[] }).layers;
 const editor = (page: Page) => page.getByRole("dialog", { name: "Shader editor" });
 const code = (page: Page) => editor(page).getByRole("textbox", { name: "Shader code" });
+const chip = (page: Page) => editor(page).getByRole("status", { name: "Compile status" });
+const region = (page: Page) => page.getByRole("region", { name: "Background" });
+const stored = (page: Page) =>
+  page.evaluate(() => window.localStorage.getItem("lumengrab.mock.shaders.my-shaders") ?? "");
 
-const newShader = async (
-  page: Page,
-  studio: ReturnType<Page["getByRole"]>,
-  start: "An example" | "A blank file" = "An example",
-) => {
+/** "Write new shader…" in the Studio: no dialog, the editor opens on a layer that already runs an example. */
+const writeInStudio = async (page: Page, studio: ReturnType<Page["getByRole"]>) => {
   await studio.getByRole("button", { name: "Add", exact: true }).click();
   await page.getByRole("menuitem", { name: "Write new shader…" }).click();
-  const dialog = page.getByRole("dialog", { name: "New shader" });
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole("radio", { name: start }).click();
-  await dialog.getByRole("button", { name: "Open shader editor" }).click();
   await expect(editor(page)).toBeVisible();
 };
 
 test.describe("shader editor (browser mock)", () => {
-  test("a new shader from an example compiles, lists its settings and is added as a layer", async ({
+  test("New shader in the Animated tab opens the editor on a working example, with nothing to fill in first", async ({
+    page,
+  }) => {
+    await openAnimated(page);
+    await expect(region(page).getByText("Your shaders")).toBeVisible();
+    await expect(
+      region(page).getByText(/Write your own background with a little code/),
+    ).toBeVisible();
+    await region(page).getByRole("button", { name: "New shader" }).click();
+    await expect(editor(page)).toBeVisible();
+    // The Studio is not in the way: the editor is the whole window, and its only way out is Done.
+    await expect(editor(page).getByRole("button", { name: "Done" })).toBeVisible();
+    await expect(editor(page).getByRole("button", { name: "Apply" })).toHaveCount(0);
+    await expect(editor(page).getByRole("button", { name: "Cancel" })).toHaveCount(0);
+    await expect(chip(page)).toHaveText(/works/i);
+    await expect(editor(page).getByText(/3 settings found/)).toBeVisible();
+    const settings = editor(page).getByRole("region", { name: "Settings" });
+    for (const name of ["speed", "scale", "soft"])
+      await expect(settings.getByText(name, { exact: true })).toBeVisible();
+    await expect(chip(page)).toHaveText("Saved · works");
+    await page.screenshot({ path: "test-results/shader-editor.png" });
+  });
+
+  test("it saves by itself, Done makes it the background, and it is one of Your shaders", async ({
+    page,
+  }) => {
+    await openAnimated(page);
+    await region(page).getByRole("button", { name: "New shader" }).click();
+    await editor(page).getByRole("textbox", { name: "Shader name" }).fill("Glow");
+    await expect.poll(() => stored(page)).toContain('"Glow"');
+    await editor(page).getByRole("button", { name: "Done" }).click();
+    await expect(editor(page)).toHaveCount(0);
+    await expect(page.getByRole("dialog", { name: "Background Studio" })).toHaveCount(0);
+    const list = await layers(page);
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ kind: "custom", name: "Glow", role: "generator" });
+    expect(list[0]?.code).toContain("void main()");
+    await expect(region(page).getByRole("button", { name: "Glow", exact: true })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // One undo step puts the old background back.
+    await page.keyboard.press("ControlOrMeta+z");
+    expect(
+      ((await doc(page)).background as unknown as { layers: Layer[] }).layers[0]?.kind,
+    ).not.toBe("custom");
+  });
+
+  test("a tile of Your shaders is applied with one click and has Edit, Duplicate, Rename and Delete", async ({
+    page,
+  }) => {
+    await openAnimated(page);
+    await region(page).getByRole("button", { name: "New shader" }).click();
+    await editor(page).getByRole("textbox", { name: "Shader name" }).fill("Glow");
+    await expect.poll(() => stored(page)).toContain('"Glow"');
+    await editor(page).getByRole("button", { name: "Done" }).click();
+
+    // Another look, then the shader again with one click.
+    await region(page).getByRole("button", { name: "Silk", exact: true }).click();
+    expect((await layers(page))[0]?.kind).toBe("liquid");
+    await region(page).getByRole("button", { name: "Glow", exact: true }).click();
+    expect((await layers(page))[0]).toMatchObject({ kind: "custom", name: "Glow" });
+
+    await region(page).getByRole("button", { name: "More for Glow" }).click();
+    await page.getByRole("menuitem", { name: "Duplicate" }).click();
+    await expect(
+      region(page).getByRole("button", { name: "Glow copy", exact: true }),
+    ).toBeVisible();
+
+    await region(page).getByRole("button", { name: "More for Glow copy" }).click();
+    await page.getByRole("menuitem", { name: "Rename" }).click();
+    const dialog = page.getByRole("dialog", { name: "Rename shader" });
+    await dialog.getByRole("textbox", { name: "Name" }).fill("Wobble");
+    await dialog.getByRole("button", { name: "Rename" }).click();
+    await expect(region(page).getByRole("button", { name: "Wobble", exact: true })).toBeVisible();
+    await expect(region(page).getByRole("button", { name: "Glow copy", exact: true })).toHaveCount(
+      0,
+    );
+
+    await region(page).getByRole("button", { name: "More for Wobble" }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await expect(region(page).getByRole("button", { name: "Wobble", exact: true })).toHaveCount(0);
+    await expect(page.getByText("Deleted “Wobble”")).toBeVisible();
+    await page.getByRole("button", { name: "Undo" }).last().click();
+    await expect(region(page).getByRole("button", { name: "Wobble", exact: true })).toBeVisible();
+
+    // Edit opens the editor on it again.
+    await region(page).getByRole("button", { name: "More for Glow", exact: true }).click();
+    await page.getByRole("menuitem", { name: "Edit shader" }).click();
+    await expect(editor(page)).toBeVisible();
+    await expect(editor(page).getByRole("textbox", { name: "Shader name" })).toHaveValue("Glow");
+    await page.keyboard.press("Escape");
+    await expect(editor(page)).toHaveCount(0);
+  });
+
+  test("in the Studio, Write new shader adds a layer at once and Done returns to the Studio", async ({
     page,
   }) => {
     const studio = await openStudio(page);
-    await newShader(page, studio);
-    await expect(editor(page).getByRole("status", { name: "Compile status" })).toHaveText(
-      "Compiled",
-    );
-    await expect(editor(page).getByText(/3 parameters found: speed, scale, soft/)).toBeVisible();
-    const params = editor(page).getByRole("region", { name: "Parameters" });
-    for (const name of ["speed", "scale", "soft"])
-      await expect(params.getByText(name, { exact: true })).toBeVisible();
-    await expect(editor(page).getByText("GLSL ES 1.00 · WebGL 1")).toBeVisible();
-    await page.screenshot({ path: "test-results/shader-editor.png" });
+    await writeInStudio(page, studio);
+    await expect(chip(page)).toHaveText("Saved · works");
     await editor(page).getByRole("textbox", { name: "Shader name" }).fill("Glow");
-    await editor(page).getByRole("button", { name: "Apply" }).click();
+    await editor(page).getByRole("button", { name: "Done" }).click();
     await expect(editor(page)).toHaveCount(0);
-    const list = await layers(page);
-    expect(list).toHaveLength(5);
-    // The document is untouched until the Studio's own Apply; the Studio shows the new layer on top.
     await expect(
       studio.getByRole("list", { name: "Layers" }).getByRole("listitem").first(),
     ).toHaveAttribute("aria-label", "Glow");
     await expect(studio.getByText("Custom shader · Generator")).toBeVisible();
+    // The document is untouched until the Studio's own Apply.
+    expect(await layers(page)).toHaveLength(5);
     await studio.getByRole("button", { name: "Apply" }).click();
-    const applied = (await layers(page)).at(-1);
-    expect(applied).toMatchObject({ kind: "custom", name: "Glow", role: "generator" });
-    expect(applied?.code).toContain("void main()");
+    expect((await layers(page)).at(-1)).toMatchObject({
+      kind: "custom",
+      name: "Glow",
+      role: "generator",
+    });
+    // And it is kept for later: it comes back from the Add menu of a new Studio.
+    await page.getByRole("button", { name: "Open Background Studio" }).click();
+    const again = page.getByRole("dialog", { name: "Background Studio" });
+    await again.getByRole("button", { name: "Add", exact: true }).click();
+    await expect(page.getByRole("menuitem", { name: "Glow Generator" })).toBeVisible();
   });
 
-  test("a mistake names its line, keeps the last working version and blocks Apply", async ({
+  test("a mistake names its line, the preview keeps the last version and the shader stays saved", async ({
     page,
   }) => {
     const studio = await openStudio(page);
-    await newShader(page, studio);
+    await writeInStudio(page, studio);
+    await expect(chip(page)).toHaveText("Saved · works");
     const text = await code(page).inputValue();
     await code(page).fill(text.replace("sin(p.x", "sinn(p.x"));
-    await expect(editor(page).getByRole("status", { name: "Compile status" })).toHaveText("Error");
+    await expect(chip(page)).toHaveText("Saved · has a mistake");
     await expect(editor(page).getByText(/Line 16:.*sinn/)).toBeVisible();
     await expect(
-      editor(page).getByText("The preview keeps showing the last working version."),
+      editor(page).getByText("The preview keeps showing the last version that worked."),
     ).toBeVisible();
-    await expect(editor(page).getByRole("button", { name: "Apply" })).toBeDisabled();
     await code(page).fill(text);
-    await expect(editor(page).getByRole("status", { name: "Compile status" })).toHaveText(
-      "Compiled",
-    );
-    await expect(editor(page).getByRole("button", { name: "Apply" })).toBeEnabled();
+    await expect(chip(page)).toHaveText("Saved · works");
   });
 
   test("code over the limit is too long, and says so", async ({ page }) => {
     const studio = await openStudio(page);
-    await newShader(page, studio, "A blank file");
+    await writeInStudio(page, studio);
     await code(page).fill(`// ${"x".repeat(17000)}\nvoid main() { gl_FragColor = vec4(1.0); }`);
-    await expect(editor(page).getByRole("status", { name: "Compile status" })).toHaveText(
-      "Too long",
-    );
+    await expect(chip(page)).toHaveText("Too long");
     await expect(editor(page).getByText("The code is too long to compile")).toBeVisible();
-    await expect(editor(page).getByTestId("code-size")).toHaveText("Too long");
-    await expect(editor(page).getByRole("button", { name: "Apply" })).toBeDisabled();
   });
 
-  test("an example that is an effect switches the shader to Effect and the preview to Result and Input", async ({
+  test("whether it draws or changes the picture is read from the code, with no switch", async ({
     page,
   }) => {
     const studio = await openStudio(page);
-    await newShader(page, studio, "A blank file");
+    await writeInStudio(page, studio);
+    await expect(editor(page).getByRole("radio", { name: "Effect" })).toHaveCount(0);
+    await expect(editor(page).getByText(/draws the background/)).toBeVisible();
     await editor(page).getByRole("button", { name: "Examples" }).click();
     await page.getByRole("menuitem", { name: /Light sweep/ }).click();
-    await expect(editor(page).getByRole("radio", { name: "Effect" })).toBeChecked();
-    await expect(editor(page).getByRole("radio", { name: "Result" })).toBeVisible();
-    await editor(page).getByRole("radio", { name: "Input" }).click();
-    await expect(editor(page).getByText("the layers below, as a picture")).toBeVisible();
-    await expect(editor(page).getByRole("status", { name: "Compile status" })).toHaveText(
-      "Compiled",
-    );
+    await expect(editor(page).getByText(/changes the picture below/)).toBeVisible();
+    await editor(page).getByRole("button", { name: "Done" }).click();
+    await expect(studio.getByText("Custom shader · Effect")).toBeVisible();
   });
 
-  test("the Settings tab shows the settings of the code and writes changes back into it", async ({
-    page,
-  }) => {
+  test("Add a setting writes the @param line and shows the control", async ({ page }) => {
     const studio = await openStudio(page);
-    await newShader(page, studio);
-    await editor(page).getByRole("tab", { name: "Settings" }).click();
-    const list = editor(page).getByRole("list", { name: "Settings" });
-    await expect(list.getByRole("listitem")).toHaveCount(3);
-    // The first setting is open already.
-    await expect(list.getByRole("button", { name: "speed setting" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    const label = editor(page).getByRole("textbox", { name: "Label", exact: true });
-    await label.fill("Pace");
-    await label.press("Enter");
-    await editor(page).getByRole("tab", { name: "fragment.glsl" }).click();
-    await expect(code(page)).toHaveValue(
-      /\/\/ @param float speed = 1\.00 \[0, 4\] step [0-9.]+ "Pace"|"Pace"/,
-    );
-    await editor(page).getByRole("tab", { name: "Settings" }).click();
-    await editor(page).getByRole("button", { name: "Add setting" }).click();
-    await expect(list.getByRole("listitem")).toHaveCount(4);
-    await editor(page).getByRole("button", { name: "Remove setting" }).click();
-    await expect(list.getByRole("listitem")).toHaveCount(3);
-    await editor(page).getByRole("tab", { name: "fragment.glsl" }).click();
-    await expect(code(page)).not.toHaveValue(/setting;/);
+    await writeInStudio(page, studio);
+    const settings = editor(page).getByRole("region", { name: "Settings" });
+    await expect(settings.getByText("speed", { exact: true })).toBeVisible();
+    await editor(page).getByRole("button", { name: "Add a setting" }).click();
+    await expect(code(page)).toHaveValue(/\/\/ @param float setting = /);
+    await expect(code(page)).toHaveValue(/uniform float setting;/);
+    await expect(settings.getByText("setting", { exact: true })).toBeVisible();
   });
 
-  test("the Reference tab filters its list and inserts a uniform into the code", async ({
-    page,
-  }) => {
+  test("Help holds the inputs, the helpers and the prompt for an AI", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const studio = await openStudio(page);
-    await newShader(page, studio, "A blank file");
-    await editor(page).getByRole("tab", { name: "Reference" }).click();
-    await expect(editor(page).getByText("noise(vec2)")).toBeVisible();
-    await editor(page).getByRole("textbox", { name: "Search inputs and helpers" }).fill("palette");
-    await expect(editor(page).getByText("noise(vec2)")).toHaveCount(0);
-    await expect(editor(page).getByText("u_palette[8]")).toBeVisible();
-    await editor(page).getByRole("textbox", { name: "Search inputs and helpers" }).fill("");
-    await editor(page).getByRole("button", { name: "Insert u_seed" }).click();
-    await expect(code(page)).toHaveValue(/uniform float u_seed;/);
-  });
-
-  test("Copy for AI shows the brief with or without the current code", async ({ page }) => {
-    const studio = await openStudio(page);
-    await newShader(page, studio);
-    await editor(page).getByRole("button", { name: "Copy for AI" }).click();
-    const panel = page.getByRole("dialog", { name: "Ask an AI to write your shader" });
-    await expect(
-      panel.getByText("LumenGrab has no built-in AI and sends nothing anywhere.", { exact: false }),
-    ).toBeVisible();
-    const brief = panel.getByTestId("ai-brief");
-    await expect(brief).toContainText("WebGL 1, GLSL ES 1.00");
-    await expect(brief).toContainText("MY CURRENT CODE");
-    await panel.getByRole("switch", { name: "Include my current code" }).click();
-    await expect(brief).not.toContainText("MY CURRENT CODE");
-    await panel.getByRole("button", { name: "Close" }).click();
-    await expect(panel).toHaveCount(0);
-  });
-
-  test("a shader is kept in My shaders and comes back from the Add menu", async ({ page }) => {
-    const studio = await openStudio(page);
-    await newShader(page, studio);
-    await editor(page).getByRole("textbox", { name: "Shader name" }).fill("Glow");
-    await editor(page).getByRole("button", { name: "Apply" }).click();
-    await studio.getByRole("button", { name: "Save to My shaders" }).click();
-    const dialog = page.getByRole("dialog", { name: "Save to My shaders" });
-    await expect(dialog.getByText(/speed 1\.0/i)).toBeVisible();
-    await dialog.getByRole("button", { name: "Save shader" }).click();
-    await expect(page.getByText("Saved “Glow” to My shaders")).toBeVisible();
-    await studio.getByRole("button", { name: "Add", exact: true }).click();
-    await page.getByRole("menuitem", { name: "Glow Generator" }).click();
-    await expect(
-      studio.getByRole("list", { name: "Layers" }).getByRole("listitem").first(),
-    ).toHaveAttribute("aria-label", "Glow");
-    expect(
-      (await page.evaluate(() =>
-        window.localStorage.getItem("lumengrab.mock.shaders.my-shaders"),
-      )) ?? "",
-    ).toContain('"Glow"');
+    await writeInStudio(page, studio);
+    await editor(page).getByRole("button", { name: "Help" }).click();
+    const help = editor(page).getByRole("dialog", { name: "Help for shaders" });
+    await expect(help.getByText("u_palette[8]")).toBeVisible();
+    await expect(help.getByText("noise(vec2)")).toBeVisible();
+    await expect(help.getByText("// @param float a = 1.0 [0, 4]")).toBeVisible();
+    await help.getByRole("button", { name: "Copy prompt for an AI" }).click();
+    await expect(page.getByText("Prompt copied. Paste it into your AI.")).toBeVisible();
+    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clip).toContain("WebGL 1, GLSL ES 1.00");
+    expect(clip).toContain("MY CURRENT CODE");
+    await page.keyboard.press("Escape");
+    await expect(help).toHaveCount(0);
+    // The first Escape closed the help only; the editor is still there.
+    await expect(editor(page)).toBeVisible();
   });
 
   test("a file from outside with shader code does not run it until the user allows it", async ({
@@ -220,36 +252,19 @@ test.describe("shader editor (browser mock)", () => {
     await expect(studio.getByText("Not run")).toBeVisible();
     // The editor opens read-only.
     await studio.getByRole("button", { name: "Open editor" }).click();
-    await expect(editor(page).getByRole("status", { name: "Compile status" })).toHaveText(
-      "Not run",
-    );
+    await expect(chip(page)).toHaveText("Not run");
     await expect(code(page)).not.toBeEditable();
     await expect(editor(page).getByText("Custom code is off")).toBeVisible();
-    await expect(editor(page).getByRole("button", { name: "Apply" })).toBeDisabled();
     await editor(page).getByRole("button", { name: "Run custom code" }).click();
-    await expect(editor(page).getByRole("status", { name: "Compile status" })).toHaveText(
-      "Compiled",
-    );
+    await expect(chip(page)).toHaveText(/works/i);
     await expect(code(page)).toBeEditable();
-    const stored = await page.evaluate(() =>
+    const trusted = await page.evaluate(() =>
       window.localStorage.getItem("lumengrab.mock.shaders.trusted"),
     );
-    expect(stored ?? "").toContain("documents");
-    await editor(page).getByRole("button", { name: "Cancel" }).click();
+    expect(trusted ?? "").toContain("documents");
+    await editor(page).getByRole("button", { name: "Done" }).click();
     await expect(studio.getByText("This file contains custom shader code")).toHaveCount(0);
-  });
-
-  test("Cancel with changes asks first", async ({ page }) => {
-    const studio = await openStudio(page);
-    await newShader(page, studio);
-    await editor(page).getByRole("button", { name: "Cancel" }).click();
-    await expect(editor(page)).toHaveCount(0); // nothing changed since the example was chosen
-    await newShader(page, studio);
-    await code(page).fill("// changed\n");
-    await editor(page).getByRole("button", { name: "Cancel" }).click();
-    const dialog = page.getByRole("dialog", { name: "Discard changes?" });
-    await expect(dialog).toBeVisible();
-    await dialog.getByRole("button", { name: "Keep editing" }).click();
-    await expect(editor(page)).toBeVisible();
+    // Opening it and leaving without a change does not put it in Your shaders.
+    expect(await stored(page)).not.toContain('"Glow"');
   });
 });

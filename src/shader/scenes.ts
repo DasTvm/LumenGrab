@@ -1,6 +1,7 @@
 import { kindById } from "./kinds";
-import { newLayer, newScene } from "./scene";
-import type { BlendMode, ShaderLayer, ShaderParamValue, ShaderScene } from "./types";
+import { SHADER_LIMITS } from "@/document/limits";
+import { newCustomLayer, newLayer, newScene } from "./scene";
+import type { BlendMode, LayerRole, ShaderLayer, ShaderParamValue, ShaderScene } from "./types";
 
 /**
  * The scenes that ship with the Studio: the "Start from..." templates and the animated looks of the
@@ -357,3 +358,38 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
       ),
   },
 ];
+
+/** What a shader of yours is, as far as a scene is concerned. */
+export interface ShaderSource {
+  name: string;
+  role: LayerRole;
+  code: string;
+  values: ShaderLayer["params"];
+}
+
+/** The layer of a scene that runs this shader (same name and same code), if any. */
+export const findShaderLayer = (
+  scene: ShaderScene,
+  shader: ShaderSource,
+): ShaderLayer | undefined =>
+  scene.layers.find(
+    (l) => l.kind === "custom" && l.code === shader.code && (l.name ?? "") === shader.name,
+  );
+
+/**
+ * A scene for a shader of yours: a generator is the whole background; an effect goes on top of the background
+ * you have (or on the first look when that is not an animated one), because it has nothing to change on its own.
+ */
+export function sceneWithShader(
+  shader: ShaderSource,
+  current: ShaderScene | null,
+): { scene: ShaderScene; layerId: string } {
+  const layer = newCustomLayer(shader.role, shader.name, shader.code, { ...shader.values });
+  if (shader.role === "effect") {
+    const base = current ?? ANIMATED_LOOKS[0]?.make() ?? newScene();
+    const kept = base.layers.slice(-(SHADER_LIMITS.maxLayers - 1));
+    return { scene: { ...base, layers: [...kept, layer] }, layerId: layer.id };
+  }
+  const blank = TEMPLATES.find((t) => t.id === "blank")?.make() ?? newScene();
+  return { scene: { ...blank, loop: 20, poster: 6, layers: [layer] }, layerId: layer.id };
+}
