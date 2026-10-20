@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-20T17:08:24.966Z",
+  "generatedAt": "2026-10-20T18:22:08.082Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -709,6 +709,13 @@
       "category": "fixed",
       "title": "export yields after every frame, longer timeouts for the encoder tests, no screenshot of a moving panel",
       "url": "https://github.com/DasTvm/LumenGrab/commit/da30bc5ce9d0536e89b2e0b9173e56b33dacd68b"
+    },
+    {
+      "id": "7d4f6c29a83ce7f6660728dd88cd2b8e50fa92a0",
+      "date": "2026-10-20T18:21:57Z",
+      "category": "fixed",
+      "title": "WebGL contexts are no longer used up by the availability check, a lost context is rebuilt; calmer, more polished animated looks with quick settings (speed, colours, key sliders)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/7d4f6c29a83ce7f6660728dd88cd2b8e50fa92a0"
     }
   ],
   "releases": [],
@@ -813,7 +820,8 @@
     "42dec9e4803e4194abe57afe889efd6bc95d4615",
     "f3eb151ea259e8c0d7f75d8595d3fc482b4abb43",
     "ca987ba64c97731a17cf9b3b0da34c1c0520a224",
-    "da30bc5ce9d0536e89b2e0b9173e56b33dacd68b"
+    "da30bc5ce9d0536e89b2e0b9173e56b33dacd68b",
+    "7d4f6c29a83ce7f6660728dd88cd2b8e50fa92a0"
   ],
   "roadmap": {
     "schemaVersion": 1,
