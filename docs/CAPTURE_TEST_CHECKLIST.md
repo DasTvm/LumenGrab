@@ -5,8 +5,7 @@ Hotkeys (both OS): **Ctrl+Shift+1** is the main one (capture bar, starts in the 
 The quick picks start straight in one mode, without the bar: **Ctrl+Shift+4** area, **Ctrl+Shift+5** window, **Ctrl+Shift+3** fullscreen.
 
 **How to report:** one row per setup: machine, OS version, monitors (resolution, scale %, arrangement), result per
-section, notes, screenshot. Attach the spike reports from `tools/capture-spike` (see its README; on Windows run
-it twice: default and `--features wgc`).
+section, notes, screenshot.
 
 ## Expected output size (read this first)
 

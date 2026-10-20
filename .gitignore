@@ -35,7 +35,7 @@ Desktop.ini
 # local agent settings
 .claude/settings.local.json
 
-# capture spike output: reports contain window titles of the developer's desktop, PNGs are real screenshots
+# diagnostic reports contain window titles of a desktop, PNGs are real screenshots
 report-*.md
 capture-spike-out/
 lumengrab-capture-spike/

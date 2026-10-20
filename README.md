@@ -45,7 +45,7 @@ always flat, with redactions baked in and the pixels destroyed.
 
 - No accounts, no login, no telemetry.
 - Everything (OCR, redaction, any AI-style feature) runs on your device.
-- No network access except update checks and upload targets **you** configure yourself. The update check asks GitHub for one small file with the latest version number and sends nothing about you; you can turn the daily check off in Settings > Updates.
+- No network access except update checks and upload targets **you** configure yourself. The update check asks GitHub for one small file with the latest version number and sends nothing about you (GitHub sees your IP address, as any website does); you can turn the daily check off in Settings > Updates. More in [SECURITY.md](SECURITY.md).
 - No servers run by us. There is no backend and there never will be one.
 
 ## License

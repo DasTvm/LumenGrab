@@ -7,7 +7,7 @@ been run on Windows hardware (see "Open gates").
 
 M1 needs screen, window and area capture on macOS and Windows with correct multi-monitor and mixed-DPI behaviour.
 AGENTS.md says to evaluate `xcap` and `scap` and to wrap the choice behind our own `Capturer` trait, so the
-backend stays swappable. The spike in `tools/capture-spike` (standalone crate, not part of the app) compares the
+backend stays swappable. The spike that was kept in `tools/capture-spike` until the decision was final (a standalone crate, never part of the app; removed since, see the git history) compared the
 candidates: on macOS `xcap` against ScreenCaptureKit, on Windows `xcap` with GDI against `xcap` with WGC.
 
 Evidence is tagged: **[measured]** = run on the dev Mac (macOS 27.0, arm64, two displays: built-in 1920x1243 pt at 2x and an
@@ -169,7 +169,7 @@ Release build, dev Mac (two 2x displays, 3840x2486 and 5120x2880), `cargo build 
 
 - The `Capturer` trait and the thin `platform/{macos,windows}` split from the M1 plan are unchanged; only the macOS implementation behind the trait is ScreenCaptureKit instead of xcap.
 - Phase B adds the rpath line to `src-tauri/build.rs`, a Swift toolchain note to README/CI, and `minimumSystemVersion`.
-- `tools/capture-spike` stays as a diagnostic until the Windows decision is final, then can be deleted or kept.
+- `tools/capture-spike` was a diagnostic until the Windows decision was final; it has been removed.
 
 ## Quick Access (M2): decisions and findings
 

@@ -9,7 +9,6 @@ test-results
 # hand-maintained, binding project docs: never auto-reformat
 AGENTS.md
 CLAUDE.md
-KICKOFF_PROMPT.md
 docs/FORMAT.md
 NOTICE
 # brand files maintained by the designer
