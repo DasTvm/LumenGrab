@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-20T19:30:24.023Z",
+  "generatedAt": "2026-10-20T19:31:26.036Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -751,6 +751,13 @@
       "category": "fixed",
       "title": "rustls-webpki 0.103.16 and webpki-root-certs 1.0.10 (the update check's TLS; RUSTSEC-2026-0382 and 0383)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/ab524050cbdfeec2cb57dbd826f9a28ad2d228a7"
+    },
+    {
+      "id": "9c2d33feb280a0d32c1e38314f6d0e0ab74a6521",
+      "date": "2026-10-20T19:31:14Z",
+      "category": "internal",
+      "title": "bump vite from 8.3.2 to 8.3.3 (#3)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/9c2d33feb280a0d32c1e38314f6d0e0ab74a6521"
     }
   ],
   "releases": [],
@@ -861,7 +868,8 @@
     "7fd225d6de0a647bdf821772db05c2eeefd27e0a",
     "97d68f29cb39b1f2a494487fd7f6a7ffc5035592",
     "d7b589375e173fad659af79d7a51244d10f1feaa",
-    "ab524050cbdfeec2cb57dbd826f9a28ad2d228a7"
+    "ab524050cbdfeec2cb57dbd826f9a28ad2d228a7",
+    "9c2d33feb280a0d32c1e38314f6d0e0ab74a6521"
   ],
   "roadmap": {
     "schemaVersion": 1,
