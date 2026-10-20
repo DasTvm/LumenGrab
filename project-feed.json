@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-20T18:49:30.978Z",
+  "generatedAt": "2026-10-20T19:04:56.207Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -730,6 +730,13 @@
       "category": "fixed",
       "title": "ask ScreenCaptureKit when the permission preflight says no; permission window offers the tccutil reset; release workflow signs and notarizes when the Apple secrets exist",
       "url": "https://github.com/DasTvm/LumenGrab/commit/7fd225d6de0a647bdf821772db05c2eeefd27e0a"
+    },
+    {
+      "id": "97d68f29cb39b1f2a494487fd7f6a7ffc5035592",
+      "date": "2026-10-20T19:04:44Z",
+      "category": "new",
+      "title": "a simpler way to write your own shader (design: Shader flow)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/97d68f29cb39b1f2a494487fd7f6a7ffc5035592"
     }
   ],
   "releases": [],
@@ -837,7 +844,8 @@
     "da30bc5ce9d0536e89b2e0b9173e56b33dacd68b",
     "7d4f6c29a83ce7f6660728dd88cd2b8e50fa92a0",
     "9f3bf0953ac04ba6cc65a13dba02df2df7ad1005",
-    "7fd225d6de0a647bdf821772db05c2eeefd27e0a"
+    "7fd225d6de0a647bdf821772db05c2eeefd27e0a",
+    "97d68f29cb39b1f2a494487fd7f6a7ffc5035592"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -1087,7 +1095,7 @@
           },
           {
             "id": "task-4",
-            "title": "Fourteen animated looks in the Presentation panel, a still frame and a switch for the animation",
+            "title": "Twelve animated looks in the Presentation panel, a still frame and a switch for the animation",
             "done": true
           },
           {
@@ -1118,6 +1126,16 @@
           {
             "id": "task-10",
             "title": "Animated default look for new screenshots (uses the still frame)",
+            "done": true
+          },
+          {
+            "id": "task-12",
+            "title": "Calmer, softer animated looks that you can tune (speed, colours, key sliders) without the Studio",
+            "done": true
+          },
+          {
+            "id": "task-13",
+            "title": "A simpler way to write your own shader: New shader in one click, saved by itself, one Done button, Your shaders with a menu",
             "done": true
           },
           {
