@@ -145,7 +145,8 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
     await page.waitForTimeout(700);
     const second = await shot();
     expect(Buffer.compare(first, second), "the picture moves").not.toBe(0);
-    await page.getByRole("switch", { name: "Animate in editor" }).click();
+    // Software WebGL keeps the page busy while it plays, so the click does not wait for the switch to hold still.
+    await page.getByRole("switch", { name: "Animate in editor" }).click({ force: true });
     await page.waitForTimeout(150);
     const still = await shot();
     await page.waitForTimeout(500);
@@ -162,6 +163,8 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
   test("Use this frame as picture turns the animation into an image, and undo brings it back", async ({
     page,
   }) => {
+    // Not about playing: start paused (software WebGL is slow in CI).
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await open(page);
     await toAnimated(page);
     await page.getByRole("button", { name: "Use this frame as picture" }).click();
