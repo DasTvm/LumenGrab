@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-20T18:32:32.255Z",
+  "generatedAt": "2026-10-20T18:49:30.978Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -723,6 +723,13 @@
       "category": "internal",
       "title": "animated tests that do not need playback start paused; the switch click does not wait for a busy page to hold still",
       "url": "https://github.com/DasTvm/LumenGrab/commit/9f3bf0953ac04ba6cc65a13dba02df2df7ad1005"
+    },
+    {
+      "id": "7fd225d6de0a647bdf821772db05c2eeefd27e0a",
+      "date": "2026-10-20T18:49:16Z",
+      "category": "fixed",
+      "title": "ask ScreenCaptureKit when the permission preflight says no; permission window offers the tccutil reset; release workflow signs and notarizes when the Apple secrets exist",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/7fd225d6de0a647bdf821772db05c2eeefd27e0a"
     }
   ],
   "releases": [],
@@ -829,7 +836,8 @@
     "ca987ba64c97731a17cf9b3b0da34c1c0520a224",
     "da30bc5ce9d0536e89b2e0b9173e56b33dacd68b",
     "7d4f6c29a83ce7f6660728dd88cd2b8e50fa92a0",
-    "9f3bf0953ac04ba6cc65a13dba02df2df7ad1005"
+    "9f3bf0953ac04ba6cc65a13dba02df2df7ad1005",
+    "7fd225d6de0a647bdf821772db05c2eeefd27e0a"
   ],
   "roadmap": {
     "schemaVersion": 1,
