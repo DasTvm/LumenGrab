@@ -268,7 +268,7 @@ The GLSL of the built-in kinds in `src/shader/glsl.ts` is the reference for thei
 | `pixelate` | effect | `size` 12 px (2 to 200), `square` true, `amount` 1, `animate` false |
 | `posterize` | effect | `levels` 5 (2 to 16), `amount` 1 |
 | `vignette` | effect | `amount` 0.4, `softness` 0.5, `roundness` 0.5 |
-| `grain` | effect | `amount` 0.3, `size` 1.2 px (0.5 to 6), `animate` true (the grain changes 12 times per cycle of `speed`) |
+| `grain` | effect | `amount` 0.3, `size` 1.2 px (0.5 to 6), `animate` false (when true, the grain changes 12 times per cycle of `speed`; a still grain does not flicker, so it is the default) |
 | `glow` | effect | `threshold` 0.6, `radius` 0.06 (0.005 to 0.2), `intensity` 0.8 (0 to 2) |
 | `grade` | effect | `brightness` 0 (-100 to 100), `contrast` 0 (-100 to 100), `saturation` 1 (0 to 3), `hue` 0 (-180 to 180), `tint`, `tintAmount` 0 |
 

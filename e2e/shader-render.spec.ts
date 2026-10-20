@@ -123,6 +123,51 @@ test("WebGL draws in this browser", async ({ page }) => {
   expect(ok).toBe(true);
 });
 
+test("asking for WebGL again and again does not take the contexts of the renderers away", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const drawn = await page.evaluate(async () => {
+    const load = async <T>(path: string): Promise<T> =>
+      (await import(/* @vite-ignore */ path)) as T;
+    const { sharedRenderer, webglAvailable } =
+      await load<typeof Renderer>("/src/shader/renderer.ts");
+    const { ANIMATED_LOOKS } = await load<typeof Scenes>("/src/shader/scenes.ts");
+    const scene = ANIMATED_LOOKS[0]?.make();
+    const renderer = sharedRenderer("test");
+    if (!renderer || !scene) return false;
+    if (!renderer.render(scene, 1, 64, 36).drawn) return false;
+    // A component that asked on every render made a new context each time; the browser then dropped the oldest.
+    for (let i = 0; i < 60; i += 1) webglAvailable();
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    return renderer.render(scene, 1, 64, 36).drawn;
+  });
+  expect(drawn).toBe(true);
+});
+
+test("a renderer whose context is gone for good builds a new one and draws again", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const load = async <T>(path: string): Promise<T> =>
+      (await import(/* @vite-ignore */ path)) as T;
+    const { ShaderRenderer } = await load<typeof Renderer>("/src/shader/renderer.ts");
+    const { ANIMATED_LOOKS } = await load<typeof Scenes>("/src/shader/scenes.ts");
+    const scene = ANIMATED_LOOKS[0]?.make();
+    if (!scene) return null;
+    const renderer = new ShaderRenderer();
+    const before = renderer.render(scene, 1, 64, 36).drawn;
+    const gl = renderer.canvas.getContext("webgl");
+    gl?.getExtension("WEBGL_lose_context")?.loseContext();
+    const during = renderer.render(scene, 1, 64, 36).drawn;
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const after = renderer.render(scene, 1, 64, 36).drawn;
+    return { before, during, after };
+  });
+  expect(result).toEqual({ before: true, during: false, after: true });
+});
+
 test("every animated look draws something that is not flat, and none reports an error", async ({
   page,
 }) => {
@@ -133,7 +178,7 @@ test("every animated look draws something that is not flat, and none reports an 
     const { ANIMATED_LOOKS } = await load<typeof Scenes>("/src/shader/scenes.ts");
     return ANIMATED_LOOKS.map((l) => l.id);
   });
-  expect(names).toHaveLength(14);
+  expect(names).toHaveLength(12);
   for (const id of names) {
     const scene = await page.evaluate(async (lookId) => {
       const load = async <T>(path: string): Promise<T> =>
@@ -194,12 +239,12 @@ test("a loop closes: the last moment is as close to the first as one step of the
     // The film grain changes in steps, so it is left out of the comparison of two close moments.
     return made ? { ...made, layers: made.layers.filter((l) => l.kind !== "grain") } : made;
   });
-  const loop = 8;
+  const loop = scene?.loop ?? 8;
   const step = loop / 240;
   const seam = await diff(page, scene, loop - step, scene, 0);
-  const normal = await diff(page, scene, 3, scene, 3 + step);
+  const normal = await diff(page, scene, loop * 0.4, scene, loop * 0.4 + step);
   expect(seam).toBeLessThan(normal * 1.5 + 0.5);
-  expect(await diff(page, scene, 0, scene, 4), "the animation moves").toBeGreaterThan(1);
+  expect(await diff(page, scene, 0, scene, loop / 2), "the animation moves").toBeGreaterThan(1);
   expect(await diff(page, scene, loop, scene, 0)).toBeLessThan(0.01);
 });
 

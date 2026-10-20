@@ -196,9 +196,9 @@ const AURORA_BODY = `void main() {
       + (lgNoise(vec2(p.x * 0.9 + fi * 5.3, fi * 3.7) + circ(u_a, 0.5)) - 0.5) * 0.5
       + (fi - 1.0) * 0.28;
     float d = p.y - w;
-    float edge = exp(min(d, 0.0) * 26.0);
+    float edge = exp(min(d, 0.0) * 13.0);
     float fade = exp(-max(d, 0.0) * 4.2);
-    float rays = 0.35 + 0.65 * lgNoise(vec2(p.x * 12.0 + fi * 7.0, d * 2.0) + circ(u_a, 0.3));
+    float rays = 0.55 + 0.45 * lgNoise(vec2(p.x * 4.5 + fi * 7.0, d * 1.2) + circ(u_a, 0.3));
     float v = edge * fade * rays;
     col += lpal(fi) * v;
     acc += v;

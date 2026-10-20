@@ -8,11 +8,14 @@ import type { Look } from "@/presentation/looks";
 import { computeLayout } from "@/presentation/compose";
 import { renderFramePng } from "@/shader/freeze";
 import { webglAvailable } from "@/shader/renderer";
+import { setParam } from "@/shader/edit";
+import { colourCount, loopAt, quickSettings, speedPosition, withLoop } from "@/shader/quick";
 import { ANIMATED_LOOKS, TEMPLATES } from "@/shader/scenes";
 import { posterSeconds } from "@/shader/scene";
 import type { ShaderScene } from "@/shader/types";
 import { Slider } from "../controls";
 import { useStores, useUi } from "../context";
+import { ColorPicker } from "../ColorPicker";
 import { applyLookToDocument } from "./apply-look";
 import { FreezeDialog } from "./dialogs";
 import { looksStore, useLooks } from "./looks-instance";
@@ -30,6 +33,10 @@ export const ANIMATED_LOOK_LIST: readonly Look[] = ANIMATED_LOOKS.map((l) => ({
 function sameLook(a: ShaderScene, b: ShaderScene): boolean {
   return JSON.stringify({ ...a, poster: 0 }) === JSON.stringify({ ...b, poster: 0 });
 }
+
+/** The layers of a scene by kind and id: a look that was tuned (colours, speed, sliders) keeps this. */
+const signature = (scene: ShaderScene): string =>
+  scene.layers.map((l) => `${l.kind}:${l.id}`).join("|");
 
 const WIDTH = 88;
 const HEIGHT = 58;
@@ -97,6 +104,140 @@ function Tile({
   );
 }
 
+function Swatch({
+  label,
+  color,
+  open,
+  onClick,
+}: {
+  label: string;
+  color: string;
+  open: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-expanded={open}
+      className={cn(
+        "size-6 shrink-0 rounded-md border border-black/10",
+        open && "ring-2 ring-primary ring-offset-1 ring-offset-card",
+      )}
+      style={{ background: color }}
+      onClick={onClick}
+    />
+  );
+}
+
+/** The things worth changing without the Studio: speed, colours and the one or two sliders that matter. */
+function Customise({ bg }: { bg: ShaderScene }) {
+  const { set, start, end } = usePresentation();
+  const sliders = quickSettings(bg);
+  const colours = colourCount(bg);
+  const [picking, setPicking] = useState<number | "base" | null>(null);
+  const edit = (change: (scene: ShaderScene) => ShaderScene) => {
+    set((draft) => {
+      if (draft.background.type === "shader") draft.background = change(draft.background);
+    });
+  };
+  const row = (label: string, control: React.ReactNode, hint?: string) => (
+    <div key={label} className="flex items-center gap-2.5">
+      <span className="w-[68px] shrink-0 text-xs font-medium">{label}</span>
+      <div className="min-w-0 flex-1">{control}</div>
+      {hint ? (
+        <span className="w-9 shrink-0 text-right text-[11px] text-muted-foreground">{hint}</span>
+      ) : null}
+    </div>
+  );
+  return (
+    <div className="flex flex-col gap-2.5" role="group" aria-label="Customise">
+      <h4 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+        Customise
+      </h4>
+      {row(
+        "Speed",
+        <Slider
+          label="Speed"
+          value={Math.round(speedPosition(bg.loop) * 100)}
+          min={0}
+          max={100}
+          onStart={start}
+          onEnd={end}
+          onChange={(v) => {
+            edit((scene) => withLoop(scene, loopAt(v / 100)));
+          }}
+        />,
+        `${String(Math.round(bg.loop))} s`,
+      )}
+      <div className="relative flex flex-col gap-2.5">
+        {row(
+          "Colours",
+          <div className="flex flex-wrap items-center gap-1.5">
+            {bg.palette.slice(0, colours).map((color, i) => (
+              <Swatch
+                key={i}
+                label={`Colour ${String(i + 1)}`}
+                color={color}
+                open={picking === i}
+                onClick={() => {
+                  setPicking(picking === i ? null : i);
+                }}
+              />
+            ))}
+          </div>,
+        )}
+        {row(
+          "Base",
+          <Swatch
+            label="Base colour"
+            color={bg.fallback}
+            open={picking === "base"}
+            onClick={() => {
+              setPicking(picking === "base" ? null : "base");
+            }}
+          />,
+        )}
+        {picking !== null ? (
+          <ColorPicker
+            key={String(picking)}
+            value={picking === "base" ? bg.fallback : (bg.palette[picking] ?? bg.fallback)}
+            onStart={start}
+            onEnd={end}
+            onClose={() => {
+              setPicking(null);
+            }}
+            onChange={(hex) => {
+              edit((scene) =>
+                picking === "base"
+                  ? { ...scene, fallback: hex }
+                  : { ...scene, palette: scene.palette.map((c, at) => (at === picking ? hex : c)) },
+              );
+            }}
+          />
+        ) : null}
+      </div>
+      {sliders.map(({ layerId, spec, label, value }) =>
+        row(
+          label,
+          <Slider
+            label={label}
+            value={value}
+            min={spec.min}
+            max={spec.max}
+            step={spec.step}
+            onStart={start}
+            onEnd={end}
+            onChange={(v) => {
+              edit((scene) => setParam(scene, layerId, spec.id, v));
+            }}
+          />,
+        ),
+      )}
+    </div>
+  );
+}
+
 /**
  * The Animated tab of the background section (design: Studio / Animated tab): the animated looks, yours,
  * the Studio, the still frame, whether the animation plays in the editor, and "Use this frame as picture".
@@ -108,12 +249,14 @@ export function AnimatedEditor({ bg }: { bg: ShaderScene }) {
   const size = usePictureSize();
   const own = useLooks((s) => s.looks).filter((l) => l.parts.background?.type === "shader");
   const animate = useUi((s) => s.animate);
+  const lastLookId = useUi((s) => s.animatedLook);
   const reduced = useReducedMotion();
   const canvasOk = webglAvailable();
   const [freeze, setFreeze] = useState<{ bytes: Uint8Array; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const apply = (look: Look) => {
+    ui.getState().setAnimatedLook(look.id);
     void applyLookToDocument(look, { editor, ui, session, width });
   };
   const defaultLook = useLooks((s) => s.defaultLook);
@@ -125,10 +268,16 @@ export function AnimatedEditor({ bg }: { bg: ShaderScene }) {
     const b = look.parts.background;
     return b?.type === "shader" ? b : null;
   };
-  const active = (look: Look) => {
-    const s = sceneOf(look);
+  const exact = [...ANIMATED_LOOK_LIST, ...own].find((l) => {
+    const s = sceneOf(l);
     return s !== null && sameLook(s, bg);
-  };
+  });
+  const tuned = [...ANIMATED_LOOK_LIST, ...own].find((l) => {
+    const s = sceneOf(l);
+    return l.id === lastLookId && s !== null && signature(s) === signature(bg);
+  });
+  const chosen = exact?.id ?? tuned?.id ?? null;
+  const active = (look: Look) => look.id === chosen;
   const poster = Math.round(posterSeconds(bg) * 10) / 10;
 
   const prepareFreeze = async () => {
@@ -198,6 +347,7 @@ export function AnimatedEditor({ bg }: { bg: ShaderScene }) {
           />
         ))}
       </div>
+      <Customise bg={bg} />
       <div className="flex flex-col gap-2">
         <h4 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
           Your animated looks

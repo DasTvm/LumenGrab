@@ -68,6 +68,8 @@ export interface UiState {
   panning: boolean;
   /** An animated background plays in the editor while you edit ("Animate in editor"). */
   animate: boolean;
+  /** The animated look chosen last, so it stays marked while the user tunes it. */
+  animatedLook: string | null;
   /** The Background Studio is open on top of the editor. */
   studio: boolean;
   /** The custom shader code of this document may run (false for a file from outside until the user allows it). */
@@ -97,6 +99,7 @@ export interface UiActions {
   setEditing(editing: { id: string; isNew: boolean } | null): void;
   setCrop(crop: CropDraft | null): void;
   setAnimate(animate: boolean): void;
+  setAnimatedLook(id: string | null): void;
   setStudio(open: boolean): void;
   setCodeAllowed(allowed: boolean): void;
   bumpCode(): void;
@@ -126,6 +129,7 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     editing: null,
     crop: null,
     animate: true,
+    animatedLook: null,
     studio: false,
     codeAllowed: true,
     codeVersion: 0,
@@ -191,6 +195,9 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setCrop: (crop) => {
       set({ crop });
+    },
+    setAnimatedLook: (animatedLook) => {
+      set({ animatedLook });
     },
     setAnimate: (animate) => {
       set({ animate });

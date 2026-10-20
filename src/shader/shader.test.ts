@@ -254,7 +254,7 @@ describe("the numbers a pass receives", () => {
 describe("the scenes that ship", () => {
   it("fit the file format, with a unique id for every layer", () => {
     const all = [...TEMPLATES.map((t) => t.make()), ...ANIMATED_LOOKS.map((l) => l.make())];
-    expect(ANIMATED_LOOKS).toHaveLength(14);
+    expect(ANIMATED_LOOKS).toHaveLength(12);
     expect(TEMPLATES.map((t) => t.name)).toEqual([
       "Aurora night",
       "Soft orbs",

@@ -351,7 +351,7 @@ export const KINDS: readonly KindDef[] = [
     specs: [
       percent("amount", "Amount", "Effect", 0.3),
       num("size", "Grain size", "Effect", 0.5, 6, 1.2, { unit: "px", step: 0.1, decimals: 1 }),
-      bool("animate", "Animate the grain", "Motion", true),
+      bool("animate", "Animate the grain", "Motion", false),
     ],
   },
   {

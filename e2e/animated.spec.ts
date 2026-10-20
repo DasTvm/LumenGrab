@@ -20,7 +20,7 @@ const toAnimated = async (page: Page) => {
 };
 
 test.describe("animated backgrounds in the Presentation panel (browser mock)", () => {
-  test("the Animated tab shows the fourteen looks, yours, the Studio button and the still frame", async ({
+  test("the Animated tab shows the twelve looks, yours, the Studio button and the still frame", async ({
     page,
   }) => {
     await open(page);
@@ -29,19 +29,17 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
     expect(p.background.type).toBe("shader");
     for (const name of [
       "Aurora",
-      "Orbs",
-      "Waves",
-      "Liquid",
-      "Cells",
-      "Ripples",
-      "Rays",
-      "Starfield",
-      "Weave",
+      "Nebula",
+      "Silk",
+      "Ink",
+      "Dusk",
       "Haze",
-      "Sunrise",
-      "Lava",
-      "Glacier",
+      "Mist",
+      "Tide",
+      "Ember",
       "Midnight",
+      "Spotlight",
+      "Mint",
     ]) {
       await expect(
         page.getByRole("region", { name: "Background" }).getByRole("button", { name, exact: true }),
@@ -55,11 +53,11 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
   test("a look applies at once, is marked, and one undo takes it back", async ({ page }) => {
     await open(page);
     await toAnimated(page);
-    const lava = page
+    const ember = page
       .getByRole("region", { name: "Background" })
-      .getByRole("button", { name: "Lava", exact: true });
-    await lava.click();
-    await expect(lava).toHaveAttribute("aria-pressed", "true");
+      .getByRole("button", { name: "Ember", exact: true });
+    await ember.click();
+    await expect(ember).toHaveAttribute("aria-pressed", "true");
     const p = await presentation(page);
     expect(p.background).toMatchObject({ type: "shader", engine: 1 });
     expect((p.background as { layers: { kind: string }[] }).layers.map((l) => l.kind)).toContain(
@@ -91,6 +89,51 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
     expect(((await presentation(page)).background as { poster: number }).poster).toBe(
       before.poster,
     );
+  });
+
+  test("a look is tuned without the Studio: speed, colours and its own sliders, each one undo step, and the look stays marked", async ({
+    page,
+  }) => {
+    await open(page);
+    await toAnimated(page);
+    const region = page.getByRole("region", { name: "Background" });
+    const silk = region.getByRole("button", { name: "Silk", exact: true });
+    await silk.click();
+    const scene = async () =>
+      (await presentation(page)).background as {
+        loop: number;
+        poster: number;
+        palette: string[];
+        layers: { kind: string; params: Record<string, number> }[];
+      };
+    const first = await scene();
+    expect(first.loop).toBe(60);
+
+    // Speed: a shorter loop, and the still frame stays on the same picture.
+    const speed = region.getByRole("slider", { name: "Speed" });
+    await speed.focus();
+    await page.keyboard.press("End");
+    const faster = await scene();
+    expect(faster.loop).toBe(6);
+    expect(faster.poster / faster.loop).toBeCloseTo(first.poster / first.loop, 1);
+    await page.keyboard.press("ControlOrMeta+z");
+    expect((await scene()).loop).toBe(60);
+
+    // A colour of the palette.
+    await region.getByRole("button", { name: "Colour 2" }).click();
+    const hex = page.getByRole("textbox", { name: "Hex colour" });
+    await hex.fill("#112233");
+    await hex.press("Enter");
+    await expect.poll(async () => (await scene()).palette[1]).toBe("#112233");
+
+    // The slider of the look's own layer.
+    const flow = region.getByRole("slider", { name: "Flow" });
+    await flow.focus();
+    await page.keyboard.press("End");
+    expect((await scene()).layers.find((l) => l.kind === "liquid")?.params["warp"]).toBe(2);
+
+    // The look is still the marked one although it no longer matches exactly.
+    await expect(silk).toHaveAttribute("aria-pressed", "true");
   });
 
   test("the animation plays in the editor and stops when it is switched off", async ({ page }) => {
@@ -171,13 +214,13 @@ test.describe("an animated default look (browser mock)", () => {
     await open(page);
     await toAnimated(page);
     const region = page.getByRole("region", { name: "Background" });
-    await region.getByRole("button", { name: "Use Lava as default" }).click();
-    await expect(page.getByText("Lava is now your default look")).toBeVisible();
+    await region.getByRole("button", { name: "Use Ember as default" }).click();
+    await expect(page.getByText("Ember is now your default look")).toBeVisible();
     await expect(region.getByRole("img", { name: "Default look" })).toBeVisible();
 
     await page.goto("/?window=settings&page=presentation");
-    await expect(page.getByText("Lava · animated")).toBeVisible();
-    await expect(page.getByText("8 s loop")).toBeVisible();
+    await expect(page.getByText("Ember · animated")).toBeVisible();
+    await expect(page.getByText("60 s loop")).toBeVisible();
     await expect(
       page.getByText("Animated looks play in the editor and export as their still frame."),
     ).toBeVisible();

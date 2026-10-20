@@ -157,177 +157,203 @@ export interface AnimatedLook {
   make: () => ShaderScene;
 }
 
-/** The fourteen animated looks of the Presentation panel. */
+/** The twelve animated looks of the Presentation panel: big soft shapes, calm colours, a slow loop. */
+const SLOW = 60;
+
+/** Fine texture that does not move: moving grain reads as flicker. */
+const GRAIN = (amount: number): Spec => [
+  "grain",
+  { params: { amount, size: 1.4, animate: false } },
+];
+
 export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
-  { id: "animated-aurora", name: "Aurora", make: AURORA_NIGHT },
   {
-    id: "animated-orbs",
-    name: "Orbs",
+    id: "animated-aurora",
+    name: "Aurora",
     make: () =>
-      scene(["#2563EB", "#06B6D4", "#F59E0B", "#EC4899", "#A3E635", "#111827"], "#0B1020", [
+      scene(
+        ["#3DDBB5", "#3B82F6", "#8B5CF6", "#0B2A4A"],
+        "#050A16",
         [
-          "gradient",
-          { params: { type: "linear", angle: 160, stops: stops("#0B1020", "#16203A") } },
+          [
+            "aurora",
+            {
+              blend: "screen",
+              opacity: 0.8,
+              speed: 1,
+              direction: "left",
+              params: { scale: 1.05, rotation: 24 },
+            },
+          ],
+          ["orbs", { opacity: 0.4, params: { count: 3, size: 1, softness: 1, spread: 0.4 } }],
+          ["vignette", { params: { amount: 0.35, softness: 0.8 } }],
+          GRAIN(0.1),
         ],
-        ["orbs", { blend: "screen", params: { count: 6, size: 0.6, softness: 0.7 } }],
-        ["grain", { blend: "overlay", opacity: 0.2 }],
-      ]),
+        { loop: SLOW },
+      ),
   },
   {
-    id: "animated-waves",
-    name: "Waves",
+    id: "animated-nebula",
+    name: "Nebula",
     make: () =>
-      scene(["#DFF6FF", "#9ADCF2", "#5CC8E8", "#1E90C8", "#0B5C8A", "#06223A"], "#06223A", [
+      scene(
+        ["#6366F1", "#A855F7", "#EC4899", "#3B82F6", "#111A3D"],
+        "#0B1030",
         [
-          "gradient",
-          { params: { type: "linear", angle: 180, stops: stops("#DFF6FF", "#5CC8E8") } },
+          ["orbs", { params: { count: 5, size: 0.8, softness: 0.95, spread: 0.45 } }],
+          ["vignette", { params: { amount: 0.4, softness: 0.9 } }],
+          GRAIN(0.1),
         ],
-        ["waves", { params: { count: 6, amplitude: 0.7, frequency: 1.6, softness: 0.1 } }],
-      ]),
+        { loop: SLOW },
+      ),
   },
   {
-    id: "animated-liquid",
-    name: "Liquid",
+    id: "animated-silk",
+    name: "Silk",
     make: () =>
-      scene(["#E0F2FE", "#38BDF8", "#1D4ED8", "#0F172A"], "#0F172A", [
-        ["liquid", { params: { scale: 1.2, warp: 1.3, detail: 4 } }],
-        ["grain", { blend: "overlay", opacity: 0.2 }],
-      ]),
+      scene(
+        ["#F8EBDD", "#EFC1B0", "#B58AB8", "#5B4B8A"],
+        "#5B4B8A",
+        [["liquid", { params: { scale: 0.7, warp: 0.55, detail: 2 } }], GRAIN(0.08)],
+        { loop: SLOW },
+      ),
   },
   {
-    id: "animated-cells",
-    name: "Cells",
+    id: "animated-ink",
+    name: "Ink",
     make: () =>
-      scene(["#F6C85F", "#2E86AB", "#1F4E79", "#14213D"], "#14213D", [
-        ["cells", { params: { scale: 7, softness: 0.7, jitter: 0.8 } }],
-        ["vignette", { params: { amount: 0.35 } }],
-      ]),
-  },
-  {
-    id: "animated-ripples",
-    name: "Ripples",
-    make: () =>
-      scene(["#86E3FF", "#1D6FA5", "#071A2B"], "#071A2B", [
-        ["gradient", { params: { type: "radial", stops: stops("#0E3A5C", "#071A2B") } }],
+      scene(
+        ["#D9DEE7", "#8D97A8", "#3A4254", "#0D111A"],
+        "#0D111A",
         [
-          "ripples",
-          { blend: "screen", opacity: 0.8, params: { spacing: 0.1, thickness: 0.3, fade: 0.4 } },
+          ["liquid", { params: { scale: 0.75, warp: 0.6, detail: 2 } }],
+          ["vignette", { params: { amount: 0.3, softness: 0.9 } }],
+          GRAIN(0.1),
         ],
-        [
-          "ripples",
-          { blend: "screen", opacity: 0.5, params: { centerX: 0.15, centerY: 0.8, spacing: 0.14 } },
-        ],
-      ]),
+        { loop: SLOW },
+      ),
   },
   {
-    id: "animated-rays",
-    name: "Rays",
+    id: "animated-dusk",
+    name: "Dusk",
     make: () =>
-      scene(["#FFD166", "#FFF4D6", "#274690", "#0A0F1F"], "#0A0F1F", [
-        ["gradient", { params: { type: "linear", angle: 0, stops: stops("#274690", "#0A0F1F") } }],
+      scene(
+        ["#FB923C", "#F43F5E", "#A855F7", "#4338CA"],
+        "#1E1B4B",
         [
-          "rays",
-          { blend: "screen", opacity: 0.85, params: { count: 10, spread: 0.4, softness: 0.7 } },
+          ["orbs", { params: { count: 4, size: 1.1, softness: 1, spread: 0.35 } }],
+          ["glow", { params: { threshold: 0.55, intensity: 0.35, radius: 0.1 } }],
+          GRAIN(0.1),
         ],
-        ["glow", { params: { threshold: 0.4, intensity: 0.7 } }],
-      ]),
-  },
-  {
-    id: "animated-starfield",
-    name: "Starfield",
-    make: () => TEMPLATES[5]?.make() ?? AURORA_NIGHT(),
-  },
-  {
-    id: "animated-weave",
-    name: "Weave",
-    make: () =>
-      scene(["#C8FF2E", "#1D4ED8", "#101828"], "#101828", [
-        ["liquid", { params: { scale: 1, warp: 0.8 } }],
-        [
-          "pattern",
-          {
-            blend: "soft-light",
-            opacity: 0.6,
-            params: { shape: "grid", scale: 18, thickness: 0.2 },
-          },
-        ],
-        ["grain", { blend: "overlay", opacity: 0.2 }],
-      ]),
+        { loop: SLOW },
+      ),
   },
   {
     id: "animated-haze",
     name: "Haze",
     make: () =>
-      scene(["#FCD5CE", "#F8AFA6", "#F6C6A0", "#FFF1E6"], "#FCD5CE", [
-        ["liquid", { params: { scale: 0.9, warp: 0.7, detail: 3 } }],
-        [
-          "orbs",
-          { blend: "soft-light", opacity: 0.7, params: { count: 4, size: 0.7, softness: 1 } },
-        ],
-        ["grain", { blend: "overlay", opacity: 0.2 }],
-      ]),
+      scene(
+        ["#FFC9B8", "#F9B3C8", "#F9D9B0", "#FFF3E8"],
+        "#FFEFE3",
+        [["orbs", { params: { count: 5, size: 1, softness: 1, spread: 0.4 } }], GRAIN(0.06)],
+        { loop: SLOW },
+      ),
   },
   {
-    id: "animated-sunrise",
-    name: "Sunrise",
+    id: "animated-mist",
+    name: "Mist",
     make: () =>
-      scene(["#FFE066", "#FF9E00", "#F72585", "#B5179E", "#2B1055"], "#2B1055", [
-        [
-          "gradient",
-          {
-            params: {
-              type: "linear",
-              angle: 0,
-              stops: stops("#FFE066", "#FF9E00", "#F72585", "#2B1055"),
-            },
-          },
-        ],
-        ["orbs", { blend: "screen", opacity: 0.5, params: { count: 4, size: 0.7, softness: 0.9 } }],
-        [
-          "rays",
-          {
-            blend: "screen",
-            opacity: 0.35,
-            params: { count: 9, spread: 0.35, softness: 0.8, originY: 0.1 },
-          },
-        ],
-      ]),
+      scene(
+        ["#AFC6FF", "#D2BEFF", "#A6E3F2", "#F4F7FF"],
+        "#EAF0FF",
+        [["orbs", { params: { count: 5, size: 1, softness: 1, spread: 0.4 } }], GRAIN(0.06)],
+        { loop: SLOW },
+      ),
   },
   {
-    id: "animated-lava",
-    name: "Lava",
+    id: "animated-tide",
+    name: "Tide",
     make: () =>
-      scene(["#1A0500", "#7A1200", "#E03A00", "#FF9A1F", "#FFE08A"], "#1A0500", [
-        ["liquid", { params: { scale: 1.1, warp: 1.5, detail: 4 } }],
-        ["warp", { params: { amount: 0.3 } }],
-        ["glow", { params: { threshold: 0.5, intensity: 0.8 } }],
-        ["grain", { blend: "overlay", opacity: 0.25 }],
-      ]),
+      scene(
+        ["#7CD0E8", "#3D9BCB", "#1F6FA8", "#10407A"],
+        "#0B2A55",
+        [
+          ["waves", { params: { count: 4, amplitude: 0.45, frequency: 1.1, softness: 0.85 } }],
+          ["vignette", { params: { amount: 0.25, softness: 0.9 } }],
+          GRAIN(0.08),
+        ],
+        { loop: SLOW },
+      ),
   },
   {
-    id: "animated-glacier",
-    name: "Glacier",
+    id: "animated-ember",
+    name: "Ember",
     make: () =>
-      scene(["#E8F6FA", "#81C3D7", "#3A7CA5", "#0A1B2E"], "#0A1B2E", [
-        ["cells", { params: { scale: 5, softness: 0.9, jitter: 0.7 } }],
+      scene(
+        ["#F59E0B", "#DC4C1F", "#8E1B2E", "#2B0A14"],
+        "#1A0509",
         [
-          "ripples",
-          { blend: "soft-light", opacity: 0.5, params: { spacing: 0.2, thickness: 0.5 } },
+          ["liquid", { params: { scale: 0.8, warp: 0.7, detail: 3 } }],
+          ["vignette", { params: { amount: 0.35, softness: 0.9 } }],
+          GRAIN(0.1),
         ],
-        ["chromatic", { params: { amount: 4 } }],
-      ]),
+        { loop: SLOW },
+      ),
   },
   {
     id: "animated-midnight",
     name: "Midnight",
     make: () =>
-      scene(["#F8FAFC", "#94A3B8", "#1E293B", "#0F172A"], "#0F172A", [
+      scene(
+        ["#F1F5FF", "#A5B4FC", "#312E81", "#0B1030"],
+        "#070A1E",
         [
-          "gradient",
-          { params: { type: "linear", angle: 160, stops: stops("#0F172A", "#1E293B") } },
+          ["orbs", { opacity: 0.55, params: { count: 3, size: 1.1, softness: 1, spread: 0.3 } }],
+          [
+            "stars",
+            {
+              blend: "screen",
+              opacity: 0.8,
+              params: { density: 0.3, size: 0.7, twinkle: 0.45, drift: 0.2 },
+            },
+          ],
+          ["vignette", { params: { amount: 0.4, softness: 0.9 } }],
         ],
-        ["stars", { blend: "screen", params: { density: 0.45, twinkle: 0.7 } }],
-        ["vignette", { params: { amount: 0.35 } }],
-      ]),
+        { loop: SLOW },
+      ),
+  },
+  {
+    id: "animated-spotlight",
+    name: "Spotlight",
+    make: () =>
+      scene(
+        ["#BFD4FF", "#E8EEFF", "#101A3A", "#070B1A"],
+        "#080D1F",
+        [
+          [
+            "rays",
+            {
+              blend: "screen",
+              opacity: 0.75,
+              params: { count: 6, spread: 0.5, softness: 1, falloff: 0.4, originY: 1.3 },
+            },
+          ],
+          ["orbs", { opacity: 0.3, params: { count: 2, size: 1.2, softness: 1, spread: 0.3 } }],
+          ["vignette", { params: { amount: 0.35, softness: 0.9 } }],
+          GRAIN(0.08),
+        ],
+        { loop: SLOW },
+      ),
+  },
+  {
+    id: "animated-mint",
+    name: "Mint",
+    make: () =>
+      scene(
+        ["#BDF2DC", "#8BD3C7", "#CDE9FF", "#F2FFFB"],
+        "#E8FBF3",
+        [["liquid", { params: { scale: 0.7, warp: 0.5, detail: 2 } }], GRAIN(0.06)],
+        { loop: SLOW },
+      ),
   },
 ];

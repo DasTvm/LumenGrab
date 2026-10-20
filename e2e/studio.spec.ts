@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import type { Presentation } from "../src/document/schema";
+import type * as Scenes from "../src/shader/scenes";
 
 // The preview plays by itself; with Reduce Motion it starts paused (software WebGL is slow, and these tests are not about playing).
 test.use({ viewport: { width: 1440, height: 900 }, reducedMotion: "reduce" });
@@ -10,10 +11,15 @@ const open = async (page: Page) => {
   await page.waitForFunction(() => window.__lumengrabEditor?.ui.getState().view != null);
   await page.getByRole("radio", { name: "Presentation" }).click();
   await page.getByRole("radio", { name: "Animated", exact: true }).click();
-  await page
-    .getByRole("region", { name: "Background" })
-    .getByRole("button", { name: "Aurora", exact: true })
-    .click();
+  // The Studio tests work on the "Aurora night" template: five layers, two of them Aurora, a loop of 8 s.
+  await page.evaluate(async () => {
+    const path = "/src/shader/scenes.ts";
+    const { TEMPLATES } = (await import(/* @vite-ignore */ path)) as typeof Scenes;
+    const scene = TEMPLATES[0]?.make();
+    window.__lumengrabEditor?.editor.getState().change((project) => {
+      project.presentation.background = scene as never;
+    });
+  });
   await page.getByRole("button", { name: "Open Background Studio" }).click();
   await expect(page.getByRole("dialog", { name: "Background Studio" })).toBeVisible();
 };

@@ -61,22 +61,35 @@ const EMPTY: RenderReport = {
   heavy: [],
 };
 
+let available: boolean | null = null;
+
+/**
+ * Whether this WebView can do WebGL. Asked once: every probe makes a context, and the browser drops the oldest
+ * contexts (our real renderers) once there are about sixteen, so a component that asked on every render ate them all.
+ */
 export function webglAvailable(): boolean {
   if (typeof document === "undefined") return false;
+  if (available !== null) return available;
   try {
     const canvas = document.createElement("canvas");
     const gl = canvas.getContext("webgl");
     gl?.getExtension("WEBGL_lose_context")?.loseContext();
-    return gl !== null;
+    available = gl !== null;
   } catch {
-    return false;
+    available = false;
   }
+  return available;
 }
 
+/** How long a lost context may take to come back by itself before the renderer builds a new one. */
+const RESTORE_WAIT_MS = 300;
+
 export class ShaderRenderer {
-  readonly canvas: HTMLCanvasElement;
+  /** The canvas holds the last picture. It is replaced when the graphics context could not be won back, so read it after `render`. */
+  canvas: HTMLCanvasElement;
   private gl: WebGLRenderingContext | null = null;
   private lost = false;
+  private lostAt = 0;
   private quad: WebGLBuffer | null = null;
   private programs = new Map<string, Program | { error: string; line: number | null }>();
   private lastGood = new Map<string, string>();
@@ -88,15 +101,32 @@ export class ShaderRenderer {
   private maxSize = 4096;
 
   constructor() {
-    this.canvas = document.createElement("canvas");
-    this.canvas.addEventListener("webglcontextlost", (event) => {
+    this.canvas = this.fresh();
+  }
+
+  private fresh(): HTMLCanvasElement {
+    const canvas = document.createElement("canvas");
+    canvas.addEventListener("webglcontextlost", (event) => {
       event.preventDefault();
+      if (canvas !== this.canvas) return;
       this.lost = true;
+      this.lostAt = performance.now();
     });
-    this.canvas.addEventListener("webglcontextrestored", () => {
+    canvas.addEventListener("webglcontextrestored", () => {
+      if (canvas !== this.canvas) return;
       this.reset();
       this.lost = false;
     });
+    return canvas;
+  }
+
+  /** A lost context that does not come back (the browser dropped it for a newer one) is replaced by a new canvas and context. */
+  private recover(): void {
+    if (!this.lost || performance.now() - this.lostAt < RESTORE_WAIT_MS) return;
+    this.reset();
+    this.canvas = this.fresh();
+    this.lost = false;
+    this.lastGood.clear();
   }
 
   /** The biggest picture this graphics card can draw on one side. */
@@ -117,6 +147,12 @@ export class ShaderRenderer {
   }
 
   private context(): WebGLRenderingContext | null {
+    this.recover();
+    if (this.gl?.isContextLost() && !this.lost) {
+      // The event comes later than the loss; draw nothing in between.
+      this.lost = true;
+      this.lostAt = performance.now();
+    }
     if (this.lost) return null;
     if (this.gl) return this.gl;
     let gl: WebGLRenderingContext | null;
@@ -289,6 +325,14 @@ export class ShaderRenderer {
     gl.uniform1i(u.location, unit);
   }
 
+  /** Nothing stays bound as a texture while it is the next pass's target (some drivers flicker or draw garbage on that). */
+  private unbindTextures(gl: WebGLRenderingContext): void {
+    for (const unit of [1, 0]) {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+  }
+
   private draw(
     gl: WebGLRenderingContext,
     target: Target | null,
@@ -426,6 +470,7 @@ export class ShaderRenderer {
       this.bindTexture(gl, composite, "u_dst", 0, acc.texture);
       this.bindTexture(gl, composite, "u_src", 1, tmp.texture);
       this.draw(gl, spare, w, h);
+      this.unbindTextures(gl);
       [acc, tmp, spare] = [spare, acc, tmp];
 
       if (options.measure && isCustom) {
@@ -439,6 +484,11 @@ export class ShaderRenderer {
     this.setUniforms(gl, blit, { u_resolution: [w, h] });
     this.bindTexture(gl, blit, "u_tex", 0, acc.texture);
     this.draw(gl, null, w, h);
+    if (gl.isContextLost()) {
+      this.lost = true;
+      this.lostAt = performance.now();
+      return { ...report, lost: true };
+    }
     report.drawn = true;
     return report;
   }
