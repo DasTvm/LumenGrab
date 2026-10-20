@@ -31,6 +31,10 @@ test.describe("permission window (browser mock)", () => {
     await expect(page.getByTestId("not-yet")).toHaveCount(0);
     await page.getByRole("button", { name: "Check again" }).click();
     await expect(page.getByTestId("not-yet")).toContainText("Not allowed yet");
+    // After a failed check the window also offers the way out for a permission macOS got wrong.
+    await expect(page.getByTestId("reset-hint")).toContainText(
+      "tccutil reset ScreenCapture app.lumengrab",
+    );
   });
 
   test("when the permission is granted the window turns into a confirmation", async ({ page }) => {

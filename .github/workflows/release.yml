@@ -48,7 +48,18 @@ jobs:
         with:
           workspaces: src-tauri -> target
       - run: pnpm install --frozen-lockfile
+      # macOS is signed with a Developer ID certificate and notarized when the repository has the Apple secrets
+      # (docs/MACOS_SIGNING.md). Without them the build stays unsigned, exactly as before. Secrets are encrypted
+      # by GitHub, never appear in the repository or the logs, and are not given to workflows of forks.
+      - name: Look for the Apple signing secrets
+        id: apple
+        if: runner.os == 'macOS'
+        env:
+          CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ -n "$CERTIFICATE" ]; then echo "signed=true" >> "$GITHUB_OUTPUT"; else echo "signed=false" >> "$GITHUB_OUTPUT"; fi
       - uses: tauri-apps/tauri-action@action-v1.0.0
+        if: steps.apple.outputs.signed != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Signs the update packages of a tag build (docs/UPDATER.md). Never printed, never committed.
@@ -69,7 +80,45 @@ jobs:
             ### Fixed
             - Describe what was fixed
 
-            Unsigned build. First launch: see "First launch" in the README
+            First launch: see "First launch" in the README
+            (macOS Gatekeeper, Windows SmartScreen).
+          releaseDraft: true # review the draft, then publish by hand
+          prerelease: false
+          uploadUpdaterJson: true # latest.json with the signatures, for the in-app updater
+          updaterJsonPreferNsis: true
+          uploadWorkflowArtifacts: true
+          # Update packages (and their signatures) only on a tag: a manual run has no signing key.
+          args: ${{ matrix.args }} ${{ github.ref_type == 'tag' && '--config src-tauri/tauri.release.conf.json' || '' }}
+      - uses: tauri-apps/tauri-action@action-v1.0.0
+        if: steps.apple.outputs.signed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Signs the update packages of a tag build (docs/UPDATER.md). Never printed, never committed.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # Developer ID signing and notarization (docs/MACOS_SIGNING.md).
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        with:
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          releaseName: LumenGrab ${{ github.ref_name }}
+          # The notes of the release are what the update window shows (New / Improved / Fixed), so write
+          # them in this shape before publishing the draft, and delete the groups you do not need.
+          releaseBody: |
+            ### New
+            - Describe what is new
+
+            ### Improved
+            - Describe what got better
+
+            ### Fixed
+            - Describe what was fixed
+
+            First launch: see "First launch" in the README
             (macOS Gatekeeper, Windows SmartScreen).
           releaseDraft: true # review the draft, then publish by hand
           prerelease: false

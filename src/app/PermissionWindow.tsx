@@ -20,6 +20,9 @@ const STEPS = [
 
 type Check = "unknown" | "denied" | "granted";
 
+/** Forgets what macOS remembers about LumenGrab, so the next switch-on starts clean. */
+const RESET_COMMAND = "tccutil reset ScreenCapture app.lumengrab";
+
 /**
  * "Allow screen recording" (design: Onboarding Permission). Shown when a capture needs the macOS
  * Screen Recording permission. Re-checks when the window gets focus again, so coming back from
@@ -30,6 +33,7 @@ export function PermissionWindow() {
   const [check, setCheck] = useState<Check>("unknown");
   const [checking, setChecking] = useState(false);
   const [triedAgain, setTriedAgain] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -206,6 +210,30 @@ export function PermissionWindow() {
               </button>
               .
             </p>
+          ) : null}
+          {!granted && triedAgain ? (
+            <div data-testid="reset-hint" className="flex flex-col gap-1.5">
+              <p>
+                Still stuck? Quit LumenGrab, paste this into the Terminal app, press Return, then
+                open LumenGrab again and switch it on once more:
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
+                  {RESET_COMMAND}
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(RESET_COMMAND).then(() => {
+                      setCopied(true);
+                    });
+                  }}
+                >
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              </div>
+            </div>
           ) : null}
         </div>
 

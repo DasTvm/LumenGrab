@@ -7,7 +7,7 @@
 //! - `SCShareableContent::windows()` is not in z-order, so order comes from CGWindowList.
 
 use std::{
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, OnceLock},
     time::{Duration, Instant},
 };
 
@@ -55,9 +55,26 @@ fn backend_err(e: impl std::fmt::Display) -> CaptureError {
     CaptureError::Backend(e.to_string())
 }
 
+/// Whether this process may capture. `CGPreflightScreenCaptureAccess` can say no although the user switched the
+/// app on (seen on a Mac with a build that macOS only knows by its hash), while ScreenCaptureKit itself works.
+/// So when the preflight says no, ScreenCaptureKit is asked once per run; a no stays a no until the next start
+/// (macOS applies a new permission only to processes that start afterwards, so asking again would change nothing).
+fn has_access() -> bool {
+    if platform::has_screen_access() {
+        return true;
+    }
+    static PROBE: OnceLock<bool> = OnceLock::new();
+    *PROBE.get_or_init(|| {
+        SCShareableContent::create()
+            .with_on_screen_windows_only(true)
+            .get()
+            .is_ok()
+    })
+}
+
 /// Without permission ScreenCaptureKit errors; that is the permission signal we surface.
 fn content(on_screen_windows: bool) -> CaptureResult<SCShareableContent> {
-    if !platform::has_screen_access() {
+    if !has_access() {
         return Err(CaptureError::PermissionDenied);
     }
     SCShareableContent::create()
@@ -104,7 +121,7 @@ fn rect(r: CGRect) -> NativeRect {
 
 impl Capturer for SckCapturer {
     fn permission_granted(&self) -> bool {
-        platform::has_screen_access()
+        has_access()
     }
 
     fn request_permission(&self) -> bool {
