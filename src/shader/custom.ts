@@ -421,7 +421,7 @@ void main() {
   float size = 0.05 + 0.1 * noise(cell + 9.0);
   float d = length(f - (vec2(noise(cell + 3.0), noise(cell + 5.0)) - 0.5) * 0.6);
   float blink = 1.0 - twinkle * 0.5 * (1.0 + sin(u_phase * 6.28318 * 2.0 + h * 40.0));
-  float s = smoothstep(size, 0.0, d) * on * blink;
+  float s = (1.0 - smoothstep(0.0, size, d)) * on * blink;
   vec3 col = mix(u_palette[0], star, s);
   gl_FragColor = vec4(col, 1.0);
 }
@@ -443,7 +443,7 @@ void main() {
   vec2 uv = gl_FragCoord.xy / u_resolution;
   vec3 base = texture2D(u_input, uv).rgb;
   float x = fract(u_phase) * 1.8 - 0.4;
-  float band = smoothstep(width, 0.0, abs(uv.x + uv.y * 0.35 - x));
+  float band = 1.0 - smoothstep(0.0, width, abs(uv.x + uv.y * 0.35 - x));
   gl_FragColor = vec4(base + tint * band * strength, 1.0);
 }
 `,

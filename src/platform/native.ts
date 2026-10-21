@@ -521,6 +521,10 @@ export const nativePlatform: Platform = {
     await call("permission_open_settings");
   },
 
+  getPermissionDiagnostics(): Promise<string> {
+    return call<string>("permission_diagnostics");
+  },
+
   async closePermissionWindow(): Promise<void> {
     await call("permission_close");
   },

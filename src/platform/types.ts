@@ -389,6 +389,8 @@ export interface Platform {
   getPermissionStatus(): Promise<boolean>;
   /** Asks the OS once and opens System Settings at Screen Recording. */
   openPermissionSettings(): Promise<void>;
+  /** What a support request needs when the permission does not work: macOS version, install path, signature, answers. */
+  getPermissionDiagnostics(): Promise<string>;
   closePermissionWindow(): Promise<void>;
   quitApp(): Promise<void>;
   /** Quits and starts LumenGrab again (macOS applies a new permission only to new processes). */

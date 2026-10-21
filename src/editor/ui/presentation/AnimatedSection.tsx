@@ -22,7 +22,14 @@ import { computeLayout } from "@/presentation/compose";
 import { renderFramePng } from "@/shader/freeze";
 import { webglAvailable } from "@/shader/renderer";
 import { setParam } from "@/shader/edit";
-import { colourCount, loopAt, quickSettings, speedPosition, withLoop } from "@/shader/quick";
+import {
+  colourCount,
+  loopAt,
+  quickSettings,
+  shaderSettings,
+  speedPosition,
+  withLoop,
+} from "@/shader/quick";
 import { shadersStore, useShaders } from "@/shader/shader-instance";
 import type { MyShader } from "@/shader/my-shaders";
 import { ANIMATED_LOOKS, findShaderLayer, sceneWithShader, TEMPLATES } from "@/shader/scenes";
@@ -373,15 +380,20 @@ function YourShaders({ bg }: { bg: ShaderScene }) {
 function Customise({ bg }: { bg: ShaderScene }) {
   const { set, start, end } = usePresentation();
   const sliders = quickSettings(bg);
+  const own = shaderSettings(bg);
   const colours = colourCount(bg);
-  const [picking, setPicking] = useState<number | "base" | null>(null);
+  // The base colour shows under layers that do not cover it: not when everything is a shader that paints its own picture.
+  const showBase = colours > 0 || bg.layers.some((l) => l.enabled && l.kind !== "custom");
+  const [picking, setPicking] = useState<number | "base" | { layerId: string; id: string } | null>(
+    null,
+  );
   const edit = (change: (scene: ShaderScene) => ShaderScene) => {
     set((draft) => {
       if (draft.background.type === "shader") draft.background = change(draft.background);
     });
   };
-  const row = (label: string, control: React.ReactNode, hint?: string) => (
-    <div key={label} className="flex items-center gap-2.5">
+  const row = (label: string, control: React.ReactNode, hint?: string, key = label) => (
+    <div key={key} className="flex items-center gap-2.5">
       <span className="w-[68px] shrink-0 text-xs font-medium">{label}</span>
       <div className="min-w-0 flex-1">{control}</div>
       {hint ? (
@@ -389,6 +401,17 @@ function Customise({ bg }: { bg: ShaderScene }) {
       ) : null}
     </div>
   );
+  const isPicking = (layerId: string, id: string) =>
+    typeof picking === "object" &&
+    picking !== null &&
+    picking.layerId === layerId &&
+    picking.id === id;
+  const pickedColour = (): string => {
+    if (picking === "base") return bg.fallback;
+    if (typeof picking === "number") return bg.palette[picking] ?? bg.fallback;
+    const setting = own.find((x) => picking !== null && isPicking(x.layerId, x.spec.id));
+    return typeof setting?.value === "string" ? setting.value : bg.fallback;
+  };
   return (
     <div className="flex flex-col gap-2.5" role="group" aria-label="Customise">
       <h4 className="text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
@@ -410,48 +433,73 @@ function Customise({ bg }: { bg: ShaderScene }) {
         `${String(Math.round(bg.loop))} s`,
       )}
       <div className="relative flex flex-col gap-2.5">
-        {row(
-          "Colours",
-          <div className="flex flex-wrap items-center gap-1.5">
-            {bg.palette.slice(0, colours).map((color, i) => (
+        {colours > 0
+          ? row(
+              "Colours",
+              <div className="flex flex-wrap items-center gap-1.5">
+                {bg.palette.slice(0, colours).map((color, i) => (
+                  <Swatch
+                    key={i}
+                    label={`Colour ${String(i + 1)}`}
+                    color={color}
+                    open={picking === i}
+                    onClick={() => {
+                      setPicking(picking === i ? null : i);
+                    }}
+                  />
+                ))}
+              </div>,
+            )
+          : null}
+        {showBase
+          ? row(
+              "Base",
               <Swatch
-                key={i}
-                label={`Colour ${String(i + 1)}`}
-                color={color}
-                open={picking === i}
+                label="Base colour"
+                color={bg.fallback}
+                open={picking === "base"}
                 onClick={() => {
-                  setPicking(picking === i ? null : i);
+                  setPicking(picking === "base" ? null : "base");
                 }}
-              />
-            ))}
-          </div>,
-        )}
-        {row(
-          "Base",
-          <Swatch
-            label="Base colour"
-            color={bg.fallback}
-            open={picking === "base"}
-            onClick={() => {
-              setPicking(picking === "base" ? null : "base");
-            }}
-          />,
-        )}
+              />,
+            )
+          : null}
+        {own
+          .filter((x) => x.spec.type === "color")
+          .map(({ layerId, spec, label, value }) =>
+            row(
+              label,
+              <Swatch
+                label={label}
+                color={typeof value === "string" ? value : "#000000"}
+                open={isPicking(layerId, spec.id)}
+                onClick={() => {
+                  setPicking(isPicking(layerId, spec.id) ? null : { layerId, id: spec.id });
+                }}
+              />,
+              undefined,
+              `${layerId}:${spec.id}`,
+            ),
+          )}
         {picking !== null ? (
           <ColorPicker
-            key={String(picking)}
-            value={picking === "base" ? bg.fallback : (bg.palette[picking] ?? bg.fallback)}
+            key={typeof picking === "object" ? `${picking.layerId}:${picking.id}` : String(picking)}
+            value={pickedColour()}
             onStart={start}
             onEnd={end}
             onClose={() => {
               setPicking(null);
             }}
             onChange={(hex) => {
-              edit((scene) =>
-                picking === "base"
-                  ? { ...scene, fallback: hex }
-                  : { ...scene, palette: scene.palette.map((c, at) => (at === picking ? hex : c)) },
-              );
+              edit((scene) => {
+                if (picking === "base") return { ...scene, fallback: hex };
+                if (typeof picking === "number")
+                  return {
+                    ...scene,
+                    palette: scene.palette.map((c, at) => (at === picking ? hex : c)),
+                  };
+                return setParam(scene, picking.layerId, picking.id, hex);
+              });
             }}
           />
         ) : null}
@@ -471,8 +519,41 @@ function Customise({ bg }: { bg: ShaderScene }) {
               edit((scene) => setParam(scene, layerId, spec.id, v));
             }}
           />,
+          undefined,
+          `${layerId}:${spec.id}`,
         ),
       )}
+      {own
+        .filter((x) => x.spec.type !== "color")
+        .map(({ layerId, spec, label, value }) =>
+          row(
+            label,
+            spec.type === "bool" ? (
+              <Switch
+                aria-label={label}
+                checked={value === true}
+                onCheckedChange={(on) => {
+                  edit((scene) => setParam(scene, layerId, spec.id, on));
+                }}
+              />
+            ) : spec.type === "number" || spec.type === "int" ? (
+              <Slider
+                label={label}
+                value={typeof value === "number" ? value : spec.default}
+                min={spec.min}
+                max={spec.max}
+                step={spec.step}
+                onStart={start}
+                onEnd={end}
+                onChange={(v) => {
+                  edit((scene) => setParam(scene, layerId, spec.id, v));
+                }}
+              />
+            ) : null,
+            undefined,
+            `${layerId}:${spec.id}`,
+          ),
+        )}
     </div>
   );
 }

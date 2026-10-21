@@ -63,12 +63,18 @@ fn has_access() -> bool {
     if platform::has_screen_access() {
         return true;
     }
-    static PROBE: OnceLock<bool> = OnceLock::new();
-    *PROBE.get_or_init(|| {
+    probe().is_ok()
+}
+
+/// The one ScreenCaptureKit question per run (see `has_access`); its error text is kept for the support details.
+fn probe() -> &'static Result<(), String> {
+    static PROBE: OnceLock<Result<(), String>> = OnceLock::new();
+    PROBE.get_or_init(|| {
         SCShareableContent::create()
             .with_on_screen_windows_only(true)
             .get()
-            .is_ok()
+            .map(|_| ())
+            .map_err(|e| e.to_string())
     })
 }
 
@@ -126,6 +132,15 @@ impl Capturer for SckCapturer {
 
     fn request_permission(&self) -> bool {
         platform::request_screen_access()
+    }
+
+    fn diagnostics(&self) -> String {
+        let preflight = platform::has_screen_access();
+        let probe = match probe() {
+            Ok(()) => "ok".to_string(),
+            Err(e) => format!("failed: {e}"),
+        };
+        format!("Preflight (CGPreflightScreenCaptureAccess): {preflight}\nScreenCaptureKit probe: {probe}")
     }
 
     fn displays(&self) -> CaptureResult<Vec<DisplayInfo>> {

@@ -884,6 +884,12 @@ export const mockPlatform: Platform = {
     return Promise.resolve();
   },
 
+  getPermissionDiagnostics(): Promise<string> {
+    return Promise.resolve(
+      "LumenGrab 0.0.0\nmacOS: 15.0\nApp: /Applications/LumenGrab.app\nTranslocated: false\nSignature:\nIdentifier=app.lumengrab\nPreflight (CGPreflightScreenCaptureAccess): false",
+    );
+  },
+
   closePermissionWindow(): Promise<void> {
     record({ kind: "closePermission" });
     return Promise.resolve();

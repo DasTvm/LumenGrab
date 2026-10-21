@@ -107,7 +107,7 @@ export function Popover({
     };
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         e.preventDefault();
         onClose();
       }

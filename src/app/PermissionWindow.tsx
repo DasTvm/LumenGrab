@@ -34,6 +34,8 @@ export function PermissionWindow() {
   const [checking, setChecking] = useState(false);
   const [triedAgain, setTriedAgain] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [details, setDetails] = useState<string | null>(null);
+  const [detailsCopied, setDetailsCopied] = useState(false);
   const [step, setStep] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,6 +79,24 @@ export function PermissionWindow() {
   };
 
   const granted = check === "granted";
+
+  // After a failed check the details a support request needs are fetched once (where the app runs from, its signature).
+  useEffect(() => {
+    if (!triedAgain || details !== null) return;
+    let alive = true;
+    platform.getPermissionDiagnostics().then(
+      (text) => {
+        if (alive) setDetails(text);
+      },
+      () => {
+        if (alive) setDetails("The details could not be read.");
+      },
+    );
+    return () => {
+      alive = false;
+    };
+  }, [triedAgain, details]);
+  const translocated = details?.includes("Translocated: true") ?? false;
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -211,6 +231,13 @@ export function PermissionWindow() {
               .
             </p>
           ) : null}
+          {!granted && translocated ? (
+            <p data-testid="translocated-hint" role="alert" className="text-foreground">
+              macOS is running LumenGrab from a temporary place, so the permission cannot stick.
+              Quit LumenGrab, drag it into the Applications folder in Finder, and open it from
+              there.
+            </p>
+          ) : null}
           {!granted && triedAgain ? (
             <div data-testid="reset-hint" className="flex flex-col gap-1.5">
               <p>
@@ -234,6 +261,28 @@ export function PermissionWindow() {
                 </Button>
               </div>
             </div>
+          ) : null}
+          {!granted && details ? (
+            <details data-testid="details" className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">
+                Details for support
+              </summary>
+              <pre className="mt-1.5 max-h-40 overflow-auto rounded-md bg-muted p-2 font-mono text-[11px] whitespace-pre-wrap text-foreground">
+                {details}
+              </pre>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-1.5"
+                onClick={() => {
+                  void navigator.clipboard.writeText(details).then(() => {
+                    setDetailsCopied(true);
+                  });
+                }}
+              >
+                {detailsCopied ? "Copied" : "Copy details"}
+              </Button>
+            </details>
           ) : null}
         </div>
 

@@ -121,7 +121,7 @@ function Help({
     };
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        e.stopPropagation();
+        e.stopImmediatePropagation();
         e.preventDefault();
         onClose();
       }
@@ -470,7 +470,13 @@ export function ShaderEditor({
   // Keys of the editor: Esc is Done (unless a menu is open), the Studio's own keys stay out of it.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && menu === null) {
+      // A menu, the help or a colour picker takes the first Esc itself.
+      if (
+        e.key === "Escape" &&
+        !e.defaultPrevented &&
+        menu === null &&
+        document.querySelector('[role="dialog"][aria-label="Colour picker"]') === null
+      ) {
         e.preventDefault();
         e.stopPropagation();
         done();

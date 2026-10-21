@@ -39,6 +39,11 @@ pub fn finish_overlay_placement(window: &WebviewWindow, native: &crate::capture:
     let _ = window.set_position(pos);
 }
 
+/// Windows has no screen recording permission, so there is nothing to explain; kept so shared code compiles on both OSes.
+pub fn diagnostics() -> String {
+    String::new()
+}
+
 /// Windows has no screen recording permission; kept so shared code compiles on both OSes.
 pub fn open_screen_recording_settings() {}
 

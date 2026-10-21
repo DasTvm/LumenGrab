@@ -79,6 +79,7 @@ pub fn run() {
             commands::open_screenshots_folder,
             permission::permission_status,
             permission::permission_open_settings,
+            permission::permission_diagnostics,
             permission::permission_close,
             permission::restart_app,
             permission::quit_app,

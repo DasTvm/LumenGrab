@@ -39,17 +39,15 @@ export function ColorChip({
       />
       {children}
       {open ? (
-        <div className="absolute top-full left-0 z-20 mt-1">
-          <ColorPicker
-            value={six(value)}
-            onChange={onChange}
-            {...(onStart ? { onStart } : {})}
-            {...(onEnd ? { onEnd } : {})}
-            onClose={() => {
-              setOpen(false);
-            }}
-          />
-        </div>
+        <ColorPicker
+          value={six(value)}
+          onChange={onChange}
+          {...(onStart ? { onStart } : {})}
+          {...(onEnd ? { onEnd } : {})}
+          onClose={() => {
+            setOpen(false);
+          }}
+        />
       ) : null}
     </div>
   );

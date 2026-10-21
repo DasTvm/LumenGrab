@@ -92,6 +92,21 @@ pub fn permission_open_settings(capturer: State<Arc<dyn Capturer>>) {
     platform::open_screen_recording_settings();
 }
 
+/// The details a support request needs when the permission does not work: the macOS version, how this copy is
+/// installed and signed, and what the system and ScreenCaptureKit answered. Shown in the permission window to copy.
+#[tauri::command]
+pub async fn permission_diagnostics(
+    app: AppHandle,
+    capturer: State<'_, Arc<dyn Capturer>>,
+) -> Result<String, String> {
+    let version = app.package_info().version.to_string();
+    Ok(format!(
+        "LumenGrab {version}\n{}\n{}",
+        platform::diagnostics(),
+        capturer.diagnostics()
+    ))
+}
+
 #[tauri::command]
 pub fn permission_close(app: AppHandle) {
     if let Some(window) = app.get_webview_window(LABEL) {

@@ -111,6 +111,10 @@ pub trait Capturer: Send + Sync {
     fn permission_granted(&self) -> bool;
     /// Asks the OS for permission (macOS shows its prompt once). Returns the new state.
     fn request_permission(&self) -> bool;
+    /// What the backend knows about the permission, for a support request (empty where there is nothing to say).
+    fn diagnostics(&self) -> String {
+        String::new()
+    }
     fn displays(&self) -> CaptureResult<Vec<DisplayInfo>>;
     /// Real, capturable, on-screen windows (no desktop elements, Dock, overlays, own windows),
     /// ordered front to back.

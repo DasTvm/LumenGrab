@@ -221,6 +221,61 @@ test.describe("shader editor (browser mock)", () => {
     await expect(settings.getByText("setting", { exact: true })).toBeVisible();
   });
 
+  test("a colour setting opens a picker that is wide enough, stays inside the panel, and changes the shader", async ({
+    page,
+  }) => {
+    await openAnimated(page);
+    await region(page).getByRole("button", { name: "New shader" }).click();
+    await editor(page).getByRole("button", { name: "Examples" }).click();
+    await page.getByRole("menuitem", { name: /Starfield/ }).click();
+    const settings = editor(page).getByRole("region", { name: "Settings" });
+    await settings.getByRole("button", { name: "Star", exact: true }).click();
+    const picker = page.getByTestId("color-picker");
+    await expect(picker).toBeVisible();
+    const box = await picker.boundingBox();
+    const panel = await editor(page)
+      .getByRole("complementary", { name: "Preview and settings" })
+      .boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(240);
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(
+      (panel?.x ?? 0) + (panel?.width ?? 0),
+    );
+    expect(box?.x ?? 0).toBeGreaterThanOrEqual(panel?.x ?? 0);
+    const hex = picker.getByRole("textbox", { name: "Hex colour" });
+    await hex.fill("#FF8800");
+    await hex.press("Enter");
+    // The first Escape closes the picker, not the editor.
+    await page.keyboard.press("Escape");
+    await expect(picker).toHaveCount(0);
+    await expect(editor(page)).toBeVisible();
+    await editor(page).getByRole("button", { name: "Done" }).click();
+    expect((await layers(page))[0]?.params["star"]).toBe("#FF8800");
+  });
+
+  test("a shader of yours shows its own colours and sliders under Customise, and they change it", async ({
+    page,
+  }) => {
+    await openAnimated(page);
+    await region(page).getByRole("button", { name: "New shader" }).click();
+    await editor(page).getByRole("button", { name: "Examples" }).click();
+    await page.getByRole("menuitem", { name: /Starfield/ }).click();
+    await editor(page).getByRole("button", { name: "Done" }).click();
+    const customise = region(page).getByRole("group", { name: "Customise" });
+    // The starfield has its own star colour and uses the first palette colour: both are there.
+    await expect(customise.getByRole("button", { name: "Star", exact: true })).toBeVisible();
+    await customise.getByRole("button", { name: "Star", exact: true }).click();
+    const hex = page.getByTestId("color-picker").getByRole("textbox", { name: "Hex colour" });
+    await hex.fill("#33CC99");
+    await hex.press("Enter");
+    await expect.poll(async () => (await layers(page))[0]?.params["star"]).toBe("#33CC99");
+    await page.keyboard.press("Escape");
+    // A slider of the code.
+    const twinkle = customise.getByRole("slider", { name: "Twinkle" });
+    await twinkle.focus();
+    await page.keyboard.press("End");
+    expect((await layers(page))[0]?.params["twinkle"]).toBe(1);
+  });
+
   test("Help holds the inputs, the helpers and the prompt for an AI", async ({ page, context }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const studio = await openStudio(page);

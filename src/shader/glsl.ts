@@ -15,7 +15,11 @@ void main() { gl_Position = vec4(a_pos, 0.0, 1.0); }
 `;
 
 /** Our own helper functions. Each is named so a shader that defines `noise` itself does not clash. */
-const HELPER_INTERNAL = `float lgHash(vec2 p) { return fract(sin(dot(p, vec2(41.3, 289.7))) * 17453.371); }
+const HELPER_INTERNAL = `float lgHash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
 mat2 lgRot(float a) { float c = cos(a); float s = sin(a); return mat2(c, -s, s, c); }
 float lgNoise(vec2 p) {
   vec2 i = floor(p);
@@ -86,7 +90,7 @@ const BUILTIN_FUNCTIONS = `vec3 lpal(float i) {
   float n = max(u_lpn, 1.0);
   float idx = mod(floor(i), n);
   vec3 c = u_lp[0];
-  for (int k = 1; k < 8; k++) { if (float(k) == idx) c = u_lp[k]; }
+  for (int k = 1; k < 8; k++) { if (abs(float(k) - idx) < 0.5) c = u_lp[k]; }
   return c;
 }
 vec3 lramp(float t) {
@@ -220,7 +224,7 @@ const WAVES_BODY = `void main() {
       float base = mix(0.35, -0.45, fi / max(u_count - 1.0, 1.0));
       float wave = sin(q.x * f * 3.0 + u_a * (1.0 + mod(fi, 2.0)) + fi * 1.9 + h * 6.2831853) * u_amplitude * 0.2
         + sin(q.x * f * 1.7 - u_a + h * 11.0) * u_amplitude * 0.08;
-      float cov = smoothstep(edge, -edge, q.y - (base + wave));
+      float cov = 1.0 - smoothstep(-edge, edge, q.y - (base + wave));
       col = col * (1.0 - cov) + lpal(fi) * cov;
       cover = cover + cov * (1.0 - cover);
     }
@@ -344,7 +348,7 @@ const STARS_BODY = `void main() {
     vec2 jitter = (vec2(h2, h3) - 0.5) * 0.6;
     float rad = 0.1 * u_size * (0.5 + h2);
     float dist = length(f - jitter);
-    float star = (smoothstep(rad, 0.0, dist) + 0.35 * smoothstep(rad * 3.5, 0.0, dist)) * present;
+    float star = ((1.0 - smoothstep(0.0, rad, dist)) + 0.35 * (1.0 - smoothstep(0.0, rad * 3.5, dist))) * present;
     float tw = 1.0 - u_twinkle * 0.5 * (1.0 + sin(u_a * (1.0 + floor(h3 * 3.0)) + h * 6.2831853));
     float v = star * tw;
     col += lramp(h2) * v;

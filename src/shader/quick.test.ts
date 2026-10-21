@@ -3,6 +3,7 @@ import { ShaderBackgroundSchema } from "@/document/schema";
 import { setParam } from "./edit";
 import {
   colourCount,
+  shaderSettings,
   FASTEST_LOOP,
   loopAt,
   quickSettings,
@@ -10,6 +11,7 @@ import {
   speedPosition,
   withLoop,
 } from "./quick";
+import { newCustomLayer } from "./scene";
 import { ANIMATED_LOOKS } from "./scenes";
 import { phaseAt } from "./scene";
 
@@ -74,5 +76,54 @@ describe("the speed", () => {
     const scene = { ...look("animated-silk"), loop: 60, poster: 59.9 };
     const faster = withLoop(scene, 6);
     expect(faster.poster).toBeLessThan(faster.loop);
+  });
+});
+
+describe("a shader of your own", () => {
+  const code = `// @param color tint = #FF0000
+// @param float amount = 0.5 [0, 1]
+// @param bool soft = true
+precision mediump float;
+uniform vec3 tint;
+void main() { gl_FragColor = vec4(tint, 1.0); }
+`;
+  const scene = () => ({
+    ...look("animated-silk"),
+    layers: [newCustomLayer("generator", "Tint", code, { tint: "#00FF00" }, "mine")],
+  });
+
+  it("lists its own settings with the values it has", () => {
+    const list = shaderSettings(scene());
+    expect(list.map((s) => [s.label, s.value])).toEqual([
+      ["Tint", "#00FF00"],
+      ["Amount", 0.5],
+      ["Soft", true],
+    ]);
+    expect(list.every((s) => s.layerId === "mine")).toBe(true);
+  });
+
+  it("does not offer palette colours it never reads", () => {
+    expect(colourCount(scene())).toBe(0);
+    const reads = { ...scene() };
+    reads.layers = [
+      newCustomLayer(
+        "generator",
+        "P",
+        "uniform vec3 u_palette[8];\nvoid main() { gl_FragColor = vec4(u_palette[0], 1.0); }",
+      ),
+    ];
+    expect(colourCount(reads)).toBe(4);
+    // A mention in a comment is not a use.
+    reads.layers = [
+      newCustomLayer("generator", "C", "// u_palette\nvoid main() { gl_FragColor = vec4(1.0); }"),
+    ];
+    expect(colourCount(reads)).toBe(0);
+  });
+
+  it("skips a layer that is switched off or has no code", () => {
+    const off = scene();
+    off.layers = off.layers.map((l) => ({ ...l, enabled: false }));
+    expect(shaderSettings(off)).toEqual([]);
+    expect(shaderSettings(look("animated-silk"))).toEqual([]);
   });
 });

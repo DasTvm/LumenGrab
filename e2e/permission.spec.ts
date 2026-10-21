@@ -35,6 +35,9 @@ test.describe("permission window (browser mock)", () => {
     await expect(page.getByTestId("reset-hint")).toContainText(
       "tccutil reset ScreenCapture app.lumengrab",
     );
+    // And the details to send along when it still does not work.
+    await expect(page.getByTestId("details")).toContainText("Identifier=app.lumengrab");
+    await expect(page.getByTestId("translocated-hint")).toHaveCount(0);
   });
 
   test("when the permission is granted the window turns into a confirmation", async ({ page }) => {

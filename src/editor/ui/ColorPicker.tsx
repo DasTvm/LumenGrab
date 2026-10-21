@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BookmarkPlus, Pipette, X } from "lucide-react";
 import { cn } from "@/ui/lib/utils";
 import { hexToHsv, hsvToHex, hueColor, parseHex, type Hsv } from "./color-math";
@@ -24,6 +24,9 @@ const eyeDropper = (): (new () => EyeDropperLike) | null =>
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
+/** The least width the picker works at: in a narrower place (a chip and its hex field in a row) it keeps this width. */
+const MIN_WIDTH = 264;
+
 /**
  * LumenGrab's own colour picker (the system one differs per OS and is missing in the macOS WebView): a
  * saturation / brightness square, a hue slider, a hex field, the eyedropper where the engine has one, and
@@ -47,6 +50,36 @@ export function ColorPicker({ value, onChange, onStart, onEnd, onClose }: Props)
     }
   }
 
+  // It fills the box it hangs from. In a box narrower than it can be used in, it keeps its own width and slides
+  // sideways until it fits inside the panel that clips it.
+  useLayoutEffect(() => {
+    const el = root.current;
+    const parent = el?.offsetParent;
+    if (!el || !(parent instanceof HTMLElement)) return;
+    const box = parent.getBoundingClientRect();
+    if (box.width >= MIN_WIDTH) return;
+    let room = { left: 0, right: window.innerWidth };
+    for (let n = parent.parentElement; n; n = n.parentElement) {
+      const overflow = getComputedStyle(n).overflowX;
+      if (
+        overflow === "auto" ||
+        overflow === "scroll" ||
+        overflow === "hidden" ||
+        overflow === "clip"
+      ) {
+        const r = n.getBoundingClientRect();
+        room = { left: r.left, right: r.right };
+        break;
+      }
+    }
+    let left = box.left;
+    if (left + MIN_WIDTH > room.right - 8)
+      left = Math.max(room.left + 8, room.right - 8 - MIN_WIDTH);
+    el.style.left = `${String(left - box.left)}px`;
+    el.style.right = "auto";
+    el.style.width = `${String(MIN_WIDTH)}px`;
+  }, []);
+
   // Esc and a press outside close it.
   const close = useRef(onClose);
   useEffect(() => {
@@ -58,7 +91,9 @@ export function ColorPicker({ value, onChange, onStart, onEnd, onClose }: Props)
     };
     const key = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        e.stopPropagation();
+        // The first Esc is the picker's: whatever else listens (an editor behind it) must not take it too.
+        e.preventDefault();
+        e.stopImmediatePropagation();
         close.current();
       }
     };

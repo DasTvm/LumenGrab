@@ -1,5 +1,6 @@
+import { customValues, parsePragmas } from "./custom";
 import { kindById } from "./kinds";
-import { resolveParams, type NumberSpec } from "./params";
+import { resolveParams, type NumberSpec, type ParamSpec } from "./params";
 import type { ShaderScene } from "./types";
 
 /**
@@ -78,20 +79,49 @@ export function quickSettings(scene: ShaderScene): QuickSetting[] {
   return out.slice(0, MAX_SLIDERS);
 }
 
-/** How many colours of the palette the scene's layers paint with (the rest would change nothing). */
+/** Whether the code of a layer reads the palette at all (a shader of yours that has its own colours does not). */
+const usesPalette = (code: string): boolean =>
+  /\bu_palette\b/.test(code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""));
+
+/** How many colours of the palette the scene's layers paint with (the rest would change nothing); 0 when none does. */
 export function colourCount(scene: ShaderScene): number {
+  const on = scene.layers.filter((l) => l.enabled);
+  if (on.length === 0) return 1;
   let most = 0;
-  for (const layer of scene.layers) {
-    if (!layer.enabled) continue;
+  for (const layer of on) {
     if (layer.kind === "custom") {
-      most = Math.max(most, scene.palette.length);
+      if (usesPalette(layer.code ?? "")) most = Math.max(most, scene.palette.length);
       continue;
     }
     const kind = kindById(layer.kind);
     if (!kind) continue;
     most = Math.max(most, kind.colors === "all" ? scene.palette.length : kind.colors);
   }
-  return Math.max(1, Math.min(most, scene.palette.length));
+  return Math.min(most, scene.palette.length);
+}
+
+export interface ShaderSetting {
+  layerId: string;
+  spec: ParamSpec;
+  /** The words next to the control: the setting's label as the code gives it. */
+  label: string;
+  value: number | boolean | string;
+}
+
+/** The settings (`// @param`) of the layers with your own code, as they stand now: colours, sliders and switches. */
+export function shaderSettings(scene: ShaderScene): ShaderSetting[] {
+  const out: ShaderSetting[] = [];
+  for (const layer of scene.layers) {
+    if (!layer.enabled || layer.kind !== "custom" || !layer.code) continue;
+    const specs = parsePragmas(layer.code).params.map((p) => p.spec);
+    const values = customValues(specs, layer.params);
+    for (const spec of specs) {
+      const value = values[spec.id];
+      if (value === undefined || spec.type === "enum" || spec.type === "stops") continue;
+      out.push({ layerId: layer.id, spec, label: spec.label, value });
+    }
+  }
+  return out.slice(0, 12);
 }
 
 /** The loop lengths the speed slider spans: a long loop is slow, a short one is lively. */

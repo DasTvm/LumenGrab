@@ -128,3 +128,14 @@ jobs:
           uploadWorkflowArtifacts: true
           # Update packages (and their signatures) only on a tag: a manual run has no signing key.
           args: ${{ matrix.args }} ${{ github.ref_type == 'tag' && '--config src-tauri/tauri.release.conf.json' || '' }}
+      # An app folder that is not signed as a whole (only its program carries a signature) is never known to
+      # macOS by its bundle id: the Screen Recording switch looks on and is ignored. v0.1.0 had exactly that.
+      - name: Check that the macOS app is signed as a whole
+        if: runner.os == 'macOS'
+        run: |
+          app=$(find src-tauri/target -type d -path '*bundle/macos/LumenGrab.app' | head -1)
+          test -n "$app" || { echo "no app bundle found"; exit 1; }
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign -dv --verbose=2 "$app" 2>&1 | tee /tmp/codesign.txt
+          grep -q "Identifier=app.lumengrab" /tmp/codesign.txt
+          grep -q "Sealed Resources" /tmp/codesign.txt

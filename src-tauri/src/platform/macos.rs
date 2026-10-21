@@ -58,6 +58,62 @@ pub fn open_screen_recording_settings() {
         .spawn();
 }
 
+/// What a support request needs to know about this copy of the app: where it runs from, whether macOS
+/// moved it (App Translocation), its quarantine flag and its code signature. Plain text, no personal data
+/// beyond the install path (the user's folder name shows up there, and is theirs to share or not).
+pub fn diagnostics() -> String {
+    let run = |program: &str, args: &[&str]| -> String {
+        Command::new(program)
+            .args(args)
+            .output()
+            .map(|o| {
+                let mut text = String::from_utf8_lossy(&o.stdout).into_owned();
+                text.push_str(&String::from_utf8_lossy(&o.stderr));
+                text.trim().chars().take(900).collect::<String>()
+            })
+            .unwrap_or_else(|e| e.to_string())
+    };
+    let exe = std::env::current_exe().ok();
+    // `Contents/MacOS/lumengrab` is three steps below the `.app` folder.
+    let app = exe
+        .as_ref()
+        .and_then(|e| e.ancestors().nth(3))
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    let signature: Vec<String> = run("codesign", &["-dv", "--verbose=2", &app])
+        .lines()
+        .filter(|l| {
+            [
+                "Identifier=",
+                "Signature=",
+                "flags=",
+                "Info.plist",
+                "Sealed",
+                "Authority=",
+                "not signed",
+            ]
+            .iter()
+            .any(|k| l.contains(k))
+        })
+        .map(str::to_string)
+        .collect();
+    let verify = run("codesign", &["--verify", "--deep", "--strict", &app]);
+    let quarantine = run("xattr", &["-p", "com.apple.quarantine", &app]);
+    format!(
+        "macOS: {}\nMachine: {}\nApp: {app}\nTranslocated: {}\nQuarantine: {}\nSignature:\n{}\nVerify: {}",
+        run("sw_vers", &["-productVersion"]),
+        run("uname", &["-m"]),
+        app.contains("/AppTranslocation/"),
+        if quarantine.is_empty() || quarantine.contains("No such xattr") {
+            "none".to_string()
+        } else {
+            quarantine
+        },
+        signature.join("\n"),
+        if verify.is_empty() { "ok".to_string() } else { verify },
+    )
+}
+
 /// Opens a web address in the default browser.
 pub fn open_url(url: &str) {
     let _ = Command::new("open").arg(url).spawn();

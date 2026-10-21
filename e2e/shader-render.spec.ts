@@ -329,3 +329,36 @@ test("code you write draws, and a mistake names the line", async ({ page }) => {
   expect(typo.message).toContain("sinn");
   expect(results["loop"]).toMatchObject({ ok: false });
 });
+
+test("a colour setting of your own shader changes what it draws", async ({ page }) => {
+  await page.goto("/");
+  const means = await page.evaluate(async () => {
+    const load = async <T>(path: string): Promise<T> =>
+      (await import(/* @vite-ignore */ path)) as T;
+    const { ShaderRenderer } = await load<typeof Renderer>("/src/shader/renderer.ts");
+    const { newScene, newCustomLayer } = await load<typeof Scene>("/src/shader/scene.ts");
+    const code = `// @param color tint = #FF0000
+precision mediump float;
+uniform vec2 u_resolution;
+uniform vec3 tint;
+void main() { gl_FragColor = vec4(tint, 1.0); }
+`;
+    const renderer = new ShaderRenderer();
+    const read = (params: Record<string, string>) => {
+      const scene = newScene({ layers: [newCustomLayer("generator", "Tint", code, params)] });
+      renderer.render(scene, 0, 16, 16, { allowCode: () => true });
+      const c = document.createElement("canvas");
+      c.width = renderer.canvas.width;
+      c.height = renderer.canvas.height;
+      const ctx = c.getContext("2d", { willReadFrequently: true });
+      if (!ctx) throw new Error("no 2d");
+      ctx.drawImage(renderer.canvas, 0, 0);
+      const px = ctx.getImageData(8, 8, 1, 1).data;
+      return [px[0] ?? 0, px[1] ?? 0, px[2] ?? 0];
+    };
+    return { dflt: read({}), green: read({ tint: "#00FF00" }), blue: read({ tint: "#2244FF" }) };
+  });
+  expect(means.dflt).toEqual([255, 0, 0]);
+  expect(means.green).toEqual([0, 255, 0]);
+  expect(means.blue).toEqual([34, 68, 255]);
+});

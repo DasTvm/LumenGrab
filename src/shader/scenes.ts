@@ -351,7 +351,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
     name: "Mint",
     make: () =>
       scene(
-        ["#BDF2DC", "#8BD3C7", "#CDE9FF", "#F2FFFB"],
+        ["#9EE8CB", "#6FCFC0", "#BFE0FF", "#F2FFFB"],
         "#E8FBF3",
         [["liquid", { params: { scale: 0.7, warp: 0.5, detail: 2 } }], GRAIN(0.06)],
         { loop: SLOW },
