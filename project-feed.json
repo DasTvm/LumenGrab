@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-21T20:27:44.891Z",
+  "generatedAt": "2026-10-21T20:54:44.599Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -779,6 +779,13 @@
       "category": "internal",
       "title": "check the signature of the app inside the dmg (the app folder is not kept next to it)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/4131939feab746713a09e6edf4a21d0ba0e8ab6f"
+    },
+    {
+      "id": "7b4651d005b3d6acd70412bd37c9b9703b197b47",
+      "date": "2026-10-21T20:54:28Z",
+      "category": "internal",
+      "title": "0.1.1",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/7b4651d005b3d6acd70412bd37c9b9703b197b47"
     }
   ],
   "releases": [
@@ -795,7 +802,8 @@
   "unreleasedIds": [
     "9ebcceea29c4f8919d2b543191e17c6cd330a6d5",
     "fbd48e2e97ebe80ec59976312ddc2409b51a572b",
-    "4131939feab746713a09e6edf4a21d0ba0e8ab6f"
+    "4131939feab746713a09e6edf4a21d0ba0e8ab6f",
+    "7b4651d005b3d6acd70412bd37c9b9703b197b47"
   ],
   "roadmap": {
     "schemaVersion": 1,
