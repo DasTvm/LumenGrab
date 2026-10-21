@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-21T20:54:44.599Z",
+  "generatedAt": "2026-10-21T21:06:24.562Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -786,6 +786,13 @@
       "category": "internal",
       "title": "0.1.1",
       "url": "https://github.com/DasTvm/LumenGrab/commit/7b4651d005b3d6acd70412bd37c9b9703b197b47"
+    },
+    {
+      "id": "a1f92715d299f77c752d686fba5d031604c746b5",
+      "date": "2026-10-21T21:06:11Z",
+      "category": "internal",
+      "title": "the playing-animation test reads the canvas instead of taking screenshots (they wait for a page that never holds still under software WebGL)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/a1f92715d299f77c752d686fba5d031604c746b5"
     }
   ],
   "releases": [
@@ -803,7 +810,8 @@
     "9ebcceea29c4f8919d2b543191e17c6cd330a6d5",
     "fbd48e2e97ebe80ec59976312ddc2409b51a572b",
     "4131939feab746713a09e6edf4a21d0ba0e8ab6f",
-    "7b4651d005b3d6acd70412bd37c9b9703b197b47"
+    "7b4651d005b3d6acd70412bd37c9b9703b197b47",
+    "a1f92715d299f77c752d686fba5d031604c746b5"
   ],
   "roadmap": {
     "schemaVersion": 1,
