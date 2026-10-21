@@ -205,7 +205,10 @@ test.describe("shader editor (browser mock)", () => {
     await expect(editor(page).getByText(/draws the background/)).toBeVisible();
     await editor(page).getByRole("button", { name: "Examples" }).click();
     await page.getByRole("menuitem", { name: /Light sweep/ }).click();
-    await expect(editor(page).getByText(/changes the picture below/)).toBeVisible();
+    // Software WebGL in CI draws the effect over the layers below slowly: the check of the code waits for it.
+    await expect(editor(page).getByText(/changes the picture below/)).toBeVisible({
+      timeout: 20_000,
+    });
     await editor(page).getByRole("button", { name: "Done" }).click();
     await expect(studio.getByText("Custom shader · Effect")).toBeVisible();
   });
