@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-21T20:00:57.748Z",
+  "generatedAt": "2026-10-21T20:11:17.181Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -765,6 +765,13 @@
       "category": "fixed",
       "title": "the macOS app is signed as a whole (ad-hoc, bundle id), colour picker has a width, own shader colours and sliders under Customise, noise hash that is stable across graphics cards",
       "url": "https://github.com/DasTvm/LumenGrab/commit/9ebcceea29c4f8919d2b543191e17c6cd330a6d5"
+    },
+    {
+      "id": "fbd48e2e97ebe80ec59976312ddc2409b51a572b",
+      "date": "2026-10-21T20:11:04Z",
+      "category": "internal",
+      "title": "the effect example waits longer for its compile check under software WebGL",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/fbd48e2e97ebe80ec59976312ddc2409b51a572b"
     }
   ],
   "releases": [
@@ -779,7 +786,8 @@
     }
   ],
   "unreleasedIds": [
-    "9ebcceea29c4f8919d2b543191e17c6cd330a6d5"
+    "9ebcceea29c4f8919d2b543191e17c6cd330a6d5",
+    "fbd48e2e97ebe80ec59976312ddc2409b51a572b"
   ],
   "roadmap": {
     "schemaVersion": 1,
