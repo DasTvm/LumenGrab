@@ -133,9 +133,13 @@ jobs:
       - name: Check that the macOS app is signed as a whole
         if: runner.os == 'macOS'
         run: |
-          app=$(find src-tauri/target -type d -path '*bundle/macos/LumenGrab.app' | head -1)
-          test -n "$app" || { echo "no app bundle found"; exit 1; }
+          dmg=$(find src-tauri/target -name '*.dmg' | head -1)
+          test -n "$dmg" || { echo "no dmg found"; exit 1; }
+          mount=$(mktemp -d)
+          hdiutil attach "$dmg" -nobrowse -readonly -mountpoint "$mount"
+          app="$mount/LumenGrab.app"
           codesign --verify --deep --strict --verbose=2 "$app"
           codesign -dv --verbose=2 "$app" 2>&1 | tee /tmp/codesign.txt
           grep -q "Identifier=app.lumengrab" /tmp/codesign.txt
           grep -q "Sealed Resources" /tmp/codesign.txt
+          hdiutil detach "$mount"
