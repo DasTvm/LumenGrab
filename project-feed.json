@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-21T20:11:17.181Z",
+  "generatedAt": "2026-10-21T20:27:44.891Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -772,6 +772,13 @@
       "category": "internal",
       "title": "the effect example waits longer for its compile check under software WebGL",
       "url": "https://github.com/DasTvm/LumenGrab/commit/fbd48e2e97ebe80ec59976312ddc2409b51a572b"
+    },
+    {
+      "id": "4131939feab746713a09e6edf4a21d0ba0e8ab6f",
+      "date": "2026-10-21T20:27:31Z",
+      "category": "internal",
+      "title": "check the signature of the app inside the dmg (the app folder is not kept next to it)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/4131939feab746713a09e6edf4a21d0ba0e8ab6f"
     }
   ],
   "releases": [
@@ -787,7 +794,8 @@
   ],
   "unreleasedIds": [
     "9ebcceea29c4f8919d2b543191e17c6cd330a6d5",
-    "fbd48e2e97ebe80ec59976312ddc2409b51a572b"
+    "fbd48e2e97ebe80ec59976312ddc2409b51a572b",
+    "4131939feab746713a09e6edf4a21d0ba0e8ab6f"
   ],
   "roadmap": {
     "schemaVersion": 1,
