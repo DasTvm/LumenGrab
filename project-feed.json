@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-21T19:21:33.132Z",
+  "generatedAt": "2026-10-21T20:00:57.748Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -758,6 +758,13 @@
       "category": "internal",
       "title": "bump vite from 8.3.2 to 8.3.3 (#3)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/9c2d33feb280a0d32c1e38314f6d0e0ab74a6521"
+    },
+    {
+      "id": "9ebcceea29c4f8919d2b543191e17c6cd330a6d5",
+      "date": "2026-10-21T20:00:45Z",
+      "category": "fixed",
+      "title": "the macOS app is signed as a whole (ad-hoc, bundle id), colour picker has a width, own shader colours and sliders under Customise, noise hash that is stable across graphics cards",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/9ebcceea29c4f8919d2b543191e17c6cd330a6d5"
     }
   ],
   "releases": [
@@ -771,7 +778,9 @@
       "body": "### New\n- First release of LumenGrab for macOS and Windows: capture an area, a window or the whole screen with a hotkey, with a Quick Access card to copy, save, edit or drag the shot out.\n- An editor with arrows, shapes, text, counters, highlighter, spotlight and redactions that really destroy the pixels, with undo, crop and export as PNG, JPG or WebP.\n- Presentation: backgrounds, padding, shadow, window frames, aspect ratios and looks you can save and use automatically.\n- Animated backgrounds: twelve soft, slow looks you can tune (speed, colours, a few sliders), a Background Studio to build your own from layers and effects, and a shader editor for your own GLSL code. Export a loop as MP4, WebM or GIF, or use one frame as a picture.\n- Your own editable file format, `.lumengrab`: one file keeps the original and everything you changed.\n- Updates inside the app: LumenGrab tells you when a new version is out and installs it with one click.\n\n### Improved\n- Nothing yet: this is the first version.\n\n### Fixed\n- Nothing yet: this is the first version.\n\nFirst launch: this build is not signed with an Apple certificate. See \"First launch\" in the README for macOS Gatekeeper and the Screen Recording permission, and for the Windows SmartScreen warning.\n"
     }
   ],
-  "unreleasedIds": [],
+  "unreleasedIds": [
+    "9ebcceea29c4f8919d2b543191e17c6cd330a6d5"
+  ],
   "roadmap": {
     "schemaVersion": 1,
     "milestones": [
