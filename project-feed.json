@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-21T21:06:24.562Z",
+  "generatedAt": "2026-10-21T22:00:28.012Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -797,6 +797,15 @@
   ],
   "releases": [
     {
+      "id": "420078568",
+      "version": "v0.1.1",
+      "title": "LumenGrab v0.1.1",
+      "publishedAt": "2026-10-21T22:00:18Z",
+      "prerelease": false,
+      "url": "https://github.com/DasTvm/LumenGrab/releases/tag/v0.1.1",
+      "body": "### New\n- Your own shaders show their colours, sliders and switches under Customise, so you can tune them without opening the editor.\n- The permission window can show details for support (macOS version, where the app runs from, its signature) and copy them.\n\n### Improved\n- The animated looks use a steadier kind of noise, so they no longer shimmer on some graphics cards (reported on Windows).\n- The Esc key closes a colour picker or a help page first, and only then the shader editor.\n\n### Fixed\n- macOS: the app is now signed as a whole. Before, macOS could not match the Screen Recording switch to LumenGrab, so it stayed on but never took effect and the welcome window came back. Update, move LumenGrab to the Applications folder and open it with a right click > Open the first time. If the switch of the old version is still in the list, remove it and switch LumenGrab on again.\n- The colour picker in the shader editor and in the Studio was only a few pixels wide and unusable.\n- Colour settings of your own shader did not show up where you tune a look.\n\nFirst launch: this build is not signed with an Apple certificate. See \"First launch\" in the README for macOS Gatekeeper and the Screen Recording permission, and for the Windows SmartScreen warning.\n"
+    },
+    {
       "id": "418813964",
       "version": "v0.1.0",
       "title": "LumenGrab v0.1.0",
@@ -806,13 +815,7 @@
       "body": "### New\n- First release of LumenGrab for macOS and Windows: capture an area, a window or the whole screen with a hotkey, with a Quick Access card to copy, save, edit or drag the shot out.\n- An editor with arrows, shapes, text, counters, highlighter, spotlight and redactions that really destroy the pixels, with undo, crop and export as PNG, JPG or WebP.\n- Presentation: backgrounds, padding, shadow, window frames, aspect ratios and looks you can save and use automatically.\n- Animated backgrounds: twelve soft, slow looks you can tune (speed, colours, a few sliders), a Background Studio to build your own from layers and effects, and a shader editor for your own GLSL code. Export a loop as MP4, WebM or GIF, or use one frame as a picture.\n- Your own editable file format, `.lumengrab`: one file keeps the original and everything you changed.\n- Updates inside the app: LumenGrab tells you when a new version is out and installs it with one click.\n\n### Improved\n- Nothing yet: this is the first version.\n\n### Fixed\n- Nothing yet: this is the first version.\n\nFirst launch: this build is not signed with an Apple certificate. See \"First launch\" in the README for macOS Gatekeeper and the Screen Recording permission, and for the Windows SmartScreen warning.\n"
     }
   ],
-  "unreleasedIds": [
-    "9ebcceea29c4f8919d2b543191e17c6cd330a6d5",
-    "fbd48e2e97ebe80ec59976312ddc2409b51a572b",
-    "4131939feab746713a09e6edf4a21d0ba0e8ab6f",
-    "7b4651d005b3d6acd70412bd37c9b9703b197b47",
-    "a1f92715d299f77c752d686fba5d031604c746b5"
-  ],
+  "unreleasedIds": [],
   "roadmap": {
     "schemaVersion": 1,
     "milestones": [
