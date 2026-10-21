@@ -140,17 +140,18 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
     await open(page);
     await toAnimated(page);
     const canvas = page.getByTestId("editor-canvas");
-    const shot = async () => canvas.screenshot({ animations: "disabled" });
+    // The canvas is read directly: a screenshot waits for the page to hold still, which software WebGL never allows while it plays.
+    const shot = async () => canvas.evaluate((el) => (el as HTMLCanvasElement).toDataURL());
     const first = await shot();
     await page.waitForTimeout(700);
     const second = await shot();
-    expect(Buffer.compare(first, second), "the picture moves").not.toBe(0);
+    expect(first === second, "the picture moves").toBe(false);
     // Software WebGL keeps the page busy while it plays, so the click does not wait for the switch to hold still.
     await page.getByRole("switch", { name: "Animate in editor" }).click({ force: true });
     await page.waitForTimeout(150);
     const still = await shot();
     await page.waitForTimeout(500);
-    expect(Buffer.compare(still, await shot()), "the picture stands still").toBe(0);
+    expect(still === (await shot()), "the picture stands still").toBe(true);
   });
 
   test("Open Background Studio asks for the Studio", async ({ page }) => {
