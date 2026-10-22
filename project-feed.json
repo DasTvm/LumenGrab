@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-22T15:02:55.422Z",
+  "generatedAt": "2026-10-22T15:18:13.874Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -800,6 +800,13 @@
       "category": "new",
       "title": "Video / GIF in the normal Export dialog, measured file size, speed shown as a factor, dark mode fixes",
       "url": "https://github.com/DasTvm/LumenGrab/commit/b6748c10949bd711d5db41234714fbd0adddef86"
+    },
+    {
+      "id": "c626b962859867db3ab3e21d6b839903bff80264",
+      "date": "2026-10-22T15:18:01Z",
+      "category": "fixed",
+      "title": "the size is measured on a small picture and carried to the real size (a 4K frame held the page up); steadier e2e timeouts",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/c626b962859867db3ab3e21d6b839903bff80264"
     }
   ],
   "releases": [
@@ -823,7 +830,8 @@
     }
   ],
   "unreleasedIds": [
-    "b6748c10949bd711d5db41234714fbd0adddef86"
+    "b6748c10949bd711d5db41234714fbd0adddef86",
+    "c626b962859867db3ab3e21d6b839903bff80264"
   ],
   "roadmap": {
     "schemaVersion": 1,
