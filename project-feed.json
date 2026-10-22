@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-22T10:12:12.489Z",
+  "generatedAt": "2026-10-22T15:02:55.422Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -793,6 +793,13 @@
       "category": "internal",
       "title": "the playing-animation test reads the canvas instead of taking screenshots (they wait for a page that never holds still under software WebGL)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/a1f92715d299f77c752d686fba5d031604c746b5"
+    },
+    {
+      "id": "b6748c10949bd711d5db41234714fbd0adddef86",
+      "date": "2026-10-22T15:02:40Z",
+      "category": "new",
+      "title": "Video / GIF in the normal Export dialog, measured file size, speed shown as a factor, dark mode fixes",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/b6748c10949bd711d5db41234714fbd0adddef86"
     }
   ],
   "releases": [
@@ -815,7 +822,9 @@
       "body": "### New\n- First release of LumenGrab for macOS and Windows: capture an area, a window or the whole screen with a hotkey, with a Quick Access card to copy, save, edit or drag the shot out.\n- An editor with arrows, shapes, text, counters, highlighter, spotlight and redactions that really destroy the pixels, with undo, crop and export as PNG, JPG or WebP.\n- Presentation: backgrounds, padding, shadow, window frames, aspect ratios and looks you can save and use automatically.\n- Animated backgrounds: twelve soft, slow looks you can tune (speed, colours, a few sliders), a Background Studio to build your own from layers and effects, and a shader editor for your own GLSL code. Export a loop as MP4, WebM or GIF, or use one frame as a picture.\n- Your own editable file format, `.lumengrab`: one file keeps the original and everything you changed.\n- Updates inside the app: LumenGrab tells you when a new version is out and installs it with one click.\n\n### Improved\n- Nothing yet: this is the first version.\n\n### Fixed\n- Nothing yet: this is the first version.\n\nFirst launch: this build is not signed with an Apple certificate. See \"First launch\" in the README for macOS Gatekeeper and the Screen Recording permission, and for the Windows SmartScreen warning.\n"
     }
   ],
-  "unreleasedIds": [],
+  "unreleasedIds": [
+    "b6748c10949bd711d5db41234714fbd0adddef86"
+  ],
   "roadmap": {
     "schemaVersion": 1,
     "milestones": [
@@ -1105,6 +1114,11 @@
           {
             "id": "task-13",
             "title": "A simpler way to write your own shader: New shader in one click, saved by itself, one Done button, Your shaders with a menu",
+            "done": true
+          },
+          {
+            "id": "task-14",
+            "title": "Export an animated background as a video or GIF from the normal Export dialog, with a file size that is measured",
             "done": true
           },
           {
