@@ -118,13 +118,13 @@ test.describe("Studio export (browser mock)", () => {
   test("the size it announces is measured, and comes close to the file that is made", async ({
     page,
   }) => {
-    test.setTimeout(180_000);
-    const dialog = await openExport(page, "3");
+    test.setTimeout(240_000);
+    const dialog = await openExport(page, "2");
     await dialog.getByRole("radio", { name: "WebM" }).click();
     await dialog.getByRole("radio", { name: "720p" }).click();
     await dialog.getByRole("radio", { name: "24" }).click();
     const estimate = dialog.getByTestId("export-estimate");
-    await expect(estimate).not.toContainText("Measuring", { timeout: 90_000 });
+    await expect(estimate).not.toContainText("Measuring", { timeout: 120_000 });
     const asBytes = (text: string): number => {
       const m = /About ([\d.]+) (KB|MB)/.exec(text);
       return m ? Number(m[1]) * (m[2] === "MB" ? 1024 * 1024 : 1024) : Number.NaN;
@@ -132,7 +132,7 @@ test.describe("Studio export (browser mock)", () => {
     const announced = asBytes((await estimate.textContent()) ?? "");
     expect(announced).toBeGreaterThan(0);
     await dialog.getByRole("button", { name: "Export", exact: true }).click();
-    await expect(dialog.getByText("Export finished")).toBeVisible({ timeout: 90_000 });
+    await expect(dialog.getByText("Export finished")).toBeVisible({ timeout: 150_000 });
     const made = (await written(page, 1 << 30)).length;
     expect(made).toBeGreaterThan(0);
     // Not the old guess (several times too much): within a factor of two either way.

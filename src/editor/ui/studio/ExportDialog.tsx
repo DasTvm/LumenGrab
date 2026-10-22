@@ -15,6 +15,8 @@ import {
   fitSize,
   formatBytes,
   planMotion,
+  sampleSize,
+  scaleMeasuredBytes,
   timeLeft,
   type Content,
   type ExportKind,
@@ -184,16 +186,18 @@ export function StudioExportDialog({ base, onClose }: { base: BaseImage; onClose
     const timer = setTimeout(() => {
       void (async () => {
         try {
+          // A small picture is measured and the result is carried to the real size: a 4K frame would hold the page up.
+          const small = sampleSize(pixels, { even: kind === "video" });
           const source = makeFrameSource({
             scene,
             presentation,
             picture,
             content: renderPicture(base, project.layers, project.crop),
             mode: content,
-            width: pixels.width,
-            height: pixels.height,
+            width: small.width,
+            height: small.height,
           });
-          const bytes = await measureBytes({
+          const sampled = await measureBytes({
             kind,
             source,
             scene,
@@ -204,6 +208,7 @@ export function StudioExportDialog({ base, onClose }: { base: BaseImage; onClose
             frames: plan.frames,
             signal: controller.signal,
           });
+          const bytes = scaleMeasuredBytes(sampled, small, pixels, kind);
           if (!controller.signal.aborted) setMeasured({ key: measureKey, bytes });
         } catch {
           if (!controller.signal.aborted) setMeasured({ key: measureKey, bytes: null });

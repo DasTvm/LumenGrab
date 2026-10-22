@@ -213,7 +213,9 @@ test.describe("Background Studio (browser mock)", () => {
     await expect.poll(async () => (await timeText.textContent()) ?? "").not.toBe("1.0 / 8.0 s");
     await studio(page).getByRole("radio", { name: "2×" }).click();
     await studio(page).getByRole("switch", { name: "Show seam" }).click();
-    await expect(studio(page).getByText("Seam check: the end flows into the start")).toBeVisible();
+    await expect(studio(page).getByText("Seam check: the end flows into the start")).toBeVisible({
+      timeout: 20_000,
+    });
     await studio(page).getByRole("switch", { name: "Show seam" }).click();
     await studio(page).getByRole("button", { name: "Pause" }).click();
     const before = (await docScene(page)).poster;

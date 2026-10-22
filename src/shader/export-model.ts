@@ -105,6 +105,35 @@ export function estimateVideoBytes(
   return (size.width * size.height * plan.fps * BITS_PER_PIXEL[quality] * plan.seconds) / 8;
 }
 
+/** The size of the little picture a size is measured at: no more than this many pixels, the shape of the real one. */
+export const SAMPLE_PIXELS = 640 * 360;
+
+export function sampleSize(
+  size: { width: number; height: number },
+  options: { even?: boolean } = {},
+): { width: number; height: number } {
+  const k = Math.min(1, Math.sqrt(SAMPLE_PIXELS / Math.max(1, size.width * size.height)));
+  const width = size.width * k;
+  const height = size.height * k;
+  return options.even
+    ? { width: even(width), height: even(height) }
+    : { width: Math.max(1, Math.round(width)), height: Math.max(1, Math.round(height)) };
+}
+
+/**
+ * What a file made at the little size would weigh at the real size. A GIF grows with its pixels; a video less (a soft
+ * picture at twice the size is not twice the bits), so it is carried on with an exponent below one.
+ */
+export function scaleMeasuredBytes(
+  bytes: number,
+  sample: { width: number; height: number },
+  real: { width: number; height: number },
+  kind: "video" | "gif",
+): number {
+  const ratio = (real.width * real.height) / Math.max(1, sample.width * sample.height);
+  return bytes * Math.pow(ratio, kind === "gif" ? 1 : 0.8);
+}
+
 const GIF_BYTES_PER_PIXEL: Record<number, number> = { 64: 0.14, 128: 0.18, 256: 0.225 };
 
 export function estimateGifBytes(

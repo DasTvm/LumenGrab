@@ -9,6 +9,8 @@ import {
   formatBytes,
   frameTime,
   planMotion,
+  sampleSize,
+  scaleMeasuredBytes,
   timeLeft,
 } from "./export-model";
 
@@ -99,5 +101,28 @@ describe("estimates and words", () => {
     expect(fileStem("  ../Weird: name?  ")).toBe("Weird-name");
     expect(fileStem("")).toBe("Background");
     expect(fileStem("Größe")).toBe("Größe");
+  });
+});
+
+describe("measuring at a small size", () => {
+  it("keeps the shape, never gets bigger, and stays even for a video", () => {
+    expect(sampleSize({ width: 1920, height: 1080 }, { even: true })).toEqual({
+      width: 640,
+      height: 360,
+    });
+    expect(sampleSize({ width: 3840, height: 2160 })).toEqual({ width: 640, height: 360 });
+    expect(sampleSize({ width: 320, height: 180 })).toEqual({ width: 320, height: 180 });
+    const odd = sampleSize({ width: 1001, height: 563 }, { even: true });
+    expect(odd.width % 2).toBe(0);
+    expect(odd.height % 2).toBe(0);
+  });
+
+  it("carries the bytes to the real size: a GIF in step with the pixels, a video less", () => {
+    const small = { width: 640, height: 360 };
+    const real = { width: 1280, height: 720 };
+    expect(scaleMeasuredBytes(1000, small, real, "gif")).toBeCloseTo(4000);
+    expect(scaleMeasuredBytes(1000, small, real, "video")).toBeGreaterThan(2500);
+    expect(scaleMeasuredBytes(1000, small, real, "video")).toBeLessThan(3500);
+    expect(scaleMeasuredBytes(1000, real, real, "video")).toBe(1000);
   });
 });
