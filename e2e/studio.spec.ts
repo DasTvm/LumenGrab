@@ -202,6 +202,8 @@ test.describe("Background Studio (browser mock)", () => {
   test("the timeline plays, pauses, scrubs, steps, moves the still frame and checks the seam", async ({
     page,
   }) => {
+    // It plays: software WebGL in CI keeps the page busy, so the steps take their time.
+    test.setTimeout(120_000);
     await open(page);
     const timeText = studio(page).getByTestId("studio-time");
     await studio(page).getByRole("slider", { name: "Time" }).focus();
