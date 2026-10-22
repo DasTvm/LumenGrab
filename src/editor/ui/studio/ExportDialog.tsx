@@ -30,14 +30,16 @@ import {
   makeGif,
   makePicture,
   makeVideo,
+  measureBytes,
   type Progress,
 } from "@/shader/export-run";
 import { posterSeconds } from "@/shader/scene";
 import type { BaseImage } from "../base-image";
-import { useEditor } from "../context";
+import { useEditor, useStores } from "../context";
 import { Modal } from "../dialogs/Modal";
 import { renderPicture } from "../picture";
-import { useStudio, useStudioStore } from "./context";
+import { StudioProvider, useStudio, useStudioStore } from "./context";
+import { createStudioStore } from "./studio-store";
 
 type Run =
   | { phase: "form" }
@@ -154,12 +156,69 @@ export function StudioExportDialog({ base, onClose }: { base: BaseImage; onClose
     even: kind === "video",
   });
   const plan = planMotion(scene, pixels, fps, repeats, motionKind);
-  const bytes =
+  const guess =
     kind === "video"
       ? estimateVideoBytes(pixels, plan, quality)
       : kind === "gif"
         ? estimateGifBytes(pixels, plan, colours)
         : estimatePictureBytes(pixels, pictureFormat);
+
+  // The size of a video or a GIF depends on what is in it (a soft gradient is a fraction of busy noise), so a piece of
+  // it is made for real a moment after the last change. Until then, and where that does not work, the rule of thumb stands.
+  const measureKey = [
+    kind,
+    videoFormat,
+    quality,
+    colours,
+    fps,
+    plan.frames,
+    pixels.width,
+    pixels.height,
+    content,
+    scene.loop,
+  ].join("|");
+  const [measured, setMeasured] = useState<{ key: string; bytes: number | null } | null>(null);
+  useEffect(() => {
+    if (kind === "picture" || run.phase !== "form") return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const source = makeFrameSource({
+            scene,
+            presentation,
+            picture,
+            content: renderPicture(base, project.layers, project.crop),
+            mode: content,
+            width: pixels.width,
+            height: pixels.height,
+          });
+          const bytes = await measureBytes({
+            kind,
+            source,
+            scene,
+            format: videoFormat,
+            quality,
+            colours,
+            fps,
+            frames: plan.frames,
+            signal: controller.signal,
+          });
+          if (!controller.signal.aborted) setMeasured({ key: measureKey, bytes });
+        } catch {
+          if (!controller.signal.aborted) setMeasured({ key: measureKey, bytes: null });
+        }
+      })();
+    }, 500);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+    // The settings that change the file are in the key; the rest (the document) does not change while the dialog is open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [measureKey, run.phase]);
+  const known = measured?.key === measureKey ? measured.bytes : undefined;
+  const bytes = known ?? guess;
 
   useEffect(() => {
     store.getState().setPlaying(false);
@@ -546,9 +605,11 @@ export function StudioExportDialog({ base, onClose }: { base: BaseImage; onClose
             <Info aria-hidden className="size-4 text-muted-foreground" />
             {kind === "picture"
               ? `About ${formatBytes(bytes)}`
-              : plan.shortened
-                ? `About ${formatBytes(bytes)} · shortened`
-                : `About ${formatBytes(bytes)} · ${String(Math.round(plan.seconds))} s · ${String(plan.frames)} frames`}
+              : `${known === undefined ? "Measuring the size…" : `About ${formatBytes(bytes)}`} · ${
+                  plan.shortened
+                    ? "shortened"
+                    : `${String(Math.round(plan.seconds))} s · ${String(plan.frames)} frames`
+                }`}
           </p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={close}>
@@ -569,5 +630,35 @@ export function StudioExportDialog({ base, onClose }: { base: BaseImage; onClose
         </>
       )}
     </Modal>
+  );
+}
+
+/**
+ * The export of an animated background from the normal Export dialog ("Video / GIF"): the same dialog as in the Studio,
+ * on a copy of the document's scene (nothing in the document changes).
+ */
+export function AnimatedExportDialog({
+  base,
+  name,
+  onClose,
+}: {
+  base: BaseImage;
+  name: string;
+  onClose: () => void;
+}) {
+  const { editor } = useStores();
+  const store = useMemo(() => {
+    const background = editor.getState().project.presentation.background;
+    return background.type === "shader"
+      ? createStudioStore(structuredClone(background), { name, playing: false })
+      : null;
+    // The scene the document has when the dialog opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  if (!store) return null;
+  return (
+    <StudioProvider store={store}>
+      <StudioExportDialog base={base} onClose={onClose} />
+    </StudioProvider>
   );
 }

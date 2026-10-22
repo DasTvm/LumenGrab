@@ -68,7 +68,7 @@ export function Segmented<T extends string>({
               "rounded-sm px-3 py-1.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
               selected
                 ? tone === "brand"
-                  ? "bg-brand text-foreground"
+                  ? "bg-brand text-brand-foreground"
                   : "bg-background text-foreground"
                 : "text-muted-foreground hover:text-foreground",
             )}

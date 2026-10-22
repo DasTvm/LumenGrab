@@ -158,8 +158,7 @@ export interface AnimatedLook {
   make: () => ShaderScene;
 }
 
-/** The twelve animated looks of the Presentation panel: big soft shapes, calm colours, a slow loop. */
-const SLOW = 60;
+/** The twelve animated looks of the Presentation panel: big soft shapes, calm colours. Each loop is as long as its motion needs to feel alive but calm (measured: about the same change per second for all). */
 
 /** Fine texture that does not move: moving grain reads as flicker. */
 const GRAIN = (amount: number): Spec => [
@@ -190,7 +189,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
           ["vignette", { params: { amount: 0.35, softness: 0.8 } }],
           GRAIN(0.1),
         ],
-        { loop: SLOW },
+        { loop: 48 },
       ),
   },
   {
@@ -205,7 +204,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
           ["vignette", { params: { amount: 0.4, softness: 0.9 } }],
           GRAIN(0.1),
         ],
-        { loop: SLOW },
+        { loop: 21 },
       ),
   },
   {
@@ -216,7 +215,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
         ["#F8EBDD", "#EFC1B0", "#B58AB8", "#5B4B8A"],
         "#5B4B8A",
         [["liquid", { params: { scale: 0.7, warp: 0.55, detail: 2 } }], GRAIN(0.08)],
-        { loop: SLOW },
+        { loop: 28 },
       ),
   },
   {
@@ -231,7 +230,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
           ["vignette", { params: { amount: 0.3, softness: 0.9 } }],
           GRAIN(0.1),
         ],
-        { loop: SLOW },
+        { loop: 36 },
       ),
   },
   {
@@ -246,7 +245,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
           ["glow", { params: { threshold: 0.55, intensity: 0.35, radius: 0.1 } }],
           GRAIN(0.1),
         ],
-        { loop: SLOW },
+        { loop: 21 },
       ),
   },
   {
@@ -257,7 +256,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
         ["#FFC9B8", "#F9B3C8", "#F9D9B0", "#FFF3E8"],
         "#FFEFE3",
         [["orbs", { params: { count: 5, size: 1, softness: 1, spread: 0.4 } }], GRAIN(0.06)],
-        { loop: SLOW },
+        { loop: 12 },
       ),
   },
   {
@@ -268,7 +267,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
         ["#AFC6FF", "#D2BEFF", "#A6E3F2", "#F4F7FF"],
         "#EAF0FF",
         [["orbs", { params: { count: 5, size: 1, softness: 1, spread: 0.4 } }], GRAIN(0.06)],
-        { loop: SLOW },
+        { loop: 12 },
       ),
   },
   {
@@ -283,7 +282,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
           ["vignette", { params: { amount: 0.25, softness: 0.9 } }],
           GRAIN(0.08),
         ],
-        { loop: SLOW },
+        { loop: 22 },
       ),
   },
   {
@@ -298,7 +297,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
           ["vignette", { params: { amount: 0.35, softness: 0.9 } }],
           GRAIN(0.1),
         ],
-        { loop: SLOW },
+        { loop: 44 },
       ),
   },
   {
@@ -320,7 +319,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
           ],
           ["vignette", { params: { amount: 0.4, softness: 0.9 } }],
         ],
-        { loop: SLOW },
+        { loop: 12 },
       ),
   },
   {
@@ -343,7 +342,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
           ["vignette", { params: { amount: 0.35, softness: 0.9 } }],
           GRAIN(0.08),
         ],
-        { loop: SLOW },
+        { loop: 12 },
       ),
   },
   {
@@ -354,7 +353,7 @@ export const ANIMATED_LOOKS: readonly AnimatedLook[] = [
         ["#9EE8CB", "#6FCFC0", "#BFE0FF", "#F2FFFB"],
         "#E8FBF3",
         [["liquid", { params: { scale: 0.7, warp: 0.5, detail: 2 } }], GRAIN(0.06)],
-        { loop: SLOW },
+        { loop: 17 },
       ),
   },
 ];

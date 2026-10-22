@@ -32,6 +32,8 @@ import type { UiStoreApi } from "./ui-store";
 
 export type Dialog =
   | { type: "export"; format: ExportFormat }
+  /** The export of an animated background as a video, a GIF or a picture (the dialog of the Studio). */
+  | { type: "export-animated" }
   | { type: "unsaved" }
   | { type: "failure"; failure: Failure }
   | null;

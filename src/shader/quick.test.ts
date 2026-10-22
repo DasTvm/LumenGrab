@@ -8,6 +8,7 @@ import {
   loopAt,
   quickSettings,
   SLOWEST_LOOP,
+  speedLabel,
   speedPosition,
   withLoop,
 } from "./quick";
@@ -54,6 +55,14 @@ describe("the quick settings", () => {
 });
 
 describe("the speed", () => {
+  it("is shown as a factor: 1× is a loop of 20 seconds", () => {
+    expect(speedLabel(20)).toBe("1×");
+    expect(speedLabel(10)).toBe("2×");
+    expect(speedLabel(40)).toBe("0.5×");
+    expect(speedLabel(8)).toBe("2.5×");
+    expect(speedLabel(60)).toBe("0.33×");
+  });
+
   it("runs from the slowest to the fastest loop and back", () => {
     expect(loopAt(0)).toBe(SLOWEST_LOOP);
     expect(loopAt(1)).toBe(FASTEST_LOOP);

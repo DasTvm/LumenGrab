@@ -135,10 +135,13 @@ export async function makeVideo(options: {
   quality: Quality;
   fps: number;
   frames: number;
+  /** The moment of the loop the first frame shows (the sample of a size estimate starts in the middle). */
+  from?: number;
   signal: AbortSignal;
   onProgress: (p: Progress) => void;
 }): Promise<Uint8Array> {
   const { source, scene, format, fps, frames, signal } = options;
+  const from = options.from ?? 0;
   const canvas = document.createElement("canvas");
   canvas.width = source.width;
   canvas.height = source.height;
@@ -160,7 +163,7 @@ export async function makeVideo(options: {
     for (let i = 0; i < frames; i += 1) {
       if (signal.aborted) throw new ExportCancelled();
       // The loop repeats: frame i of a second round is the same moment of the loop as frame i of the first.
-      source.draw(canvas, frameTime(i, fps) % scene.loop);
+      source.draw(canvas, (from + frameTime(i, fps)) % scene.loop);
       await video.add(frameTime(i, fps), 1 / fps);
       report(i + 1);
       // Give the page a moment, so the window does not freeze while it works.
@@ -184,10 +187,12 @@ export async function makeGif(options: {
   colours: number;
   fps: number;
   frames: number;
+  from?: number;
   signal: AbortSignal;
   onProgress: (p: Progress) => void;
 }): Promise<Uint8Array> {
   const { source, scene, fps, frames, signal } = options;
+  const from = options.from ?? 0;
   const canvas = document.createElement("canvas");
   canvas.width = source.width;
   canvas.height = source.height;
@@ -197,7 +202,7 @@ export async function makeGif(options: {
   const report = reporter(frames, options.onProgress);
   for (let i = 0; i < frames; i += 1) {
     if (signal.aborted) throw new ExportCancelled();
-    source.draw(canvas, frameTime(i, fps) % scene.loop);
+    source.draw(canvas, (from + frameTime(i, fps)) % scene.loop);
     const { data } = ctx.getImageData(0, 0, source.width, source.height);
     const palette = quantize(data, options.colours);
     gif.writeFrame(applyPalette(data, palette), source.width, source.height, {
@@ -210,6 +215,50 @@ export async function makeGif(options: {
   }
   gif.finish();
   return gif.bytes();
+}
+
+/**
+ * How big the file of an export will really be: a short piece of it is made for real (twice, a short and a longer one)
+ * and the growth per frame is carried on to all the frames. What the first frame costs (a video starts with a whole
+ * picture) is not carried on. Exact when the export is not longer than the longer piece.
+ */
+export async function measureBytes(options: {
+  kind: "video" | "gif";
+  source: FrameSource;
+  scene: ShaderScene;
+  format: VideoFormat;
+  quality: Quality;
+  colours: number;
+  fps: number;
+  /** All the frames of the export. */
+  frames: number;
+  signal: AbortSignal;
+}): Promise<number> {
+  const { kind, source, scene, fps, frames, signal } = options;
+  const make = async (count: number): Promise<number> => {
+    const common = {
+      source,
+      scene,
+      fps,
+      frames: count,
+      from: scene.loop * 0.3,
+      signal,
+      onProgress: () => undefined,
+    };
+    const data =
+      kind === "video"
+        ? await makeVideo({ ...common, format: options.format, quality: options.quality })
+        : await makeGif({ ...common, colours: options.colours });
+    return data.length;
+  };
+  const short = kind === "video" ? Math.max(6, Math.round(fps * 0.4)) : 2;
+  const long = kind === "video" ? Math.max(short + 12, Math.round(fps * 1.2)) : 5;
+  if (frames <= long) return make(frames);
+  const a = await make(short);
+  const b = await make(long);
+  const perFrame = Math.max(0, (b - a) / (long - short));
+  const fixed = Math.max(0, a - perFrame * short);
+  return fixed + perFrame * frames;
 }
 
 const MIME: Record<PictureFormat, string> = {

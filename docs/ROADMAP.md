@@ -64,6 +64,7 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Animated default look for new screenshots (uses the still frame)
   - [x] Calmer, softer animated looks that you can tune (speed, colours, key sliders) without the Studio
   - [x] A simpler way to write your own shader: New shader in one click, saved by itself, one Done button, Your shaders with a menu
+  - [x] Export an animated background as a video or GIF from the normal Export dialog, with a file size that is measured
   - [ ] Complete native checks of animated backgrounds on macOS and Windows
 - [ ] **M6 History, pin and OCR**: History, pinned captures, copy text, QR, all-in-one mode.
   - Status: planned.

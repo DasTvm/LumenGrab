@@ -107,7 +107,7 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
         layers: { kind: string; params: Record<string, number> }[];
       };
     const first = await scene();
-    expect(first.loop).toBe(60);
+    expect(first.loop).toBe(28);
 
     // Speed: a shorter loop, and the still frame stays on the same picture.
     const speed = region.getByRole("slider", { name: "Speed" });
@@ -117,7 +117,7 @@ test.describe("animated backgrounds in the Presentation panel (browser mock)", (
     expect(faster.loop).toBe(6);
     expect(faster.poster / faster.loop).toBeCloseTo(first.poster / first.loop, 1);
     await page.keyboard.press("ControlOrMeta+z");
-    expect((await scene()).loop).toBe(60);
+    expect((await scene()).loop).toBe(28);
 
     // A colour of the palette.
     await region.getByRole("button", { name: "Colour 2" }).click();
@@ -224,7 +224,7 @@ test.describe("an animated default look (browser mock)", () => {
 
     await page.goto("/?window=settings&page=presentation");
     await expect(page.getByText("Ember · animated")).toBeVisible();
-    await expect(page.getByText("60 s loop")).toBeVisible();
+    await expect(page.getByText("44 s loop")).toBeVisible();
     await expect(
       page.getByText("Animated looks play in the editor and export as their still frame."),
     ).toBeVisible();

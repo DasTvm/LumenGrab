@@ -17,6 +17,7 @@ import { ToastStack } from "./ToastStack";
 import { TopBar } from "./TopBar";
 import { createUiStore, type UiStoreApi } from "./ui-store";
 import { ExportDialog } from "./dialogs/ExportDialog";
+import { AnimatedExportDialog } from "./studio/ExportDialog";
 import { FailureDialog } from "./dialogs/FailureDialog";
 import { UnsavedDialog } from "./dialogs/UnsavedDialog";
 import { applyCrop, cancelCrop } from "./crop-mode";
@@ -81,6 +82,11 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
   );
   const mode = useStore(ui, (s) => s.mode);
   const studio = useStore(ui, (s) => s.studio);
+  // The background moves now (the document's own `project` here is the one that was opened).
+  const animated = useStore(
+    editor,
+    (s) => s.project.presentation.enabled && s.project.presentation.background.type === "shader",
+  );
   const [webp, setWebp] = useState(true);
   // Text in a font installed on the device that made the file: say so if this device does not have it.
   const [missingFonts, setMissingFonts] = useState<string[]>([]);
@@ -248,6 +254,13 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
             redactions={session.redactions}
             initialFormat={dialog.format}
             webpAvailable={webp}
+            {...(animated
+              ? {
+                  onVideo: () => {
+                    setDialog({ type: "export-animated" });
+                  },
+                }
+              : {})}
             estimate={session.estimate}
             onSave={(choice) => {
               void session.export(choice);
@@ -255,6 +268,15 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
             onCopy={(size) => {
               void session.copy(size);
             }}
+            onClose={() => {
+              setDialog(null);
+            }}
+          />
+        ) : null}
+        {dialog?.type === "export-animated" ? (
+          <AnimatedExportDialog
+            base={base}
+            name={meta.fileName.replace(/\.lumengrab$/i, "")}
             onClose={() => {
               setDialog(null);
             }}

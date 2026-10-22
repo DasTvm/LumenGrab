@@ -75,7 +75,7 @@ describe("estimates and words", () => {
   const plan = planMotion({ loop: 8 }, { width: 1920, height: 1080 }, 30, 1, "video");
   it("are close to what the dialog promised in the design", () => {
     expect(formatBytes(estimateVideoBytes({ width: 1920, height: 1080 }, plan, "high"))).toBe(
-      "14 MB",
+      "4.7 MB",
     );
     expect(estimateVideoBytes({ width: 1920, height: 1080 }, plan, "low")).toBeLessThan(
       estimateVideoBytes({ width: 1920, height: 1080 }, plan, "high"),

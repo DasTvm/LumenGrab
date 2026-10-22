@@ -27,6 +27,7 @@ import {
   loopAt,
   quickSettings,
   shaderSettings,
+  speedLabel,
   speedPosition,
   withLoop,
 } from "@/shader/quick";
@@ -397,7 +398,9 @@ function Customise({ bg }: { bg: ShaderScene }) {
       <span className="w-[68px] shrink-0 text-xs font-medium">{label}</span>
       <div className="min-w-0 flex-1">{control}</div>
       {hint ? (
-        <span className="w-9 shrink-0 text-right text-[11px] text-muted-foreground">{hint}</span>
+        <span className="w-11 shrink-0 text-right text-[11px] text-muted-foreground tabular-nums">
+          {hint}
+        </span>
       ) : null}
     </div>
   );
@@ -430,7 +433,7 @@ function Customise({ bg }: { bg: ShaderScene }) {
             edit((scene) => withLoop(scene, loopAt(v / 100)));
           }}
         />,
-        `${String(Math.round(bg.loop))} s`,
+        speedLabel(bg.loop),
       )}
       <div className="relative flex flex-col gap-2.5">
         {colours > 0

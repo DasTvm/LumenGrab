@@ -22,7 +22,7 @@ function ToastView({ toast }: { toast: Toast }) {
   return (
     <div
       role="status"
-      className="pointer-events-auto flex items-center gap-2.5 rounded-lg bg-primary px-3.5 py-2.5 text-[13px] text-primary-foreground shadow-[0_6px_20px_rgb(0_0_0/0.25)]"
+      className="pointer-events-auto flex items-center gap-2.5 rounded-lg border border-white/10 bg-toast px-3.5 py-2.5 text-[13px] text-toast-foreground shadow-[0_6px_20px_rgb(0_0_0/0.25)]"
     >
       <Icon aria-hidden className="size-4 text-brand" />
       <span>{toast.text}</span>

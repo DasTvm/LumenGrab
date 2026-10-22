@@ -52,6 +52,10 @@
   --lg-overlay-muted: #a1a1aa;
   --lg-overlay-divider: #3f3f46;
 
+  /* Messages that pop up (saved, copied, ...): a dark surface in both themes, so the lime check and action read */
+  --lg-toast: light-dark(#18181b, #2a2a31);
+  --lg-toast-foreground: #fafafa;
+
   /* Brand panel (permission window): dark in both themes */
   --lg-panel: #18181b;
   --lg-panel-foreground: #fafafa;
@@ -118,6 +122,8 @@
   --color-info: var(--lg-info);
   --color-info-foreground: var(--lg-info-foreground);
   --color-scrim: var(--lg-scrim);
+  --color-toast: var(--lg-toast);
+  --color-toast-foreground: var(--lg-toast-foreground);
   --color-overlay-surface: var(--lg-overlay-surface);
   --color-overlay-foreground: var(--lg-overlay-foreground);
   --color-overlay-muted: var(--lg-overlay-muted);

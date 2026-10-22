@@ -124,6 +124,19 @@ export function shaderSettings(scene: ShaderScene): ShaderSetting[] {
   return out.slice(0, 12);
 }
 
+/** The speed shown as 1×: a loop of this many seconds. Every other speed is this over the loop length. */
+export const REFERENCE_LOOP = 20;
+
+/** How fast a loop runs, as a number to show: 1× is a loop of 20 seconds, 2× half of that. */
+export const speedFactor = (loop: number): number => REFERENCE_LOOP / Math.max(1, loop);
+
+/** `0.5×`, `1×`, `2.5×`. */
+export function speedLabel(loop: number): string {
+  const f = speedFactor(loop);
+  const text = f < 1 ? f.toFixed(2) : f.toFixed(1);
+  return `${text.replace(/\.?0+$/, "")}×`;
+}
+
 /** The loop lengths the speed slider spans: a long loop is slow, a short one is lively. */
 export const SLOWEST_LOOP = 60;
 export const FASTEST_LOOP = 6;

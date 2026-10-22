@@ -33,6 +33,8 @@ interface Props {
   redactions: number;
   initialFormat: ExportFormat;
   webpAvailable: boolean;
+  /** The background moves: Video / GIF is offered, and opens the dialog for it. */
+  onVideo?: () => void;
   /** The size in bytes of the picture as JPG or WebP at this size and quality (for "about 380 KB"). */
   estimate: (format: "jpg" | "webp", size: Size, quality: number) => Promise<number>;
   onSave: (choice: ExportChoice) => void;
@@ -49,6 +51,7 @@ export function ExportDialog({
   redactions,
   initialFormat,
   webpAvailable,
+  onVideo,
   estimate,
   onSave,
   onCopy,
@@ -102,11 +105,12 @@ export function ExportDialog({
     });
   };
 
-  const options: { value: ExportFormat; label: string }[] = [
+  const options: { value: ExportFormat | "video"; label: string }[] = [
     { value: "png", label: "PNG" },
     { value: "jpg", label: "JPG" },
     ...(webpAvailable ? [{ value: "webp" as const, label: "WebP" }] : []),
     { value: "lumengrab", label: ".lumengrab" },
+    ...(onVideo ? [{ value: "video" as const, label: "Video / GIF" }] : []),
   ];
 
   return (
@@ -132,7 +136,15 @@ export function ExportDialog({
       </div>
 
       <Section label="Format">
-        <Pills label="Format" value={format} options={options} onChange={pickFormat} />
+        <Pills
+          label="Format"
+          value={format}
+          options={options}
+          onChange={(next) => {
+            if (next === "video") onVideo?.();
+            else pickFormat(next);
+          }}
+        />
       </Section>
 
       {image ? (

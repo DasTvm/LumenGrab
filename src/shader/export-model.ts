@@ -93,7 +93,8 @@ export function planMotion(
 /** The moment of frame `index` in seconds (frame `index` of a loop of `scene.loop` seconds). */
 export const frameTime = (index: number, fps: number): number => index / fps;
 
-const BITS_PER_PIXEL: Record<Quality, number> = { high: 0.235, medium: 0.12, low: 0.06 };
+/** A rule of thumb for soft, moving backgrounds; the dialog measures the real size and uses this only until then. */
+const BITS_PER_PIXEL: Record<Quality, number> = { high: 0.08, medium: 0.04, low: 0.02 };
 
 /** About how many bytes a video of the plan will be (the size field of the dialog). */
 export function estimateVideoBytes(

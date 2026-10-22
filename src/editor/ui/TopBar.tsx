@@ -128,7 +128,7 @@ export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
         <div
           role="status"
           data-testid="feedback-pill"
-          className="absolute top-full right-4 z-10 mt-2 flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1 text-[13px] text-primary-foreground"
+          className="absolute top-full right-4 z-10 mt-2 flex items-center gap-1.5 rounded-md border border-white/10 bg-toast px-2.5 py-1 text-[13px] text-toast-foreground"
         >
           <Check aria-hidden className="size-3.5 text-brand" />
           {feedback.kind === "saved" ? "Saved" : "Copied to clipboard"}

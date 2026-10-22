@@ -290,6 +290,11 @@
           "done": true
         },
         {
+          "id": "task-14",
+          "title": "Export an animated background as a video or GIF from the normal Export dialog, with a file size that is measured",
+          "done": true
+        },
+        {
           "id": "task-11",
           "title": "Complete native checks of animated backgrounds on macOS and Windows",
           "done": false
