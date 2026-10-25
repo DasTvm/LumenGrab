@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-25T16:21:28.244Z",
+  "generatedAt": "2026-10-25T18:45:13.817Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -814,6 +814,13 @@
       "category": "internal",
       "title": "the Studio timeline test, which plays, gets a longer timeout under software WebGL",
       "url": "https://github.com/DasTvm/LumenGrab/commit/d4f58c45e8647339b224e4531c3c5ab633cdf4a8"
+    },
+    {
+      "id": "b4ae92faf5b45767abd36d6142358e544f8561df",
+      "date": "2026-10-25T18:45:03Z",
+      "category": "internal",
+      "title": "the macOS signing is set up and verified, certificate runs until 24 November 2027",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/b4ae92faf5b45767abd36d6142358e544f8561df"
     }
   ],
   "releases": [
@@ -839,7 +846,8 @@
   "unreleasedIds": [
     "b6748c10949bd711d5db41234714fbd0adddef86",
     "c626b962859867db3ab3e21d6b839903bff80264",
-    "d4f58c45e8647339b224e4531c3c5ab633cdf4a8"
+    "d4f58c45e8647339b224e4531c3c5ab633cdf4a8",
+    "b4ae92faf5b45767abd36d6142358e544f8561df"
   ],
   "roadmap": {
     "schemaVersion": 1,
