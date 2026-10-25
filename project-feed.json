@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-25T22:34:05.111Z",
+  "generatedAt": "2026-10-25T22:38:59.871Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -821,6 +821,13 @@
       "category": "internal",
       "title": "the macOS signing is set up and verified, certificate runs until 24 November 2027",
       "url": "https://github.com/DasTvm/LumenGrab/commit/b4ae92faf5b45767abd36d6142358e544f8561df"
+    },
+    {
+      "id": "f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9",
+      "date": "2026-10-25T22:38:44Z",
+      "category": "new",
+      "title": "a history of captures (own copies, retention, window with grid and list, settings page), shared Modal, Menu, Toast, EmptyState and SearchField",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9"
     }
   ],
   "releases": [
@@ -847,7 +854,8 @@
     "b6748c10949bd711d5db41234714fbd0adddef86",
     "c626b962859867db3ab3e21d6b839903bff80264",
     "d4f58c45e8647339b224e4531c3c5ab633cdf4a8",
-    "b4ae92faf5b45767abd36d6142358e544f8561df"
+    "b4ae92faf5b45767abd36d6142358e544f8561df",
+    "f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -1155,27 +1163,32 @@
       {
         "id": "M6",
         "title": "History, pin and OCR",
-        "description": "History, pinned captures, copy text, QR, all-in-one mode.",
-        "status": "planned",
+        "description": "A history of your captures, pinned captures, copy text and QR codes from a picture, a Text capture mode, and an all-in-one capture mode.",
+        "status": "building",
         "tasks": [
           {
             "id": "task-1",
-            "title": "Capture history",
-            "done": false
+            "title": "Capture history: a window with filters, search, grid and list, a copy of every capture, and settings for how long it is kept",
+            "done": true
           },
           {
             "id": "task-2",
-            "title": "Pinned captures",
+            "title": "Pinned captures that float above other windows",
             "done": false
           },
           {
             "id": "task-3",
-            "title": "Local text and QR recognition",
+            "title": "Local text and QR recognition: copy text from a capture, links from QR codes",
             "done": false
           },
           {
             "id": "task-4",
-            "title": "All-in-one capture mode",
+            "title": "All-in-one capture mode and a Text capture mode",
+            "done": false
+          },
+          {
+            "id": "task-5",
+            "title": "Complete native checks of history, pins, text recognition and the all-in-one mode on macOS and Windows",
             "done": false
           }
         ]
