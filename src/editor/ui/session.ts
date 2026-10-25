@@ -145,7 +145,7 @@ export class DocumentSession {
     return this.d.editor.getState().project;
   }
 
-  private flash(kind: "saved" | "copied"): void {
+  private flash(kind: "saved" | "copied" | "pinned"): void {
     this.d.ui.getState().flash(kind);
   }
 
@@ -353,6 +353,28 @@ export class DocumentSession {
     }
     this.d.onDialog(null);
     this.flash("copied");
+  }
+
+  /** Floats the picture as it is exported on the screen (a pin). */
+  async pin(): Promise<void> {
+    try {
+      const png = await renderPng(this.d.source, this.project, this.d.doc.assets);
+      if (await platform.pinPng(png)) this.flash("pinned");
+    } catch (error) {
+      const why = explain(error, "export");
+      this.fail({
+        title: "Could not pin",
+        body: "The picture was not pinned. Your document is unchanged.",
+        ...why,
+        retry: () => void this.pin(),
+        elsewhere: {
+          label: "Save as file…",
+          run: () => {
+            this.openExport("png");
+          },
+        },
+      });
+    }
   }
 
   // ---- closing --------------------------------------------------------------------------------------

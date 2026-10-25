@@ -431,8 +431,39 @@ pub fn picture_path(app: &AppHandle, id: &str) -> Result<PathBuf, String> {
     }
 }
 
+/// The newest capture that is listed (the target of "Pin last capture").
+pub fn newest(app: &AppHandle) -> Option<String> {
+    let history = app.state::<History>();
+    let state = history.lock();
+    let hidden = History::hidden(&state);
+    let index = state.index.as_ref().ok()?;
+    index
+        .entries
+        .iter()
+        .find(|e| !hidden.contains(e.id.as_str()) && picture(&history.dir, &e.id).is_file())
+        .map(|e| e.id.clone())
+}
+
+/// The picture file of an entry with the name it is shown under.
+pub fn picture_with_name(app: &AppHandle, id: &str) -> Result<(PathBuf, String), String> {
+    let entry = app.state::<History>().entry(id)?;
+    Ok((picture_path(app, id)?, entry.name))
+}
+
+/// The entry that was made from a saved file (a Quick Access card knows the file, not the entry).
+pub fn id_for_saved_path(app: &AppHandle, path: &Path) -> Option<String> {
+    let history = app.state::<History>();
+    let state = history.lock();
+    let index = state.index.as_ref().ok()?;
+    index
+        .entries
+        .iter()
+        .find(|e| e.saved_path.as_deref() == Some(path))
+        .map(|e| e.id.clone())
+}
+
 /// The file Edit opens: the capture before the look if there is one, else the picture.
-fn edit_path(app: &AppHandle, id: &str) -> Result<PathBuf, String> {
+pub fn edit_path(app: &AppHandle, id: &str) -> Result<PathBuf, String> {
     let history = app.state::<History>();
     let entry = history.entry(id)?;
     let original = original_file(&history.dir, &entry.id);
@@ -452,7 +483,7 @@ pub fn history_list(app: AppHandle) -> Result<HistoryList, String> {
         .as_ref()
         .map_err(|e| format!("The history can't be read: {e}."))?;
     let hidden = History::hidden(&state);
-    let pins: HashSet<String> = HashSet::new();
+    let pins = crate::pin::pinned_entries(&app);
     let entries = index
         .entries
         .iter()

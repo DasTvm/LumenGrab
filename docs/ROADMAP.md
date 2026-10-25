@@ -69,7 +69,7 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
 - [ ] **M6 History, pin and OCR**: A history of your captures, pinned captures, copy text and QR codes from a picture, a Text capture mode, and an all-in-one capture mode.
   - Status: building.
   - [x] Capture history: a window with filters, search, grid and list, a copy of every capture, and settings for how long it is kept
-  - [ ] Pinned captures that float above other windows
+  - [x] Pinned captures that float above other windows
   - [ ] Local text and QR recognition: copy text from a capture, links from QR codes
   - [ ] All-in-one capture mode and a Text capture mode
   - [ ] Complete native checks of history, pins, text recognition and the all-in-one mode on macOS and Windows

@@ -37,7 +37,7 @@ export interface LookNotice {
 }
 
 /** Short feedback in the top bar (design: Title bar states). */
-export type Feedback = { kind: "saved" | "copied"; at: number } | null;
+export type Feedback = { kind: "saved" | "copied" | "pinned"; at: number } | null;
 
 export interface UiState {
   /** The size of the canvas area in CSS pixels (set by the canvas), for zoom commands. */
@@ -93,7 +93,7 @@ export interface UiActions {
   setMode(mode: EditorMode): void;
   setStage(stage: UiState["stage"]): void;
   setSafeArea(on: boolean): void;
-  flash(kind: "saved" | "copied"): void;
+  flash(kind: "saved" | "copied" | "pinned"): void;
   pushToast(toast: Omit<Toast, "id">): void;
   dismissToast(id: number): void;
   setLookNotice(notice: LookNotice | null): void;

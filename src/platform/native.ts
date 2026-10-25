@@ -10,6 +10,7 @@ import {
   type DocumentInfo,
   type HistoryList,
   type HistoryUsage,
+  type PinState,
   type OverlayMode,
   type OverlaySession,
   type PixelRect,
@@ -266,6 +267,68 @@ export const nativePlatform: Platform = {
   },
   async historyShow() {
     await call("history_show");
+  },
+
+  pinHistory(id: string): Promise<boolean> {
+    return call<boolean>("pin_history", { id });
+  },
+  pinQuickAccess(id: string): Promise<boolean> {
+    return call<boolean>("pin_quick_access", { id });
+  },
+  quickAccessPinned(id: string): Promise<boolean> {
+    return call<boolean>("pin_is_pinned", { id });
+  },
+  async pinPng(png: Uint8Array): Promise<boolean> {
+    try {
+      return await invoke<boolean>("pin_from_png", png);
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The picture could not be pinned.");
+    }
+  },
+  onPinsChanged(listener: () => void): Promise<() => void> {
+    return listen("pins-changed", listener);
+  },
+  getPinState(): Promise<PinState | null> {
+    return call<PinState | null>("pin_info");
+  },
+  onPinState(listener: (state: PinState) => void): Promise<() => void> {
+    const own = getCurrentWindow().label;
+    return listen<PinState>("pin-state", (e) => {
+      if (e.payload.label === own) listener(e.payload);
+    });
+  },
+  onPinOpacity(listener: (percent: number) => void): Promise<() => void> {
+    const own = getCurrentWindow().label;
+    return listen<{ label: string; percent: number }>("pin-opacity", (e) => {
+      if (e.payload.label === own) listener(e.payload.percent);
+    });
+  },
+  pinImageUrl(): string {
+    return convertFileSrc(getCurrentWindow().label, "lgcapture");
+  },
+  async pinZoom(up: boolean) {
+    await call("pin_zoom", { up });
+  },
+  async pinResetSize() {
+    await call("pin_reset_size");
+  },
+  async pinSetLocked(locked: boolean) {
+    await call("pin_set_locked", { locked });
+  },
+  async pinDrag() {
+    await call("pin_drag");
+  },
+  async pinClose() {
+    await call("pin_close");
+  },
+  async pinCopy() {
+    await call("pin_copy");
+  },
+  async pinEdit() {
+    await call("pin_edit");
+  },
+  async pinMenu() {
+    await call("pin_menu");
   },
 
   getDocumentInfo(label: string): Promise<DocumentInfo> {

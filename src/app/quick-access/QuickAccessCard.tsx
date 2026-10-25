@@ -6,6 +6,7 @@ import {
   Download,
   Grip,
   Pencil,
+  Pin,
   Trash2,
   TriangleAlert,
   X,
@@ -17,12 +18,12 @@ import { formatBytes } from "@/ui/lib/format";
 import { cn } from "@/ui/lib/utils";
 
 /** Which button a tooltip belongs to. */
-export type TipTarget = "copy" | "save" | "edit" | "close" | "delete";
+export type TipTarget = "copy" | "save" | "edit" | "pin" | "close" | "delete";
 
 /** The row under the actions: where "Save as…" put a copy, or what went wrong. */
 export type StatusRow =
   | { kind: "saved"; folder: string; fileName: string; token?: string }
-  | { kind: "error"; title: string; detail: string; retry: "copy" | "save" | "edit" };
+  | { kind: "error"; title: string; detail: string; retry: "copy" | "save" | "edit" | "pin" };
 
 export interface QuickAccessCardViewProps {
   card: Card;
@@ -47,6 +48,9 @@ export interface QuickAccessCardViewProps {
   onSave?: () => void;
   /** Opens the screenshot in the editor. */
   onEdit?: () => void;
+  /** The picture floats on the screen as a pin: the button shows its "done" state and unpins. */
+  pinned?: boolean;
+  onPin?: () => void;
   onClose?: () => void;
   onReveal?: () => void;
   onRetry?: () => void;
@@ -66,6 +70,7 @@ const TIP_TEXT: Record<TipTarget, { label: string; key?: string }> = {
   copy: { label: "Copy image", key: currentOs() === "macos" ? "⌘C" : "Ctrl+C" },
   save: { label: "Save as…" },
   edit: { label: "Edit" },
+  pin: { label: "Pin to screen" },
   close: { label: "Close", key: "Esc" },
   delete: { label: "Delete screenshot" },
 };
@@ -220,7 +225,9 @@ export function QuickAccessCardView(props: QuickAccessCardViewProps) {
             </>
           ) : (
             <>
-              <span className="text-xs font-medium text-white">{TIP_TEXT[tip].label}</span>
+              <span className="text-xs font-medium text-white">
+                {tip === "pin" && props.pinned ? "Pinned · click to unpin" : TIP_TEXT[tip].label}
+              </span>
               {TIP_TEXT[tip].key ? (
                 <span className="text-[11px] text-overlay-muted">{TIP_TEXT[tip].key}</span>
               ) : null}
@@ -244,6 +251,8 @@ function CompactBody({
   onCopy,
   onSave,
   onEdit,
+  pinned,
+  onPin,
   onClose,
   onReveal,
   onRetry,
@@ -311,6 +320,20 @@ function CompactBody({
               <Pencil />
             </Button>
           ) : null}
+          {onPin ? (
+            <Button
+              ref={anchor("pin")}
+              variant="ghost"
+              size="icon"
+              aria-label={pinned ? "Unpin" : "Pin to screen"}
+              aria-pressed={pinned}
+              active={pinned || undefined}
+              onClick={onPin}
+              {...tipEvents("pin")}
+            >
+              <Pin />
+            </Button>
+          ) : null}
         </div>
         <span aria-hidden className="h-10 w-px shrink-0 bg-border" />
         <Button
@@ -338,6 +361,8 @@ function LargeBody({
   onCopy,
   onSave,
   onEdit,
+  pinned,
+  onPin,
   onClose,
   onReveal,
   onRetry,
@@ -366,6 +391,22 @@ function LargeBody({
         <span className="absolute top-2.5 left-2.5 rounded-full bg-overlay-surface/85 px-[9px] py-1 text-[11px] font-semibold text-white tabular-nums">
           {`${String(card.pixelWidth)} × ${String(card.pixelHeight)}`}
         </span>
+        {onPin ? (
+          <button
+            type="button"
+            aria-label={pinned ? "Unpin" : "Pin to screen"}
+            aria-pressed={pinned}
+            onClick={onPin}
+            className={cn(
+              "absolute top-2.5 right-11 flex size-7 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-brand",
+              pinned
+                ? "bg-brand text-brand-foreground"
+                : "bg-overlay-surface/85 text-white hover:bg-overlay-surface",
+            )}
+          >
+            <Pin aria-hidden className="size-3.5" />
+          </button>
+        ) : null}
         <button
           type="button"
           aria-label="Close"

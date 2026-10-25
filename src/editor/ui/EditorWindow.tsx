@@ -214,6 +214,9 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
           onCopy={() => {
             void session.copy();
           }}
+          onPin={() => {
+            void session.pin();
+          }}
         />
         {warnings.length + missingFonts.length > 0 ? (
           <ul aria-label="Notices" className="flex flex-col gap-2 border-b border-border px-6 py-2">

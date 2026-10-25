@@ -141,7 +141,7 @@ export interface AppInfo {
 }
 
 export interface HotkeyInfo {
-  id: "capture" | "area" | "window" | "fullscreen" | "history";
+  id: "capture" | "area" | "window" | "fullscreen" | "history" | "pin" | "unlock";
   /** Key names such as `Ctrl`, `Shift`, `4`; render them with `formatKey`. */
   keys: string[];
   /** False when another app already owns the shortcut. */
@@ -214,6 +214,18 @@ export interface HistoryList {
   entries: HistoryEntry[];
   /** Recording is switched off in the settings; the list shows what was kept earlier. */
   off: boolean;
+}
+
+/** What a pin window knows about itself (src-tauri/src/pin.rs). */
+export interface PinState {
+  label: string;
+  name: string;
+  /** The size in percent of the picture's own size. */
+  percent: number;
+  /** Clicks go through to what is behind the pin. */
+  locked: boolean;
+  /** The picture is also in the history ("Show in History"). */
+  inHistory: boolean;
 }
 
 export interface HistoryUsage {
@@ -447,6 +459,36 @@ export interface Platform {
   historyOpenFolder(): Promise<void>;
   /** Opens (or focuses) the History window. */
   historyShow(): Promise<void>;
+  /** Floats a capture of the history on the screen. `false`: eight pins are already open (a notice says so). */
+  pinHistory(id: string): Promise<boolean>;
+  /** Pins the picture of a Quick Access card, or unpins it if it is pinned. Resolves to whether it is pinned now. */
+  pinQuickAccess(id: string): Promise<boolean>;
+  /** Whether the card's picture floats as a pin right now. */
+  quickAccessPinned(id: string): Promise<boolean>;
+  /** Pins a picture the editor made (a PNG). `false`: eight pins are already open. */
+  pinPng(png: Uint8Array): Promise<boolean>;
+  /** Calls `listener` whenever a pin opened or closed (in any window). */
+  onPinsChanged(listener: () => void): Promise<() => void>;
+  /** The state of this pin window, or `null` when it no longer exists. */
+  getPinState(): Promise<PinState | null>;
+  /** Calls `listener` when this pin's size or lock changed. */
+  onPinState(listener: (state: PinState) => void): Promise<() => void>;
+  /** Calls `listener` when the native menu chose an opacity for this pin. */
+  onPinOpacity(listener: (percent: number) => void): Promise<() => void>;
+  /** The address of this pin window's picture. */
+  pinImageUrl(): string;
+  /** One step larger or smaller. */
+  pinZoom(up: boolean): Promise<void>;
+  pinResetSize(): Promise<void>;
+  pinSetLocked(locked: boolean): Promise<void>;
+  /** Starts moving the window with the mouse (call on pointer down). */
+  pinDrag(): Promise<void>;
+  pinClose(): Promise<void>;
+  pinCopy(): Promise<void>;
+  /** Opens the pin's picture in the editor. */
+  pinEdit(): Promise<void>;
+  /** The right-click menu (a native one: it reaches outside the small window). */
+  pinMenu(): Promise<void>;
   /** Writes the recovery copy of a document (`id` = its document id). */
   recoveryWrite(id: string, bytes: Uint8Array, name: string): Promise<void>;
   recoveryList(): Promise<Recoverable[]>;

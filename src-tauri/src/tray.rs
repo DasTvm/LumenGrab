@@ -35,6 +35,21 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         Some("Ctrl+Shift+3"),
     )?;
     let history = MenuItem::with_id(app, "history", "History…", true, Some("Ctrl+Shift+H"))?;
+    let pin_last = MenuItem::with_id(
+        app,
+        "pin-last",
+        "Pin last capture",
+        true,
+        Some("Ctrl+Shift+P"),
+    )?;
+    let unlock = MenuItem::with_id(
+        app,
+        "unlock-pins",
+        "Unlock pins",
+        true,
+        Some("Ctrl+Shift+U"),
+    )?;
+    crate::pin::set_unlock_item(app, unlock.clone());
     let folder = MenuItem::with_id(
         app,
         "open-folder",
@@ -62,6 +77,8 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         &fullscreen,
         &separator_two,
         &history,
+        &pin_last,
+        &unlock,
         &folder,
         &open_document,
         &recover,
@@ -83,6 +100,8 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
             "capture-window" => flow::start(app, CaptureMode::Window, false),
             "capture-fullscreen" => flow::start(app, CaptureMode::Fullscreen, false),
             "history" => crate::history::show(app),
+            "pin-last" => crate::pin::pin_last(app),
+            "unlock-pins" => crate::pin::unlock_all(app),
             "open-folder" => output::open_screenshot_folder(app),
             "open-document" => {
                 // The file dialog blocks: not on the thread that runs the menu.

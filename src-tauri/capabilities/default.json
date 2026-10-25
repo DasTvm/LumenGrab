@@ -10,6 +10,7 @@
     "overlay-*",
     "qa-*",
     "doc-*",
+    "pin-*",
     "recover",
     "present",
     "update-restart"

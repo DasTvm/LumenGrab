@@ -41,6 +41,8 @@ const HOTKEY_TEXT: Record<HotkeyInfo["id"], { title: string; description: string
     description: "Quick pick: the whole display under the cursor",
   },
   history: { title: "Open History", description: "Show your past captures" },
+  pin: { title: "Pin last capture", description: "Floats the newest capture on screen" },
+  unlock: { title: "Unlock pins", description: "Makes locked pins clickable again" },
 };
 
 const DEFAULT_MODE_OPTIONS = [

@@ -13,6 +13,8 @@ use tauri::{ActivationPolicy, AppHandle, WebviewWindow};
 
 /// Above the menu bar and over fullscreen apps (NSScreenSaverWindowLevel).
 const OVERLAY_WINDOW_LEVEL: isize = 1000;
+/// `NSFloatingWindowLevel`: above normal windows, below the capture overlay and the Quick Access cards.
+const PIN_WINDOW_LEVEL: isize = 3;
 
 /// Menu bar app: no Dock icon, no app menu.
 pub fn setup_app(app: &mut tauri::App) {
@@ -187,6 +189,25 @@ pub fn configure_overlay(window: &WebviewWindow) {
         );
         ns_window.setHasShadow(false);
         ns_window.setAcceptsMouseMovedEvents(true);
+    });
+}
+
+/// A pinned capture floats above other windows and fullscreen apps, on every Space, with the system shadow.
+pub fn configure_pin(window: &WebviewWindow) {
+    let Ok(ptr) = window.ns_window() else {
+        return;
+    };
+    let ptr = ptr as usize;
+    let _ = window.run_on_main_thread(move || {
+        // SAFETY: as in `configure_overlay`.
+        let ns_window = unsafe { &*(ptr as *const NSWindow) };
+        ns_window.setLevel(PIN_WINDOW_LEVEL);
+        ns_window.setCollectionBehavior(
+            NSWindowCollectionBehavior::CanJoinAllSpaces
+                | NSWindowCollectionBehavior::FullScreenAuxiliary
+                | NSWindowCollectionBehavior::IgnoresCycle,
+        );
+        ns_window.setHasShadow(true);
     });
 }
 

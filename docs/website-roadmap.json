@@ -315,7 +315,7 @@
         {
           "id": "task-2",
           "title": "Pinned captures that float above other windows",
-          "done": false
+          "done": true
         },
         {
           "id": "task-3",

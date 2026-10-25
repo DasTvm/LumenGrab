@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Check, Copy, Download, Image as ImageIcon, Redo2, Undo2 } from "lucide-react";
+import { Check, Copy, Download, Image as ImageIcon, Pin, Redo2, Undo2 } from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { Segmented } from "@/ui/components/segmented";
 import { Tooltip } from "@/ui/components/tooltip";
@@ -10,6 +10,7 @@ interface Props {
   fileName: string;
   onExport: () => void;
   onCopy: () => void;
+  onPin: () => void;
   readOnly: boolean;
 }
 
@@ -20,7 +21,7 @@ const MOD = isMac ? "⌘" : "Ctrl+";
  * The top bar (design): file name with the dot for unsaved changes, undo and redo, the Annotate and
  * Presentation tabs, copy and Export. Share is not here yet (later).
  */
-export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
+export function TopBar({ fileName, onExport, onCopy, onPin, readOnly }: Props) {
   const { editor } = useStores();
   const dirty = useEditor((s) => s.dirty);
   const canUndo = useEditor((s) => s.canUndo);
@@ -120,6 +121,17 @@ export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
           <Copy aria-hidden />
         </Button>
       </Tooltip>
+      <Tooltip label="Pin to screen" side="bottom">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9"
+          aria-label="Pin to screen"
+          onClick={onPin}
+        >
+          <Pin aria-hidden />
+        </Button>
+      </Tooltip>
       <Button variant="outline" className="h-8 gap-1.5 px-3 text-sm" onClick={onExport}>
         <Download aria-hidden className="size-4" />
         Export
@@ -131,7 +143,11 @@ export function TopBar({ fileName, onExport, onCopy, readOnly }: Props) {
           className="absolute top-full right-4 z-10 mt-2 flex items-center gap-1.5 rounded-md border border-white/10 bg-toast px-2.5 py-1 text-[13px] text-toast-foreground"
         >
           <Check aria-hidden className="size-3.5 text-brand" />
-          {feedback.kind === "saved" ? "Saved" : "Copied to clipboard"}
+          {feedback.kind === "saved"
+            ? "Saved"
+            : feedback.kind === "pinned"
+              ? "Pinned"
+              : "Copied to clipboard"}
         </div>
       ) : null}
     </header>

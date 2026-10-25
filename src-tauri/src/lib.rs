@@ -9,6 +9,7 @@ mod history;
 mod hotkeys;
 mod looks;
 mod permission;
+mod pin;
 mod platform;
 mod present;
 mod quick_access;
@@ -43,6 +44,7 @@ pub fn run() {
         .manage(document::Documents::default())
         .manage(overlay::Pool::default())
         .manage(quick_access::QuickAccess::default())
+        .manage(pin::Pins::default())
         .manage::<Arc<dyn Capturer>>(backend::default_capturer())
         // Frozen frames for the overlay windows, served from memory.
         .register_uri_scheme_protocol("lgcapture", |ctx, request| {
@@ -144,6 +146,21 @@ pub fn run() {
             history::history_reload,
             history::history_open_folder,
             history::history_show,
+            pin::pin_info,
+            pin::pin_zoom,
+            pin::pin_reset_size,
+            pin::pin_set_locked,
+            pin::pin_drag,
+            pin::pin_close,
+            pin::pin_close_all,
+            pin::pin_copy,
+            pin::pin_edit,
+            pin::pin_show_history,
+            pin::pin_menu,
+            pin::pin_history,
+            pin::pin_quick_access,
+            pin::pin_is_pinned,
+            pin::pin_from_png,
         ])
         .on_window_event(|window, event| {
             // An overlay closed by the OS or the user must not leave the capture stuck "busy".
@@ -152,6 +169,7 @@ pub fn run() {
                     overlay::on_destroyed(window.app_handle(), window.label());
                     document::on_destroyed(window.app_handle(), window.label());
                     present::on_destroyed(window.app_handle(), window.label());
+                    pin::on_destroyed(window.app_handle(), window.label());
                     platform::update_dock_presence(window.app_handle(), Some(window.label()));
                 }
                 // A document with unsaved changes asks before it closes.

@@ -122,6 +122,20 @@ export function HistoryWindow() {
     };
   }, [load]);
 
+  // A pin that was closed in its own window is no longer marked here.
+  useEffect(() => {
+    let off: (() => void) | undefined;
+    let disposed = false;
+    void platform.onPinsChanged(load).then((unlisten) => {
+      if (disposed) unlisten();
+      else off = unlisten;
+    });
+    return () => {
+      disposed = true;
+      off?.();
+    };
+  }, [load]);
+
   useEffect(() => {
     if (!message) return;
     const timer = setTimeout(
@@ -218,6 +232,17 @@ export function HistoryWindow() {
     if (ids.length > 1) setAsking(ids);
     else trash(ids);
   };
+  const pin = (ids: string[]) => {
+    const results = ids.map((id) => platform.pinHistory(id));
+    Promise.all(results).then(
+      () => {
+        load();
+      },
+      (e: unknown) => {
+        fail(e, "The capture could not be pinned.");
+      },
+    );
+  };
   const newCapture = () => {
     void platform.startCapture(settings.defaultMode, true);
   };
@@ -252,6 +277,14 @@ export function HistoryWindow() {
         keys: `${MOD}C`,
         run: () => {
           copy(id);
+        },
+        disabled: gone,
+      },
+      {
+        label: "Pin",
+        keys: "P",
+        run: () => {
+          pin([id]);
         },
         disabled: gone,
       },
@@ -300,6 +333,9 @@ export function HistoryWindow() {
     } else if (mod && e.key.toLowerCase() === "r") {
       e.preventDefault();
       reveal(entry.id);
+    } else if (!mod && e.key.toLowerCase() === "p") {
+      e.preventDefault();
+      if (!entry.missing) pin([entry.id]);
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       if (entry.missing) remove([entry.id]);
@@ -490,7 +526,7 @@ export function HistoryWindow() {
         Everything you capture shows up here. Use a shortcut to take your first one.
         <span className="mt-4 flex flex-col gap-2">
           {hotkeys
-            .filter((h) => h.id !== "history")
+            .filter((h) => ["capture", "area", "window", "fullscreen"].includes(h.id))
             .map((h) => (
               <span key={h.id} className="flex items-center justify-between gap-6 text-left">
                 <span className="text-sm text-foreground">{HOTKEY_LABEL[h.id]}</span>
@@ -604,6 +640,9 @@ export function HistoryWindow() {
                     onToggle={toggle}
                     onOpen={edit}
                     onCopy={copy}
+                    onPin={(id) => {
+                      pin([id]);
+                    }}
                     onRemove={(id) => {
                       remove([id]);
                     }}
@@ -694,6 +733,16 @@ export function HistoryWindow() {
               }}
             >
               <Copy aria-hidden /> Copy
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={bulk.length === 0}
+              onClick={() => {
+                pin(bulk);
+              }}
+            >
+              <Pin aria-hidden /> Pin
             </Button>
             <Button
               variant="outline"
@@ -795,6 +844,8 @@ const HOTKEY_LABEL: Record<HotkeyInfo["id"], string> = {
   window: "Capture window",
   fullscreen: "Capture fullscreen",
   history: "Open history",
+  pin: "Pin last capture",
+  unlock: "Unlock pins",
 };
 
 function FilterButton({
@@ -862,6 +913,7 @@ function Card({
   onToggle,
   onOpen,
   onCopy,
+  onPin,
   onRemove,
   onKey,
   onMenu,
@@ -873,6 +925,7 @@ function Card({
   onToggle: (id: string) => void;
   onOpen: (id: string) => void;
   onCopy: (id: string) => void;
+  onPin: (id: string) => void;
   onRemove: (id: string) => void;
   onKey: (e: React.KeyboardEvent, entry: HistoryEntry) => void;
   onMenu: (id: string, x: number, y: number) => void;
@@ -953,6 +1006,14 @@ function Card({
                 }}
               >
                 <Pencil className="size-3.5" aria-hidden />
+              </HoverButton>
+              <HoverButton
+                label="Pin"
+                onClick={() => {
+                  onPin(entry.id);
+                }}
+              >
+                <Pin className="size-3.5" aria-hidden />
               </HoverButton>
               <HoverButton
                 label="More"

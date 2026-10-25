@@ -5,6 +5,7 @@ import { HistoryWindow } from "./HistoryWindow";
 import { HomeWindow } from "./HomeWindow";
 import { OverlayWindow } from "./OverlayWindow";
 import { PermissionWindow } from "./PermissionWindow";
+import { PinWindow } from "./PinWindow";
 import { PresentWindow } from "./PresentWindow";
 import { QuickAccessGallery } from "./QuickAccessGallery";
 import { QuickAccessWindow } from "./QuickAccessWindow";
@@ -42,6 +43,8 @@ export function App() {
       return <SettingsWindow />;
     case "history":
       return <HistoryWindow />;
+    case "pin":
+      return <PinWindow />;
     default:
       return <HomeWindow />;
   }

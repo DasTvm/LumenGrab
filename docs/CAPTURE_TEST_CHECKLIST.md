@@ -202,6 +202,9 @@ Everything here is checked natively on macOS and on Windows. Tick the part that 
 - **Off:** switch history off, take a capture: nothing new in the list, the notice "History is off" with "Turn on" shows. "Clear history…" frees the space it names, and the user's own files stay.
 - **Damaged file:** with the app closed write junk into `index.json`: the window says "History can't be read"; "Try again", "Open history folder", "Start with a new history" all work.
 - **Layouts:** Settings > History > Filters: sidebar and chips both work, the choice applies when the History window gets focus.
+- **Pins:** pin from the Quick Access card (Pin button), from the History (hover button, menu, selection bar), from the editor (top bar) and with Ctrl+Shift+P (newest capture). A pin appears at its size of the capture (100 % = as big as it was on screen), a huge capture starts smaller. Drag moves it, the wheel steps the size, hover shows the bar (opacity slider, copy, edit, lock, close), right-click opens the menu (opacity levels, reset size, lock, show in history, close all). Esc / Cmd+W / the X close it. The ninth pin shows "8 pins are already on screen".
+- **Pins and other windows:** a pin stays above normal windows and above a fullscreen app (macOS: on every Space; Windows: also over a maximised window), but under the capture overlay and the Quick Access cards. A new capture while pins are open: the overlay can select the area *under* a pin and the pin is not in the picture (it is excluded like the app's other windows).
+- **Lock:** Lock makes clicks go through to the window behind; the lock mark and the hint stay. Ctrl+Shift+U and the tray's "Unlock pins" unlock all; the tray item is greyed while nothing is locked.
 - **Dark mode** and **a long list** (hundreds of captures): scrolling stays smooth, the window opens quickly.
 
 ## 7. Display changes

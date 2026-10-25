@@ -229,6 +229,30 @@ pub fn shortcut_in_use(keys: &str, what: &str) -> Notice {
     }
 }
 
+pub fn pin_limit() -> Notice {
+    Notice {
+        tone: Tone::Info,
+        icon: "pin",
+        title: "8 pins are already on screen".into(),
+        body: "Close one to pin another capture. Pins stay until you close them.".into(),
+        keys: Vec::new(),
+        progress: None,
+        actions: vec![button("Got it", "none", true, Handler::Dismiss)],
+    }
+}
+
+pub fn nothing_to_pin() -> Notice {
+    Notice {
+        tone: Tone::Info,
+        icon: "pin",
+        title: "Nothing to pin yet".into(),
+        body: "Take a capture first. The newest one in your history is what “Pin last capture” floats.".into(),
+        keys: Vec::new(),
+        progress: None,
+        actions: vec![button("Got it", "none", true, Handler::Dismiss)],
+    }
+}
+
 pub fn capture_failed(details: String, mode: CaptureMode, toolbar: bool) -> Notice {
     Notice {
         tone: Tone::Error,

@@ -147,6 +147,7 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
   const [hovered, setHovered] = useState(false);
   const [tip, setTip] = useState<TipTarget | null>(null);
   const [thumbReady, setThumbReady] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
   const tipTimer = useRef<number | undefined>(undefined);
   const copiedTimer = useRef<number | undefined>(undefined);
@@ -209,6 +210,46 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
         retry: "edit",
       });
     });
+  }, [id]);
+
+  // The pin may be closed from its own window: ask again whenever the pins change.
+  useEffect(() => {
+    let off: (() => void) | undefined;
+    let disposed = false;
+    const refresh = () => {
+      platform.quickAccessPinned(id).then(
+        (now) => {
+          if (!disposed) setPinned(now);
+        },
+        () => undefined,
+      );
+    };
+    refresh();
+    void platform.onPinsChanged(refresh).then((unlisten) => {
+      if (disposed) unlisten();
+      else off = unlisten;
+    });
+    return () => {
+      disposed = true;
+      off?.();
+    };
+  }, [id]);
+
+  const pin = useCallback(() => {
+    setStatus(null);
+    platform.pinQuickAccess(id).then(
+      (now) => {
+        setPinned(now);
+      },
+      (e: unknown) => {
+        setStatus({
+          kind: "error",
+          title: "Could not pin the screenshot",
+          detail: message(e, "Try again in a moment."),
+          retry: "pin",
+        });
+      },
+    );
   }, [id]);
 
   const remove = useCallback(() => {
@@ -370,6 +411,8 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
         onCopy={copy}
         onSave={saveAs}
         onEdit={edit}
+        pinned={pinned}
+        onPin={pin}
         onClose={close}
         onReveal={() => {
           // After "Save as…" show the file that was just written, not the original screenshot.
@@ -379,6 +422,7 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
         onRetry={() => {
           if (status?.kind === "error" && status.retry === "save") saveAs();
           else if (status?.kind === "error" && status.retry === "edit") edit();
+          else if (status?.kind === "error" && status.retry === "pin") pin();
           else copy();
         }}
         onTip={showTip}

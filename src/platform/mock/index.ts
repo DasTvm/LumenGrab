@@ -7,6 +7,7 @@ import type {
   HistoryList,
   HistorySource,
   HistoryUsage,
+  PinState,
   Recoverable,
   OverlayMode,
   OverlaySession,
@@ -108,7 +109,18 @@ export interface MockSubmission {
     | "historyReset"
     | "historyOpenFolder"
     | "historyShow"
-    | "openSettings";
+    | "openSettings"
+    | "pinHistory"
+    | "pinQuickAccess"
+    | "pinPng"
+    | "pinZoom"
+    | "pinResetSize"
+    | "pinLock"
+    | "pinClose"
+    | "pinCopy"
+    | "pinEdit"
+    | "pinMenu"
+    | "pinDrag";
   sessionId?: string;
   displayId?: number;
   rect?: PixelRect;
@@ -141,6 +153,8 @@ declare global {
       copied?: Uint8Array;
       /** Recovery copies the editor wrote, by document id. */
       recovery?: Record<string, { bytes: Uint8Array; name: string }>;
+      /** The pin window: picks an opacity like the native menu does. */
+      chooseOpacity?: (percent: number) => void;
       /** Pretends the user closed the window while it has unsaved changes. */
       requestClose?: () => void;
       /** Tests can ask the open Settings window to show a page, as the tray does. */
@@ -228,6 +242,30 @@ function historyEntries(): HistoryEntry[] {
     };
   });
   return mockHistory;
+}
+
+/** The pin window of this page: `?window=pin&percent=125&locked=1`. Moving between sizes mimics the real steps. */
+const PIN_STEPS = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300, 400];
+let mockPin: PinState | null = null;
+const pinListeners = new Set<(state: PinState) => void>();
+const pinedCards = new Set<string>();
+
+function pinState(): PinState {
+  if (mockPin) return mockPin;
+  const q = new URLSearchParams(window.location.search);
+  mockPin = {
+    label: q.get("label") ?? "pin-1",
+    name: "Screenshot_2026-10-25.png",
+    percent: Number(q.get("percent") ?? "100"),
+    locked: q.get("locked") === "1",
+    inHistory: q.get("inhistory") !== "0",
+  };
+  return mockPin;
+}
+
+function setPin(patch: Partial<PinState>) {
+  mockPin = { ...pinState(), ...patch };
+  for (const listener of pinListeners) listener(mockPin);
 }
 
 function historyBroken(): boolean {
@@ -612,6 +650,96 @@ export const mockPlatform: Platform = {
   },
   historyOpenFolder(): Promise<void> {
     record({ kind: "historyOpenFolder" });
+    return Promise.resolve();
+  },
+  pinHistory(id: string): Promise<boolean> {
+    record({ kind: "pinHistory", id });
+    return Promise.resolve(new URLSearchParams(window.location.search).get("pinlimit") !== "1");
+  },
+  pinQuickAccess(id: string): Promise<boolean> {
+    record({ kind: "pinQuickAccess", id });
+    if (pinedCards.has(id)) {
+      pinedCards.delete(id);
+      return Promise.resolve(false);
+    }
+    pinedCards.add(id);
+    return Promise.resolve(true);
+  },
+  quickAccessPinned(id: string): Promise<boolean> {
+    return Promise.resolve(pinedCards.has(id));
+  },
+  pinPng(png: Uint8Array): Promise<boolean> {
+    record({ kind: "pinPng", size: png.length });
+    return Promise.resolve(true);
+  },
+  onPinsChanged(): Promise<() => void> {
+    return Promise.resolve(() => undefined);
+  },
+  getPinState(): Promise<PinState | null> {
+    return Promise.resolve(pinState());
+  },
+  onPinState(listener: (state: PinState) => void): Promise<() => void> {
+    pinListeners.add(listener);
+    return Promise.resolve(() => {
+      pinListeners.delete(listener);
+    });
+  },
+  onPinOpacity(listener: (percent: number) => void): Promise<() => void> {
+    // Tests can choose an opacity like the native menu does.
+    const on = (e: Event) => {
+      listener((e as CustomEvent<number>).detail);
+    };
+    window.addEventListener("lumengrab-pin-opacity", on);
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    log.chooseOpacity = (percent: number) => {
+      window.dispatchEvent(new CustomEvent("lumengrab-pin-opacity", { detail: percent }));
+    };
+    return Promise.resolve(() => {
+      window.removeEventListener("lumengrab-pin-opacity", on);
+    });
+  },
+  pinImageUrl(): string {
+    return sampleCaptureUrl;
+  },
+  pinZoom(up: boolean): Promise<void> {
+    record({ kind: "pinZoom", flag: up });
+    const now = pinState().percent;
+    const next = up
+      ? (PIN_STEPS.find((p) => p > now) ?? 400)
+      : ([...PIN_STEPS].reverse().find((p) => p < now) ?? 25);
+    setPin({ percent: next });
+    return Promise.resolve();
+  },
+  pinResetSize(): Promise<void> {
+    record({ kind: "pinResetSize" });
+    setPin({ percent: 100 });
+    return Promise.resolve();
+  },
+  pinSetLocked(locked: boolean): Promise<void> {
+    record({ kind: "pinLock", flag: locked });
+    setPin({ locked });
+    return Promise.resolve();
+  },
+  pinDrag(): Promise<void> {
+    record({ kind: "pinDrag" });
+    return Promise.resolve();
+  },
+  pinClose(): Promise<void> {
+    record({ kind: "pinClose" });
+    return Promise.resolve();
+  },
+  pinCopy(): Promise<void> {
+    record({ kind: "pinCopy" });
+    return new URLSearchParams(window.location.search).get("copy") === "fail"
+      ? Promise.reject(new PlatformError("Another app is blocking the clipboard."))
+      : Promise.resolve();
+  },
+  pinEdit(): Promise<void> {
+    record({ kind: "pinEdit" });
+    return Promise.resolve();
+  },
+  pinMenu(): Promise<void> {
+    record({ kind: "pinMenu" });
     return Promise.resolve();
   },
   historyShow(): Promise<void> {
@@ -1036,6 +1164,8 @@ export const mockPlatform: Platform = {
         { id: "window", keys: ["Ctrl", "Shift", "5"], registered: true },
         { id: "fullscreen", keys: ["Ctrl", "Shift", "3"], registered: true },
         { id: "history", keys: ["Ctrl", "Shift", "H"], registered: true },
+        { id: "pin", keys: ["Ctrl", "Shift", "P"], registered: true },
+        { id: "unlock", keys: ["Ctrl", "Shift", "U"], registered: true },
       ],
     });
   },

@@ -8,7 +8,7 @@
 //!   LUMENGRAB_DEV_SELFTEST=1                       while the overlays are visible, capture every display
 //!                                                  again and report whether the overlays show up in it
 //!
-//!   LUMENGRAB_DEV_WINDOW=settings|permission       open that window shortly after launch
+//!   LUMENGRAB_DEV_WINDOW=settings|permission|history  open that window shortly after launch
 //!   LUMENGRAB_DEV_HOLD=1                           keep the overlays open and print per-display window lists
 //!   LUMENGRAB_DEV_HANG=1                           block the main thread (with HOLD) to test the watchdog
 //!   LUMENGRAB_DEV_PROTECTED=1                      make the overlays content protected (off by default)
@@ -27,6 +27,8 @@
 //!   LUMENGRAB_DEV_SAVE_DIR=/path                   save screenshots there instead of Pictures/LumenGrab
 //!   LUMENGRAB_DEV_CONFIG_DIR=/path                 read and write settings.json there (try settings without
 //!                                                  touching the real file)
+//!   LUMENGRAB_DEV_HISTORY_DIR=/path                keep the history there instead of in the app data folder
+//!   LUMENGRAB_DEV_PIN=n                            after the synthetic captures, pin the newest history entry n times
 //!
 //! When `LUMENGRAB_DEV_CAPTURE` is set the app quits after the capture was delivered.
 
@@ -106,6 +108,16 @@ fn quick_access_demo(app: &AppHandle) {
             );
             std::thread::sleep(Duration::from_millis(1200));
         }
+        // LUMENGRAB_DEV_PIN=n: float the newest capture of the history n times.
+        let pins = std::env::var("LUMENGRAB_DEV_PIN")
+            .ok()
+            .and_then(|n| n.parse::<u32>().ok())
+            .unwrap_or(0);
+        for _ in 0..pins {
+            crate::pin::pin_last(&app);
+            std::thread::sleep(Duration::from_millis(600));
+        }
+        eprintln!("[lumengrab:dev] demo finished, {pins} pin(s) requested");
     });
 }
 
@@ -173,6 +185,7 @@ pub fn autostart(app: &AppHandle) {
             match which.as_str() {
                 "settings" => crate::tray::show_settings(&app),
                 "permission" => crate::permission::show(&app),
+                "history" => crate::history::show(&app),
                 other => eprintln!("[lumengrab:dev] unknown LUMENGRAB_DEV_WINDOW {other}"),
             }
         });

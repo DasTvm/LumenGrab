@@ -16,6 +16,9 @@ pub fn cursor_position(app: &AppHandle) -> Option<(f64, f64)> {
 /// Always-on-top is set by the window builder; nothing else is needed on Windows.
 pub fn configure_overlay(_window: &WebviewWindow) {}
 
+/// Pins: always-on-top and the shadow come from the window builder.
+pub fn configure_pin(_window: &WebviewWindow) {}
+
 /// Windows native units are physical pixels, which the builder cannot express (it only takes logical
 /// units), so the window is created anywhere and placed physically after it exists.
 pub fn position_overlay<'a>(
