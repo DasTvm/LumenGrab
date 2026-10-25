@@ -5,16 +5,16 @@ presentation layer (backgrounds, padding, shadows, window frames) that turns pla
 presentation-ready visuals.
 
 > **Status: early development.** Capture, Quick Access, the `.lumengrab` format and the editor (annotate, redact, crop, export) work;
-> the presentation layer (backgrounds, frames, looks) is being finished; history, OCR and recording are still planned. Details: [docs/ROADMAP.md](docs/ROADMAP.md).
+> the presentation layer (backgrounds, frames, looks) is being finished; history, pinned captures, text and QR recognition and an all-in-one capture mode are built and being checked on real machines; recording is still planned. Details: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Planned features
 
-- Fast capture (area, window, fullscreen, later scrolling) via global hotkey
+- Fast capture (all-in-one: click a window or drag an area; area, window, fullscreen, text, later scrolling) via global hotkey, and "repeat the last area"
 - Editor: crop, arrows, shapes, text, counters, highlighter, spotlight, blur / pixelate / solid redaction
 - Presentation layer: gradient, mesh, image and blurred-screenshot backgrounds, padding with auto-balance, rounded corners, shadows, window frames, social media sizes, your own saved looks, and a default look for every new screenshot, and animated backgrounds you build yourself (layers, effects, your own shader code) that export as a picture, MP4, WebM or GIF
 - Our own single-file, editable format, **`.lumengrab`**: reopen any capture later and keep editing, with only that one file
   ([format spec](docs/FORMAT.md))
-- History, pinned screenshots, local OCR (copy text, QR codes)
+- A history of your captures (kept on your computer, you choose for how long), pinned screenshots that float above other windows, and local text recognition (copy the text of a picture, read QR codes)
 - Screen recording (MP4 / GIF)
 
 Details and order: [docs/ROADMAP.md](docs/ROADMAP.md).

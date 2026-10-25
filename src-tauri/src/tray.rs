@@ -34,6 +34,13 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         true,
         Some("Ctrl+Shift+3"),
     )?;
+    let text = MenuItem::with_id(
+        app,
+        "capture-text",
+        "Capture Text",
+        true,
+        Some("Ctrl+Shift+T"),
+    )?;
     let history = MenuItem::with_id(app, "history", "History…", true, Some("Ctrl+Shift+H"))?;
     let pin_last = MenuItem::with_id(
         app,
@@ -75,6 +82,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         &area,
         &window,
         &fullscreen,
+        &text,
         &separator_two,
         &history,
         &pin_last,
@@ -99,6 +107,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
             "capture-area" => flow::start(app, CaptureMode::Area, false),
             "capture-window" => flow::start(app, CaptureMode::Window, false),
             "capture-fullscreen" => flow::start(app, CaptureMode::Fullscreen, false),
+            "capture-text" => flow::start(app, CaptureMode::Text, false),
             "history" => crate::history::show(app),
             "pin-last" => crate::pin::pin_last(app),
             "unlock-pins" => crate::pin::unlock_all(app),

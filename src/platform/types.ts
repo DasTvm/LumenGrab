@@ -1,6 +1,6 @@
 /** Typed contract between the UI and the OS. Real impl: native.ts, browser impl: mock/index.ts. */
 
-export type CaptureMode = "area" | "window" | "fullscreen";
+export type CaptureMode = "area" | "window" | "fullscreen" | "allinone" | "text";
 
 /** Rectangle in physical pixels of one display's frozen frame (never CSS pixels). */
 export interface PixelRect {
@@ -42,6 +42,8 @@ export interface OverlaySession {
   frameUrl: string;
   /** Selectable windows, front to back. Always present: the overlay can switch between area and window mode. */
   windows: OverlayWindowInfo[];
+  /** The size of the area taken last, in CSS pixels (logical), for "repeat the last area"; `null` if there is none yet. */
+  lastArea: { width: number; height: number } | null;
 }
 
 /** Room around a Quick Access card inside its (transparent, larger) window, in CSS pixels. */
@@ -143,7 +145,7 @@ export interface AppInfo {
 }
 
 export interface HotkeyInfo {
-  id: "capture" | "area" | "window" | "fullscreen" | "history" | "pin" | "unlock";
+  id: "capture" | "area" | "window" | "fullscreen" | "text" | "history" | "pin" | "unlock";
   /** Key names such as `Ctrl`, `Shift`, `4`; render them with `formatKey`. */
   keys: string[];
   /** False when another app already owns the shortcut. */
@@ -155,10 +157,13 @@ export type Corner = "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
 /** Seconds until the Quick Access card closes by itself; 0 = never. */
 export type AutoCloseSecs = 0 | 5 | 10;
 
+/** What the main shortcut starts in. */
+export type DefaultMode = "allinone" | "area" | "window";
+
 /** What the user can change. Mirrors `Settings` in src-tauri/src/settings.rs. */
 export interface Settings {
   /** What the main shortcut starts in. */
-  defaultMode: OverlayMode;
+  defaultMode: DefaultMode;
   /** Copy every new screenshot to the clipboard (it is always saved as a file). */
   copyToClipboard: boolean;
   quickAccess: {

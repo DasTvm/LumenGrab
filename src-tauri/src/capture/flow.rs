@@ -198,7 +198,7 @@ pub fn finish(app: &AppHandle, session_id: &str) {
     overlay::release(app, session_id);
 }
 
-/// The capture bar switched between area and window: all overlays follow, so the displays never
+/// The capture bar switched the mode: all overlays follow, so the displays never
 /// disagree about what a click does.
 pub fn set_mode(app: &AppHandle, session_id: &str, mode: CaptureMode) -> CaptureResult<()> {
     if mode == CaptureMode::Fullscreen {
@@ -237,8 +237,11 @@ pub fn submit_area(
         .display(display_id)
         .ok_or_else(|| CaptureError::NotFound("The display".into()))?;
     let cropped = geometry::crop(&display.frame, &rect)?; // validates and clamps untrusted input
+    let mode = session.live_mode();
+    // "Repeat last area" takes the size of the selection again, whatever display it is on.
+    super::state::remember_area(app, cropped.width, cropped.height, display.info.scale);
     finish(app, session_id);
-    spawn_deliver(app, cropped);
+    spawn_deliver(app, cropped, mode);
     Ok(())
 }
 
@@ -251,16 +254,33 @@ pub fn submit_window(app: &AppHandle, session_id: &str, window_id: u32) -> Captu
     if !session.windows.iter().any(|w| w.id == window_id) {
         return Err(CaptureError::NotFound("The window".into()));
     }
+    // A window cannot be picked while the capture is about text.
+    let mode = session.live_mode();
+    if mode == CaptureMode::Text {
+        return Err(CaptureError::InvalidSelection(
+            "a text capture needs an area".into(),
+        ));
+    }
+    let source = if mode == CaptureMode::AllInOne {
+        CaptureMode::AllInOne
+    } else {
+        CaptureMode::Window
+    };
     finish(app, session_id);
     let app = app.clone();
     std::thread::spawn(move || match capturer(&app).capture_window(window_id) {
-        Ok(frame) => output::deliver(&app, frame, CaptureMode::Window),
-        Err(e) => report(&app, &e, CaptureMode::Window, false),
+        Ok(frame) => output::deliver(&app, frame, source),
+        Err(e) => report(&app, &e, source, false),
     });
     Ok(())
 }
 
-fn spawn_deliver(app: &AppHandle, frame: Frame) {
+/// An area was taken: a picture normally, only its words in a text capture.
+fn spawn_deliver(app: &AppHandle, frame: Frame, mode: CaptureMode) {
     let app = app.clone();
-    std::thread::spawn(move || output::deliver(&app, frame, CaptureMode::Area));
+    std::thread::spawn(move || match mode {
+        CaptureMode::Text => output::deliver_text(&app, frame),
+        CaptureMode::AllInOne => output::deliver(&app, frame, CaptureMode::AllInOne),
+        _ => output::deliver(&app, frame, CaptureMode::Area),
+    });
 }

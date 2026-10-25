@@ -445,7 +445,11 @@ export const mockPlatform: Platform = {
 
   async getOverlaySession(_sessionId: string, displayId: number): Promise<OverlaySession> {
     const query = new URLSearchParams(window.location.search);
-    const mode = query.get("mode") === "window" ? "window" : "area";
+    const wanted = query.get("mode");
+    const mode: OverlayMode =
+      wanted === "window" || wanted === "allinone" || wanted === "text" ? wanted : "area";
+    // `?last=1280x720` is an area taken before: "repeat the last area" has something to repeat.
+    const last = /^(\d+)x(\d+)$/.exec(query.get("last") ?? "");
     await sleep(0);
     return {
       mode,
@@ -461,6 +465,7 @@ export const mockPlatform: Platform = {
       },
       frameUrl: sampleCaptureUrl,
       windows: MOCK_WINDOWS,
+      lastArea: last ? { width: Number(last[1]), height: Number(last[2]) } : null,
     };
   },
 
@@ -1259,6 +1264,7 @@ export const mockPlatform: Platform = {
         { id: "area", keys: ["Ctrl", "Shift", "4"], registered: true },
         { id: "window", keys: ["Ctrl", "Shift", "5"], registered: true },
         { id: "fullscreen", keys: ["Ctrl", "Shift", "3"], registered: true },
+        { id: "text", keys: ["Ctrl", "Shift", "T"], registered: true },
         { id: "history", keys: ["Ctrl", "Shift", "H"], registered: true },
         { id: "pin", keys: ["Ctrl", "Shift", "P"], registered: true },
         { id: "unlock", keys: ["Ctrl", "Shift", "U"], registered: true },

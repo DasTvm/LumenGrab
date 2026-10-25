@@ -560,7 +560,7 @@ export function HistoryWindow() {
         Everything you capture shows up here. Use a shortcut to take your first one.
         <span className="mt-4 flex flex-col gap-2">
           {hotkeys
-            .filter((h) => ["capture", "area", "window", "fullscreen"].includes(h.id))
+            .filter((h) => ["capture", "area", "window", "fullscreen", "text"].includes(h.id))
             .map((h) => (
               <span key={h.id} className="flex items-center justify-between gap-6 text-left">
                 <span className="text-sm text-foreground">{HOTKEY_LABEL[h.id]}</span>
@@ -877,6 +877,7 @@ const HOTKEY_LABEL: Record<HotkeyInfo["id"], string> = {
   area: "Capture area",
   window: "Capture window",
   fullscreen: "Capture fullscreen",
+  text: "Capture text",
   history: "Open history",
   pin: "Pin last capture",
   unlock: "Unlock pins",

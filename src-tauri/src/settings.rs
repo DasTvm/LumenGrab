@@ -17,7 +17,10 @@ use crate::capture::CaptureMode;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DefaultMode {
+    /// A click takes the window under the pointer, a drag an area (the default of a new install).
     #[default]
+    #[serde(rename = "allinone")]
+    AllInOne,
     Area,
     Window,
 }
@@ -25,6 +28,7 @@ pub enum DefaultMode {
 impl DefaultMode {
     pub fn capture_mode(self) -> CaptureMode {
         match self {
+            Self::AllInOne => CaptureMode::AllInOne,
             Self::Area => CaptureMode::Area,
             Self::Window => CaptureMode::Window,
         }
@@ -159,7 +163,7 @@ pub struct Settings {
 impl Default for Settings {
     fn default() -> Self {
         Self {
-            default_mode: DefaultMode::Area,
+            default_mode: DefaultMode::AllInOne,
             copy_to_clipboard: true,
             quick_access: QuickAccessSettings::default(),
             presentation: PresentationSettings::default(),
@@ -286,7 +290,7 @@ mod tests {
     #[test]
     fn defaults_match_the_design() {
         let s = SettingsStore::load(temp_path("none")).get();
-        assert_eq!(s.default_mode, DefaultMode::Area);
+        assert_eq!(s.default_mode, DefaultMode::AllInOne);
         assert!(s.copy_to_clipboard);
         assert_eq!(
             s.quick_access,

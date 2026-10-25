@@ -264,8 +264,12 @@ impl History {
 
 /// What `record` needs to keep a capture.
 pub struct Recorded<'a> {
-    /// The picture as saved (its file is copied).
-    pub saved: &'a Path,
+    /// The picture as saved (its file is copied), or `None` when `png` is the picture.
+    pub saved: Option<&'a Path>,
+    /// The picture itself, when it was never saved as a file (a text capture that keeps its picture).
+    pub png: Option<&'a [u8]>,
+    /// The name shown when there is no saved file.
+    pub name: Option<String>,
     pub width: u32,
     pub height: u32,
     /// The small preview the Quick Access card shows (a PNG).
@@ -295,8 +299,17 @@ fn record_inner(app: &AppHandle, new: &Recorded) -> Result<(), String> {
         let index = state.index.as_ref().map_err(|e| e.clone())?;
         new_id(&index.entries)
     };
-    let bytes = fs::copy(new.saved, picture(dir, &id))
-        .map_err(|e| format!("{}: {e}", new.saved.display()))?;
+    let bytes = match (new.saved, new.png) {
+        (Some(saved), _) => {
+            fs::copy(saved, picture(dir, &id)).map_err(|e| format!("{}: {e}", saved.display()))?
+        }
+        (None, Some(png)) => {
+            crate::fsutil::write_atomic(&picture(dir, &id), png)
+                .map_err(|e| format!("{}: {e}", picture(dir, &id).display()))?;
+            png.len() as u64
+        }
+        (None, None) => return Err("There is no picture to keep.".into()),
+    };
     let write = |path: PathBuf, data: &[u8]| {
         crate::fsutil::write_atomic(&path, data).map_err(|e| format!("{}: {e}", path.display()))
     };
@@ -307,8 +320,9 @@ fn record_inner(app: &AppHandle, new: &Recorded) -> Result<(), String> {
         }
         let name = new
             .saved
-            .file_name()
+            .and_then(|p| p.file_name())
             .map(|n| n.to_string_lossy().into_owned())
+            .or_else(|| new.name.clone())
             .unwrap_or_else(|| format!("{id}.png"));
         let entry = Entry {
             id: id.clone(),
@@ -319,7 +333,7 @@ fn record_inner(app: &AppHandle, new: &Recorded) -> Result<(), String> {
             bytes,
             source: source_name(new.source).into(),
             has_original: new.original.is_some(),
-            saved_path: Some(new.saved.to_path_buf()),
+            saved_path: new.saved.map(Path::to_path_buf),
         };
         history.edit(|entries| entries.insert(0, entry))
     })();
@@ -336,6 +350,9 @@ fn source_name(mode: CaptureMode) -> &'static str {
         CaptureMode::Area => "area",
         CaptureMode::Window => "window",
         CaptureMode::Fullscreen => "fullscreen",
+        CaptureMode::AllInOne => "allinone",
+        // A text capture that keeps its picture is an area.
+        CaptureMode::Text => "area",
     }
 }
 

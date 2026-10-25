@@ -43,10 +43,13 @@ pub struct OverlaySession {
     frame_key: String,
     /// Front to back.
     windows: Vec<OverlayWindow>,
+    /// The size of the area taken last, in logical pixels, for "repeat the last area".
+    last_area: Option<super::state::AreaSize>,
 }
 
 #[tauri::command]
 pub fn capture_overlay_session(
+    app: AppHandle,
     store: State<CaptureStore>,
     session: String,
     display: u32,
@@ -79,6 +82,7 @@ pub fn capture_overlay_session(
         })
         .collect();
     Ok(Some(OverlaySession {
+        last_area: super::state::last_area(&app),
         mode: s.live_mode(),
         toolbar: s.toolbar,
         home: d.info.id == s.home_display,

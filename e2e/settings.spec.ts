@@ -31,13 +31,17 @@ test.describe("settings (browser mock)", () => {
     });
   });
 
-  test("default capture mode: Area first, the choice is sent to the native side and kept", async ({
+  test("default capture mode: All-in-one first, the choice is sent to the native side and kept", async ({
     page,
   }) => {
     await page.goto("/?window=settings");
-    const area = page.getByRole("radio", { name: "Area" });
+    const all = page.getByRole("radio", { name: "All-in-one" });
     const window_ = page.getByRole("radio", { name: "Window" });
-    await expect(area).toHaveAttribute("aria-checked", "true");
+    await expect(all).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByRole("radio", { name: "Area" })).toHaveAttribute(
+      "aria-checked",
+      "false",
+    );
     await window_.click();
     await expect(window_).toHaveAttribute("aria-checked", "true");
     const [saved] = await submissions(page);
@@ -79,7 +83,7 @@ test.describe("settings (browser mock)", () => {
     const log = await submissions(page);
     expect(log.map((s) => s.kind)).toEqual(["settings", "settings", "settings", "settings"]);
     expect(log.at(-1)?.settings).toEqual({
-      defaultMode: "area",
+      defaultMode: "allinone",
       copyToClipboard: false,
       quickAccess: { enabled: true, style: "large", autoCloseSecs: 10, corner: "topLeft" },
       presentation: { auto: false, openInPresentation: false },

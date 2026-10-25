@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
-import { AppWindow, Monitor, ScanLine, X } from "lucide-react";
+import { AppWindow, Crosshair, Monitor, Repeat2, ScanLine, ScanText, X } from "lucide-react";
 import {
   clampPoint,
   clampTranslation,
@@ -36,6 +36,11 @@ function readParams(): OverlayParams | null {
     : null;
 }
 
+/** Whether a pointer drag has gone far enough to be an area and not a click. */
+function moved(drag: { start: Point; current: Point }): boolean {
+  return Math.hypot(drag.current.x - drag.start.x, drag.current.y - drag.start.y) > CLICK_SLOP;
+}
+
 function viewport(): Size {
   return { width: window.innerWidth, height: window.innerHeight };
 }
@@ -55,13 +60,32 @@ const HANDLES: readonly (readonly [number, number])[] = [
 const MODES: readonly {
   mode: OverlayMode | "fullscreen";
   label: string;
-  key: string;
+  /** The key that picks it while the capture bar is shown. */
+  key?: string;
   icon: typeof ScanLine;
+  /** The tooltip. */
+  tip?: string;
 }[] = [
+  {
+    mode: "allinone",
+    label: "All-in-one",
+    icon: Crosshair,
+    tip: "All-in-one · click a window or drag an area",
+  },
   { mode: "area", label: "Area", key: "A", icon: ScanLine },
   { mode: "window", label: "Window", key: "W", icon: AppWindow },
   { mode: "fullscreen", label: "Fullscreen", key: "F", icon: Monitor },
+  {
+    mode: "text",
+    label: "Text",
+    key: "T",
+    icon: ScanText,
+    tip: "Text · T. Copies only the text. No picture is kept.",
+  },
 ];
+
+/** A drag shorter than this is a click. */
+const CLICK_SLOP = 4;
 
 /**
  * One overlay per display (design: "Capture Overlay"). Shows that display's frozen frame, dims it,
@@ -78,6 +102,8 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
   const [mode, setMode] = useState<OverlayMode>("area");
   const [drag, setDrag] = useState<{ start: Point; current: Point } | null>(null);
   const [hovered, setHovered] = useState<OverlayWindowInfo | undefined>(undefined);
+  /** Where the pointer is (CSS pixels), for the outline of "repeat the last area". */
+  const [pointer, setPointer] = useState<Point | null>(null);
   const sentReady = useRef(false);
   const spaceHeld = useRef(false);
   const lastPointer = useRef<Point | null>(null);
@@ -104,6 +130,7 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
   useEffect(() => {
     const clear = () => {
       setHovered(undefined);
+      setPointer(null);
     };
     window.addEventListener("blur", clear);
     document.documentElement.addEventListener("pointerleave", clear);
@@ -167,6 +194,30 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
     }
   }, [params, px]);
 
+  /** The last area again, centred on the pointer (or the middle of the display) and kept on the screen. */
+  const repeatRect = useMemo<Rect | null>(() => {
+    const last = session?.lastArea;
+    if (!last) return null;
+    const width = Math.min(last.width, size.width);
+    const height = Math.min(last.height, size.height);
+    const at = pointer ?? { x: size.width / 2, y: size.height / 2 };
+    return {
+      x: Math.min(Math.max(at.x - width / 2, 0), size.width - width),
+      y: Math.min(Math.max(at.y - height / 2, 0), size.height - height),
+      width,
+      height,
+    };
+  }, [session, pointer, size]);
+
+  const repeatLast = useCallback(() => {
+    if (!repeatRect || !px) return;
+    void platform.submitArea(
+      params.sessionId,
+      params.displayId,
+      cssRectToPixelRect(repeatRect, size, px),
+    );
+  }, [repeatRect, px, size, params]);
+
   const chooseMode = useCallback(
     (next: OverlayMode | "fullscreen") => {
       if (next === "fullscreen") {
@@ -184,22 +235,34 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
   // Keyboard: Esc always cancels, Space moves a selection being dragged. Window mode: Tab/arrows
   // cycle, Enter captures.
   useEffect(() => {
-    const windows = mode === "window" ? (session?.windows ?? []) : [];
+    const windows = mode === "window" || mode === "allinone" ? (session?.windows ?? []) : [];
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
         cancel();
         return;
       }
+      if (
+        e.key.toLowerCase() === "r" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !drag &&
+        repeatRect
+      ) {
+        e.preventDefault();
+        repeatLast();
+        return;
+      }
       const shortcut = session?.toolbar
-        ? { a: "area", w: "window", f: "fullscreen" }[e.key.toLowerCase()]
+        ? { a: "area", w: "window", f: "fullscreen", t: "text" }[e.key.toLowerCase()]
         : undefined;
       if (shortcut && !e.metaKey && !e.ctrlKey && !e.altKey && !drag) {
         e.preventDefault();
         chooseMode(shortcut as OverlayMode | "fullscreen");
         return;
       }
-      if (e.code === "Space" && mode === "area") {
+      if (e.code === "Space" && (mode === "area" || mode === "text" || mode === "allinone")) {
         e.preventDefault();
         spaceHeld.current = e.type === "keydown";
         return;
@@ -227,7 +290,7 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [session, mode, hovered, drag, cancel, submitWindow, chooseMode]);
+  }, [session, mode, hovered, drag, cancel, submitWindow, chooseMode, repeatRect, repeatLast]);
 
   const localPoint = (e: PointerEvent): Point => clampPoint({ x: e.clientX, y: e.clientY }, size);
 
@@ -246,8 +309,14 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
   const onPointerMove = (e: PointerEvent) => {
     if (!session || !px) return;
     const p = localPoint(e);
-    if (mode === "window") {
+    setPointer(p);
+    // All-in-one points at the window under the pointer until a drag has really begun.
+    const dragging = drag && (mode !== "allinone" || moved(drag));
+    if (mode === "window" || (mode === "allinone" && !dragging)) {
       setHovered(hitTestWindow(session.windows, cssPointToPixelPoint(p, size, px)));
+    }
+    if (mode === "window") {
+      // nothing else: the highlight is all there is
     } else if (drag) {
       const last = lastPointer.current;
       if (spaceHeld.current && last) {
@@ -273,6 +342,11 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
     if (!drag || !session || !px) return;
     const rect = normalizeRect(drag.start, drag.current);
     setDrag(null);
+    // All-in-one: a click (no drag) takes the window under the pointer.
+    if (mode === "allinone" && !moved(drag)) {
+      submitWindow(hovered);
+      return;
+    }
     if (!isSelectionBigEnough(rect)) return; // accidental click: keep selecting
     void platform.submitArea(
       params.sessionId,
@@ -281,17 +355,22 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
     );
   };
 
-  const selection: Rect | null = drag
+  const dragShown = drag && (mode !== "allinone" || moved(drag));
+  const selection: Rect | null = dragShown
     ? normalizeRect(drag.start, drag.current)
-    : mode === "window" && hovered && px
+    : (mode === "window" || mode === "allinone") && hovered && px
       ? pixelRectToCssRect(hovered, size, px)
       : null;
+  // "Repeat last": only while nothing else is chosen.
+  const showRepeat =
+    (mode === "allinone" || mode === "area") && !!repeatRect && !selection && !drag && !!pointer;
 
   const label = (() => {
     if (!selection || !px) return null;
-    if (drag) {
+    if (dragShown) {
       const r = cssRectToPixelRect(selection, size, px);
-      return `${String(r.width)} × ${String(r.height)}`;
+      const dims = `${String(r.width)} × ${String(r.height)}`;
+      return mode === "text" ? `Text · ${dims}` : dims;
     }
     return hovered
       ? `${hovered.appName} · ${hovered.title} · ${String(hovered.width)} × ${String(hovered.height)}`
@@ -301,7 +380,19 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
   const hint =
     mode === "window"
       ? "Click a window  ·  Tab to cycle  ·  Esc to cancel"
-      : "Drag to select  ·  Space to move  ·  Esc to cancel";
+      : mode === "text"
+        ? "Select text  ·  Esc to cancel"
+        : mode === "allinone"
+          ? hovered
+            ? "Click to capture this window"
+            : showRepeat
+              ? "Press R to take this area again  ·  or drag a new one"
+              : session?.toolbar
+                ? "Click a window or drag an area"
+                : "Click a window or drag an area  ·  Esc to cancel"
+          : session?.lastArea
+            ? "Drag to select  ·  R repeats the last area  ·  Esc to cancel"
+            : "Drag to select  ·  Space to move  ·  Esc to cancel";
 
   if (error) {
     return (
@@ -319,10 +410,20 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
   return (
     <div
       role="application"
-      aria-label={mode === "window" ? "Choose a window to capture" : "Select an area to capture"}
+      aria-label={
+        mode === "window"
+          ? "Choose a window to capture"
+          : mode === "allinone"
+            ? "Click a window or drag an area to capture"
+            : mode === "text"
+              ? "Select the text to copy"
+              : "Select an area to capture"
+      }
       className={cn(
         "fixed inset-0 overflow-hidden bg-black select-none",
-        mode === "window" && hovered ? "cursor-pointer" : "cursor-crosshair",
+        (mode === "window" || mode === "allinone") && hovered
+          ? "cursor-pointer"
+          : "cursor-crosshair",
       )}
       style={{ touchAction: "none" }}
       onPointerDown={onPointerDown}
@@ -364,7 +465,7 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
               height: selection.height,
             }}
           />
-          {mode === "area" && drag
+          {mode !== "window" && dragShown
             ? HANDLES.map(([fx, fy]) => (
                 <span
                   key={`${String(fx)}-${String(fy)}`}
@@ -381,6 +482,31 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
       ) : (
         <div className="pointer-events-none absolute inset-0 bg-scrim" />
       )}
+
+      {showRepeat && px ? (
+        <>
+          <div
+            data-testid="repeat-outline"
+            className="pointer-events-none absolute border-2 border-dashed border-white/80"
+            style={{
+              left: repeatRect.x,
+              top: repeatRect.y,
+              width: repeatRect.width,
+              height: repeatRect.height,
+            }}
+          />
+          <div
+            data-testid="repeat-label"
+            className="pointer-events-none absolute rounded-full bg-overlay-surface px-2.5 py-1 text-xs font-semibold text-white tabular-nums"
+            style={{
+              left: repeatRect.x,
+              top: repeatRect.y >= 34 ? repeatRect.y - 34 : repeatRect.y + 8,
+            }}
+          >
+            {`${String(cssRectToPixelRect(repeatRect, size, px).width)} × ${String(cssRectToPixelRect(repeatRect, size, px).height)}`}
+          </div>
+        </>
+      ) : null}
 
       {label && selection ? (
         <div
@@ -417,7 +543,7 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
                 e.stopPropagation();
               }}
             >
-              {MODES.map(({ mode: m, label: text, key, icon: Icon }) => {
+              {MODES.map(({ mode: m, label: text, key, icon: Icon, tip }) => {
                 const active = m === mode;
                 return (
                   <button
@@ -425,7 +551,7 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
                     type="button"
                     aria-pressed={m === "fullscreen" ? undefined : active}
                     aria-keyshortcuts={key}
-                    title={`${text} (${key})`}
+                    title={tip ?? `${text} (${key ?? ""})`}
                     onClick={() => {
                       chooseMode(m);
                     }}
@@ -444,6 +570,34 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
                   </button>
                 );
               })}
+              <button
+                type="button"
+                disabled
+                aria-label="Scroll (coming soon)"
+                title="Scrolling capture is coming"
+                className="flex items-center gap-2 rounded-[10px] px-3.5 py-2 text-sm font-medium text-overlay-muted opacity-60"
+              >
+                Scroll
+                <span className="rounded-full bg-white/15 px-1.5 py-px text-[10px] font-semibold">
+                  Soon
+                </span>
+              </button>
+              {session.lastArea ? (
+                <>
+                  <span aria-hidden className="mx-1 h-[22px] w-px bg-overlay-divider" />
+                  <button
+                    type="button"
+                    aria-keyshortcuts="R"
+                    title="Take the last area again (R)"
+                    onClick={repeatLast}
+                    className="flex items-center gap-2 rounded-[10px] px-3.5 py-2 text-sm font-medium text-overlay-foreground outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand"
+                  >
+                    <Repeat2 className="size-4 text-overlay-muted" aria-hidden />
+                    Repeat last
+                    <kbd className="rounded bg-white/15 px-1.5 text-[11px]">R</kbd>
+                  </button>
+                </>
+              ) : null}
               <span aria-hidden className="mx-1 h-[22px] w-px bg-overlay-divider" />
               <button
                 type="button"

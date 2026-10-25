@@ -204,6 +204,8 @@ fn source_name(source: CaptureMode) -> &'static str {
         CaptureMode::Area => "Area",
         CaptureMode::Window => "Window",
         CaptureMode::Fullscreen => "Fullscreen",
+        CaptureMode::AllInOne => "All-in-one",
+        CaptureMode::Text => "Text",
     }
 }
 

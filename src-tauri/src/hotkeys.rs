@@ -28,7 +28,7 @@ enum Action {
 }
 
 /// Fixed for now. `(key, display text, action)`; the display text is also what the settings page shows.
-const HOTKEYS: [(Code, &str, Action); 7] = [
+const HOTKEYS: [(Code, &str, Action); 8] = [
     (Code::Digit1, "Ctrl+Shift+1", Action::Bar),
     (
         Code::Digit3,
@@ -45,6 +45,7 @@ const HOTKEYS: [(Code, &str, Action); 7] = [
         "Ctrl+Shift+5",
         Action::Quick(CaptureMode::Window),
     ),
+    (Code::KeyT, "Ctrl+Shift+T", Action::Quick(CaptureMode::Text)),
     (Code::KeyH, "Ctrl+Shift+H", Action::History),
     (Code::KeyP, "Ctrl+Shift+P", Action::PinLast),
     (Code::KeyU, "Ctrl+Shift+U", Action::UnlockPins),
@@ -130,7 +131,7 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HotkeyInfo {
-    /// `capture` (the main shortcut with the capture bar), `area`, `window`, `fullscreen`, `history`, `pin` or `unlock`.
+    /// `capture` (the main shortcut with the capture bar), `area`, `window`, `fullscreen`, `text`, `history`, `pin` or `unlock`.
     pub id: &'static str,
     /// Key names, e.g. `["Ctrl", "Shift", "4"]`. The frontend renders them per OS.
     pub keys: Vec<&'static str>,
@@ -147,6 +148,8 @@ fn action_title(action: Action) -> &'static str {
         Action::Quick(CaptureMode::Area) => "Capture Area",
         Action::Quick(CaptureMode::Window) => "Capture Window",
         Action::Quick(CaptureMode::Fullscreen) => "Capture Fullscreen",
+        Action::Quick(CaptureMode::Text) => "Capture Text",
+        Action::Quick(CaptureMode::AllInOne) => "Capture",
         Action::History => "Open History",
         Action::PinLast => "Pin last capture",
         Action::UnlockPins => "Unlock pins",
@@ -159,6 +162,8 @@ fn action_id(action: Action) -> &'static str {
         Action::Quick(CaptureMode::Area) => "area",
         Action::Quick(CaptureMode::Window) => "window",
         Action::Quick(CaptureMode::Fullscreen) => "fullscreen",
+        Action::Quick(CaptureMode::Text) => "text",
+        Action::Quick(CaptureMode::AllInOne) => "capture",
         Action::History => "history",
         Action::PinLast => "pin",
         Action::UnlockPins => "unlock",
@@ -172,6 +177,7 @@ pub fn list(failed: &[&'static str]) -> Vec<HotkeyInfo> {
         Action::Quick(CaptureMode::Area),
         Action::Quick(CaptureMode::Window),
         Action::Quick(CaptureMode::Fullscreen),
+        Action::Quick(CaptureMode::Text),
         Action::History,
         Action::PinLast,
         Action::UnlockPins,
@@ -233,6 +239,7 @@ mod tests {
                 ("area", vec!["Ctrl", "Shift", "4"]),
                 ("window", vec!["Ctrl", "Shift", "5"]),
                 ("fullscreen", vec!["Ctrl", "Shift", "3"]),
+                ("text", vec!["Ctrl", "Shift", "T"]),
                 ("history", vec!["Ctrl", "Shift", "H"]),
                 ("pin", vec!["Ctrl", "Shift", "P"]),
                 ("unlock", vec!["Ctrl", "Shift", "U"]),

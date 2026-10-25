@@ -117,7 +117,9 @@ fn deliver_inner(
                 history::record(
                     app,
                     &history::Recorded {
-                        saved: &path,
+                        saved: Some(&path),
+                        png: None,
+                        name: None,
                         width: frame.width,
                         height: frame.height,
                         thumb,
@@ -171,6 +173,47 @@ fn with_look(app: &AppHandle, frame: &Frame) -> Result<(Frame, Vec<u8>), String>
         presented.height
     );
     Ok((presented, original))
+}
+
+/// A text capture: the words are read and copied (or a QR link offered) and a card says so. No file is
+/// saved and no Quick Access card shows the picture. Only when the user chose to keep a picture of text
+/// captures (Settings > History) does the history get a copy.
+pub fn deliver_text(app: &AppHandle, frame: Frame) {
+    let Ok(png) = encode::encode_png(&frame, encode::Profile::Fast) else {
+        quick_access::notify(
+            app,
+            quick_access::notice::text_failed("The picture could not be encoded.".into()),
+        );
+        return;
+    };
+    let keep = app.state::<SettingsStore>().get().history;
+    if keep.enabled && keep.text_picture {
+        if let Some(thumb) = make_thumb(&frame) {
+            let now = Local::now();
+            let name = geometry::file_name(
+                now.year(),
+                now.month(),
+                now.day(),
+                now.hour(),
+                now.minute(),
+                now.second(),
+            );
+            history::record(
+                app,
+                &history::Recorded {
+                    saved: None,
+                    png: Some(&png),
+                    name: Some(name),
+                    width: frame.width,
+                    height: frame.height,
+                    thumb: &thumb,
+                    source: CaptureMode::Text,
+                    original: None,
+                },
+            );
+        }
+    }
+    crate::ocr::read_and_tell(app, &png);
 }
 
 /// "Try again" of the notice: puts the look on a screenshot that was saved as it was. The file is

@@ -7,7 +7,7 @@ import {
   type AppInfo,
   type AutoCloseSecs,
   type HotkeyInfo,
-  type OverlayMode,
+  type DefaultMode,
   type QuickAccessStyle,
   type Settings,
   type SettingsInfo,
@@ -31,8 +31,7 @@ type Page = (typeof PAGES)[number];
 const HOTKEY_TEXT: Record<HotkeyInfo["id"], { title: string; description: string }> = {
   capture: {
     title: "Capture",
-    description:
-      "Opens the capture bar to switch between area and window. Starts in your default mode.",
+    description: "Opens the capture bar. Starts in your default mode.",
   },
   area: { title: "Capture Area", description: "Quick pick: select a region, no capture bar" },
   window: { title: "Capture Window", description: "Quick pick: choose a window, no capture bar" },
@@ -40,15 +39,17 @@ const HOTKEY_TEXT: Record<HotkeyInfo["id"], { title: string; description: string
     title: "Capture Fullscreen",
     description: "Quick pick: the whole display under the cursor",
   },
+  text: { title: "Capture Text", description: "Copies only the text, keeps no picture" },
   history: { title: "Open History", description: "Show your past captures" },
   pin: { title: "Pin last capture", description: "Floats the newest capture on screen" },
   unlock: { title: "Unlock pins", description: "Makes locked pins clickable again" },
 };
 
 const DEFAULT_MODE_OPTIONS = [
+  { value: "allinone", label: "All-in-one" },
   { value: "area", label: "Area" },
   { value: "window", label: "Window" },
-] as const satisfies readonly { value: OverlayMode; label: string }[];
+] as const satisfies readonly { value: DefaultMode; label: string }[];
 
 const STYLE_OPTIONS = [
   { value: "compact", label: "Compact" },

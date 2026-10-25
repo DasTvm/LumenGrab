@@ -6,11 +6,11 @@ test.use({ viewport: { width: 720, height: 450 } });
 /** `toolbar`: started with the main shortcut (capture bar). `home: false`: a second display. */
 async function openOverlay(
   page: Page,
-  mode: "area" | "window",
-  { toolbar = true, home = true } = {},
+  mode: "area" | "window" | "allinone" | "text",
+  { toolbar = true, home = true, last = "" } = {},
 ) {
   await page.goto(
-    `/?window=overlay&session=mock&display=1&mode=${mode}${toolbar ? "&toolbar=1" : ""}${home ? "" : "&home=0"}`,
+    `/?window=overlay&session=mock&display=1&mode=${mode}${toolbar ? "&toolbar=1" : ""}${home ? "" : "&home=0"}${last ? `&last=${last}` : ""}`,
   );
   await page.waitForFunction(() => {
     const img = document.querySelector("img");
@@ -95,7 +95,8 @@ test.describe("capture overlay: area (browser mock)", () => {
   });
 
   test("selection past the display edge is clamped to the frame", async ({ page }) => {
-    await openOverlay(page, "area");
+    // No capture bar: on this small test display it would cover the corner the drag ends in.
+    await openOverlay(page, "area", { toolbar: false });
     await page.mouse.move(600, 400);
     await page.mouse.down();
     await page.mouse.move(719, 449, { steps: 3 });

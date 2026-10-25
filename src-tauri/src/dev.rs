@@ -1,6 +1,6 @@
 //! Debug-build helpers for native smoke tests from a terminal (compiled out of release builds).
 //!
-//!   LUMENGRAB_DEV_CAPTURE=fullscreen|area|window   start that capture shortly after launch
+//!   LUMENGRAB_DEV_CAPTURE=fullscreen|area|window|allinone|text   start that capture shortly after launch
 //!   LUMENGRAB_DEV_TOOLBAR=1                        show the capture bar (like the main shortcut)
 //!   LUMENGRAB_DEV_AUTOSUBMIT=1                     area: select a centred 400x300 px rectangle,
 //!                                                  window: take the frontmost window
@@ -50,6 +50,8 @@ fn requested_mode() -> Option<CaptureMode> {
         "fullscreen" => Some(CaptureMode::Fullscreen),
         "area" => Some(CaptureMode::Area),
         "window" => Some(CaptureMode::Window),
+        "allinone" => Some(CaptureMode::AllInOne),
+        "text" => Some(CaptureMode::Text),
         _ => None,
     }
 }

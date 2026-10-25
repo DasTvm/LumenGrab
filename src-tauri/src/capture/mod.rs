@@ -16,6 +16,7 @@ pub mod guard;
 pub mod output;
 pub mod overlay;
 pub mod pixels;
+pub mod state;
 pub mod store;
 
 use std::fmt;
@@ -29,6 +30,10 @@ pub enum CaptureMode {
     Area,
     Window,
     Fullscreen,
+    /// One overlay that does what you point at: a click takes the window under the pointer, a drag an area.
+    AllInOne,
+    /// Select an area and keep only its text (no picture).
+    Text,
 }
 
 /// A rectangle in native units (see module docs).
