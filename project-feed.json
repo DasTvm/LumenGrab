@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-25T23:09:05.834Z",
+  "generatedAt": "2026-10-25T23:19:28.295Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -856,6 +856,13 @@
       "category": "internal",
       "title": "format the checklist",
       "url": "https://github.com/DasTvm/LumenGrab/commit/80109e63cefeedff4949cc4332ca90ca23eac2ab"
+    },
+    {
+      "id": "6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba",
+      "date": "2026-10-25T23:19:16Z",
+      "category": "new",
+      "title": "the all-in-one overlay, repeat the last area, and the Text capture (Ctrl+Shift+T)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba"
     }
   ],
   "releases": [
@@ -887,7 +894,8 @@
     "909af2554eec4bbe63fa494610d6d07591fcbb17",
     "26e556001182ea07cb7937b964a1a4038e6e237d",
     "16f0fe7919a0539d7604ee292c13870e6b2513cf",
-    "80109e63cefeedff4949cc4332ca90ca23eac2ab"
+    "80109e63cefeedff4949cc4332ca90ca23eac2ab",
+    "6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -1216,7 +1224,7 @@
           {
             "id": "task-4",
             "title": "All-in-one capture mode and a Text capture mode",
-            "done": false
+            "done": true
           },
           {
             "id": "task-5",
