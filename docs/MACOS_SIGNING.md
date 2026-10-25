@@ -55,3 +55,15 @@ says `accepted, source=Notarized Developer ID`.
 
 The permission window offers `tccutil reset ScreenCapture app.lumengrab` (Terminal) for a Mac where the switch is on
 but ignored. The capture code also asks ScreenCaptureKit directly when the system's preflight says no.
+
+## Status
+
+Set up on 2026-10-25 and checked with a dry run of the release workflow: the app inside the DMG is signed with
+`Developer ID Application: Tom Jacob (KBQ4M7B54F)`, notarized and stapled, and `spctl -a -vv` answers
+`accepted, source=Notarized Developer ID`. The six secrets (`APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD`,
+`APPLE_SIGNING_IDENTITY`, `APPLE_TEAM_ID`, `APPLE_ID`, `APPLE_PASSWORD`) are in the repository's Actions secrets; no copy
+of the key exists anywhere else.
+
+**The certificate ends on 24 November 2027.** Before then make a new one with the steps above (a new request, a new
+`.p12`) and replace `APPLE_CERTIFICATE` and `APPLE_CERTIFICATE_PASSWORD`. The same goes if the Apple ID password is
+changed (the app-specific password is then revoked): make a new one for `APPLE_PASSWORD`.
