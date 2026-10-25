@@ -8,6 +8,7 @@ import type {
   HistorySource,
   HistoryUsage,
   PinState,
+  TextRecognition,
   Recoverable,
   OverlayMode,
   OverlaySession,
@@ -110,6 +111,10 @@ export interface MockSubmission {
     | "historyOpenFolder"
     | "historyShow"
     | "openSettings"
+    | "recognize"
+    | "copyText"
+    | "openLink"
+    | "openLanguageSettings"
     | "pinHistory"
     | "pinQuickAccess"
     | "pinPng"
@@ -153,6 +158,8 @@ declare global {
       copied?: Uint8Array;
       /** Recovery copies the editor wrote, by document id. */
       recovery?: Record<string, { bytes: Uint8Array; name: string }>;
+      /** The last text the page put on the (fake) clipboard. */
+      copiedText?: string;
       /** The pin window: picks an opacity like the native menu does. */
       chooseOpacity?: (percent: number) => void;
       /** Pretends the user closed the window while it has unsaved changes. */
@@ -266,6 +273,62 @@ function pinState(): PinState {
 function setPin(patch: Partial<PinState>) {
   mockPin = { ...pinState(), ...patch };
   for (const listener of pinListeners) listener(mockPin);
+}
+
+/**
+ * What reading a picture finds in the mock, by `?ocr=`: `empty`, `fail`, `nolang`, `qr` (with the text),
+ * `qr-only`, `qr-two`, `slow` (a long read), or the default (six blocks, like the design). The boxes are
+ * fractions of the picture, so any picture gets sensible ones.
+ */
+async function mockRecognition(width: number, height: number): Promise<TextRecognition> {
+  const mode = new URLSearchParams(window.location.search).get("ocr") ?? "";
+  if (mode === "slow") await sleep(2500);
+  else await sleep(FAKE_LATENCY_MS);
+  if (mode === "fail") throw new PlatformError("Text recognition failed.");
+  if (mode === "nolang") {
+    throw new PlatformError("No language pack for text recognition.", "no-language-pack");
+  }
+  const box = (text: string, fx: number, fy: number, fw: number, fh: number) => ({
+    text,
+    x: Math.round(fx * width),
+    y: Math.round(fy * height),
+    width: Math.round(fw * width),
+    height: Math.round(fh * height),
+  });
+  const blocks =
+    mode === "empty" || mode === "qr-only"
+      ? []
+      : [
+          box("Checkout", 0.06, 0.07, 0.2, 0.05),
+          box("anna.schmidt@example.com", 0.06, 0.2, 0.32, 0.04),
+          box("4242 4242 4242 4242", 0.06, 0.3, 0.26, 0.04),
+          box("DE89 3704 0044 0532 0130 00", 0.06, 0.4, 0.34, 0.04),
+          box("Order summary\nPro plan $42.00\nTax $6.00", 0.56, 0.2, 0.28, 0.14),
+          box("Total $48.00", 0.56, 0.42, 0.2, 0.04),
+        ];
+  const code = (value: string, fx: number, fy: number) => ({
+    value,
+    x: Math.round(fx * width),
+    y: Math.round(fy * height),
+    width: Math.round(0.12 * width),
+    height: Math.round(0.12 * width),
+  });
+  const codes =
+    mode === "qr" || mode === "qr-only"
+      ? [code("https://lumengrab.app/docs/getting-started?ref=qr#install", 0.78, 0.7)]
+      : mode === "qr-two"
+        ? [
+            code("https://lumengrab.app/docs/getting-started?ref=qr#install", 0.78, 0.7),
+            code("WIFI:T:WPA;S:Office;P:secret;;", 0.6, 0.7),
+          ]
+        : [];
+  const text = blocks.map((b) => b.text).join("\n");
+  return { text, words: text.split(/\s+/).filter(Boolean).length, blocks, codes };
+}
+
+function pngSize(png: Uint8Array): { width: number; height: number } {
+  const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  return { width: view.getUint32(16), height: view.getUint32(20) };
 }
 
 function historyBroken(): boolean {
@@ -650,6 +713,39 @@ export const mockPlatform: Platform = {
   },
   historyOpenFolder(): Promise<void> {
     record({ kind: "historyOpenFolder" });
+    return Promise.resolve();
+  },
+  recognizeText(png: Uint8Array): Promise<TextRecognition> {
+    record({ kind: "recognize", size: png.length });
+    const { width, height } = pngSize(png);
+    return mockRecognition(width, height);
+  },
+  recognizeCardText(id: string): Promise<TextRecognition> {
+    record({ kind: "recognize", id });
+    return mockRecognition(1440, 900);
+  },
+  recognizeHistoryText(id: string): Promise<TextRecognition> {
+    record({ kind: "recognize", id });
+    return mockRecognition(1440, 900);
+  },
+  copyText(text: string): Promise<void> {
+    record({ kind: "copyText", name: text });
+    const log = (window.__lumengrabMock ??= { submissions: [] });
+    log.copiedText = text;
+    return new URLSearchParams(window.location.search).get("copy") === "fail"
+      ? Promise.reject(new PlatformError("Another app is blocking the clipboard."))
+      : Promise.resolve();
+  },
+  openLink(link: string): Promise<void> {
+    record({ kind: "openLink", url: link });
+    return Promise.resolve();
+  },
+  openLinkConfirmed(link: string): Promise<boolean> {
+    record({ kind: "openLink", url: link });
+    return Promise.resolve(new URLSearchParams(window.location.search).get("cancel") !== "1");
+  },
+  openLanguageSettings(): Promise<void> {
+    record({ kind: "openLanguageSettings" });
     return Promise.resolve();
   },
   pinHistory(id: string): Promise<boolean> {

@@ -62,7 +62,7 @@ export interface NoticeAction {
 /** An error or warning shown as a card in the Quick Access corner (design: "Feedback and Errors"). */
 export interface QuickAccessNotice {
   tone: "error" | "warning" | "info" | "update";
-  /** A name the page maps to an icon: `triangle-alert`, `clipboard-x`, `keyboard`, `scan-line`, `trash`, `logo`, `refresh-cw`. */
+  /** A name the page maps to an icon: `triangle-alert`, `clipboard-x`, `keyboard`, `scan-line`, `scan-text`, `pin`, `trash`, `logo`, `refresh-cw`. */
   icon: string;
   title: string;
   body: string;
@@ -71,6 +71,8 @@ export interface QuickAccessNotice {
   /** Keys drawn as keycaps under the text (the first-start hint). */
   keys: string[];
   actions: NoticeAction[];
+  /** The card closes by itself after this many seconds (a result such as "Text copied"); 0 or missing: it stays. */
+  autoCloseSecs?: number;
 }
 
 /** One Quick Access card: the screenshot that was just taken. Mirrors `CardPayload` in src-tauri/src/quick_access. */
@@ -214,6 +216,33 @@ export interface HistoryList {
   entries: HistoryEntry[];
   /** Recording is switched off in the settings; the list shows what was kept earlier. */
   off: boolean;
+}
+
+/** A block of text found in a picture, in pixels of that picture (origin top-left). */
+export interface TextBlock {
+  text: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** A QR code found in a picture. */
+export interface TextCode {
+  value: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** What reading a picture found (src-tauri/src/ocr.rs). */
+export interface TextRecognition {
+  /** Every block, one after the other, in reading order. */
+  text: string;
+  words: number;
+  blocks: TextBlock[];
+  codes: TextCode[];
 }
 
 /** What a pin window knows about itself (src-tauri/src/pin.rs). */
@@ -489,6 +518,20 @@ export interface Platform {
   pinEdit(): Promise<void>;
   /** The right-click menu (a native one: it reaches outside the small window). */
   pinMenu(): Promise<void>;
+  /** Reads the text and QR codes of a PNG (the editor sends the picture as it is exported). */
+  recognizeText(png: Uint8Array): Promise<TextRecognition>;
+  /** Reads the picture of a Quick Access card. */
+  recognizeCardText(id: string): Promise<TextRecognition>;
+  /** Reads the picture of a History entry. */
+  recognizeHistoryText(id: string): Promise<TextRecognition>;
+  /** Puts text on the clipboard. */
+  copyText(text: string): Promise<void>;
+  /** Opens a web address (http / https only) in the browser; the page asks the user first. */
+  openLink(link: string): Promise<void>;
+  /** Like `openLink`, for windows without room for a question: a native dialog shows the address first. `false`: the user said no. */
+  openLinkConfirmed(link: string): Promise<boolean>;
+  /** Windows: opens the settings page where an OCR language pack is added. */
+  openLanguageSettings(): Promise<void>;
   /** Writes the recovery copy of a document (`id` = its document id). */
   recoveryWrite(id: string, bytes: Uint8Array, name: string): Promise<void>;
   recoveryList(): Promise<Recoverable[]>;
@@ -516,8 +559,11 @@ export interface Platform {
 }
 
 export class PlatformError extends Error {
-  constructor(message: string) {
+  /** Set when the page can do something specific about it. */
+  readonly code: "no-language-pack" | undefined;
+  constructor(message: string, code?: "no-language-pack") {
     super(message);
     this.name = "PlatformError";
+    this.code = code;
   }
 }

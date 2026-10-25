@@ -1,5 +1,14 @@
 import { useEffect } from "react";
-import { Check, Copy, Download, Image as ImageIcon, Pin, Redo2, Undo2 } from "lucide-react";
+import {
+  Check,
+  Copy,
+  Download,
+  Image as ImageIcon,
+  Pin,
+  Redo2,
+  ScanText,
+  Undo2,
+} from "lucide-react";
 import { Button } from "@/ui/components/button";
 import { Segmented } from "@/ui/components/segmented";
 import { Tooltip } from "@/ui/components/tooltip";
@@ -11,6 +20,7 @@ interface Props {
   onExport: () => void;
   onCopy: () => void;
   onPin: () => void;
+  onReadText: () => void;
   readOnly: boolean;
 }
 
@@ -21,7 +31,7 @@ const MOD = isMac ? "⌘" : "Ctrl+";
  * The top bar (design): file name with the dot for unsaved changes, undo and redo, the Annotate and
  * Presentation tabs, copy and Export. Share is not here yet (later).
  */
-export function TopBar({ fileName, onExport, onCopy, onPin, readOnly }: Props) {
+export function TopBar({ fileName, onExport, onCopy, onPin, onReadText, readOnly }: Props) {
   const { editor } = useStores();
   const dirty = useEditor((s) => s.dirty);
   const canUndo = useEditor((s) => s.canUndo);
@@ -119,6 +129,17 @@ export function TopBar({ fileName, onExport, onCopy, onPin, readOnly }: Props) {
           onClick={onCopy}
         >
           <Copy aria-hidden />
+        </Button>
+      </Tooltip>
+      <Tooltip label="Copy text" shortcut={isMac ? "⇧⌘T" : "Ctrl+Shift+T"} side="bottom">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-9"
+          aria-label="Copy text"
+          onClick={onReadText}
+        >
+          <ScanText aria-hidden />
         </Button>
       </Tooltip>
       <Tooltip label="Pin to screen" side="bottom">

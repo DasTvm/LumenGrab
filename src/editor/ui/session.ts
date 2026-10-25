@@ -6,7 +6,7 @@ import type { ShaderLayer } from "@/shader/types";
 import { assetNameOf, pruneAssets } from "@/presentation/assets";
 import type { DocumentFile } from "@/document/types";
 import { serializeDocument } from "@/document/write";
-import { platform, type DocumentInfo, type SaveTarget } from "@/platform";
+import { platform, PlatformError, type DocumentInfo, type SaveTarget } from "@/platform";
 import {
   contentSize,
   countRedactions,
@@ -28,6 +28,7 @@ import {
 import type { EditorStoreApi } from "../model/store";
 import { explain, type Failure } from "./dialogs/FailureDialog";
 import type { ExportChoice } from "./dialogs/ExportDialog";
+import { copiedMessage, projectForReading, textToCopy, wordCount } from "./text-read";
 import type { UiStoreApi } from "./ui-store";
 
 export type Dialog =
@@ -35,6 +36,8 @@ export type Dialog =
   /** The export of an animated background as a video, a GIF or a picture (the dialog of the Studio). */
   | { type: "export-animated" }
   | { type: "unsaved" }
+  /** A link read from a QR code: the user checks the whole address before it opens. */
+  | { type: "open-link"; link: string }
   | { type: "failure"; failure: Failure }
   | null;
 
@@ -353,6 +356,89 @@ export class DocumentSession {
     }
     this.d.onDialog(null);
     this.flash("copied");
+  }
+
+  // ---- text ------------------------------------------------------------------------------------
+
+  /**
+   * Reads the text and the QR codes of the picture as it would be exported (without the presentation
+   * around it) and shows them in the Text panel. `copy`: the whole text goes to the clipboard as well
+   * (the "Copy text" button of the top bar).
+   */
+  async readText(options: { copy: boolean }): Promise<void> {
+    const ui = this.d.ui.getState();
+    ui.setText({ status: "reading" });
+    try {
+      const project = this.project;
+      const png = await renderPng(this.d.source, projectForReading(project), this.d.doc.assets);
+      const result = await platform.recognizeText(png);
+      // The panel was closed while the picture was being read: nothing to show.
+      if (this.d.ui.getState().text === null) return;
+      const origin = { x: project.crop?.x ?? 0, y: project.crop?.y ?? 0 };
+      if (result.blocks.length === 0 && result.codes.length === 0) {
+        this.d.ui.getState().setText({ status: "empty" });
+        return;
+      }
+      this.d.ui.getState().setText({ status: "done", result, selected: [], origin });
+      if (options.copy && result.text) await this.copyReadText(result.text);
+    } catch (error) {
+      if (this.d.ui.getState().text === null) return;
+      this.d.ui.getState().setText({
+        status: "error",
+        message:
+          error instanceof Error && error.message ? error.message : "The text could not be read.",
+        noLanguagePack: error instanceof PlatformError && error.code === "no-language-pack",
+      });
+    }
+  }
+
+  /** Puts text on the clipboard and says how many words it was. */
+  async copyReadText(text: string): Promise<void> {
+    try {
+      await platform.copyText(text);
+      this.d.ui.getState().pushToast({ icon: "copied", text: copiedMessage(wordCount(text)) });
+    } catch {
+      this.d.ui.getState().pushToast({ icon: "default", text: "The text could not be copied." });
+    }
+  }
+
+  closeText(): void {
+    this.d.ui.getState().setText(null);
+  }
+
+  /** Copies the picked blocks, or every block when none is picked. */
+  async copyBlocks(): Promise<void> {
+    const text = this.d.ui.getState().text;
+    if (text?.status !== "done") return;
+    const copy = textToCopy(text.result, text.selected);
+    if (copy) await this.copyReadText(copy);
+  }
+
+  /** Copies the value of a QR code. */
+  async copyCode(value: string): Promise<void> {
+    try {
+      await platform.copyText(value);
+      this.d.ui.getState().pushToast({ icon: "copied", text: "Copied" });
+    } catch {
+      this.d.ui.getState().pushToast({ icon: "default", text: "That could not be copied." });
+    }
+  }
+
+  /** Asks before a link of a QR code opens: the dialog shows the whole address. */
+  askToOpenLink(link: string): void {
+    this.d.onDialog({ type: "open-link", link });
+  }
+
+  async openLink(link: string): Promise<void> {
+    this.d.onDialog(null);
+    try {
+      await platform.openLink(link);
+    } catch (error) {
+      this.d.ui.getState().pushToast({
+        icon: "default",
+        text: error instanceof Error ? error.message : "The link could not be opened.",
+      });
+    }
   }
 
   /** Floats the picture as it is exported on the screen (a pin). */

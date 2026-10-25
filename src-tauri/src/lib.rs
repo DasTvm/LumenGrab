@@ -8,6 +8,7 @@ mod fsutil;
 mod history;
 mod hotkeys;
 mod looks;
+mod ocr;
 mod permission;
 mod pin;
 mod platform;
@@ -146,6 +147,13 @@ pub fn run() {
             history::history_reload,
             history::history_open_folder,
             history::history_show,
+            ocr::text_recognize,
+            ocr::text_recognize_card,
+            ocr::text_recognize_history,
+            ocr::text_copy,
+            ocr::link_open,
+            ocr::link_open_confirmed,
+            ocr::text_open_language_settings,
             pin::pin_info,
             pin::pin_zoom,
             pin::pin_reset_size,

@@ -510,6 +510,7 @@ pub fn pin_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
         Some("CmdOrCtrl+L"),
         true,
     )?;
+    let read = item("pin-text", "Copy text", Some("CmdOrCtrl+Shift+C"), true)?;
     let history = item("pin-history", "Show in History", None, state.in_history)?;
     let close = item("pin-close", "Close pin", Some("CmdOrCtrl+W"), true)?;
     let close_all = item("pin-close-all", "Close all pins", None, true)?;
@@ -528,7 +529,8 @@ pub fn pin_menu(app: AppHandle, window: WebviewWindow) -> Result<(), String> {
     let menu = Menu::with_items(
         &app,
         &[
-            &copy, &edit, &s1, &opacity, &reset, &lock, &s2, &history, &s3, &close, &close_all,
+            &copy, &read, &edit, &s1, &opacity, &reset, &lock, &s2, &history, &s3, &close,
+            &close_all,
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -544,6 +546,12 @@ pub fn on_menu_event(app: &AppHandle, window: &WebviewWindow, id: &str) {
             tauri::async_runtime::spawn(async move {
                 let _ = pin_copy(app, window).await;
             });
+        }
+        "pin-text" => {
+            if let Some(png) = png(app, &label) {
+                let app = app.clone();
+                std::thread::spawn(move || crate::ocr::read_and_tell(&app, &png));
+            }
         }
         "pin-edit" => {
             let (app, window) = (app.clone(), window.clone());

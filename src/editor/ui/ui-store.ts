@@ -1,6 +1,7 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { DEFAULT_OPTIONS, type ToolId, type ToolOptions } from "./tools";
 import type { View } from "./view";
+import type { TextState } from "./text-read";
 
 /** The aspect choices of the crop panel. `custom` is a ratio taken from the lock button. */
 export type CropPreset = "free" | "original" | "1:1" | "4:3" | "16:9" | "custom";
@@ -21,7 +22,7 @@ export type EditorMode = "annotate" | "presentation";
 /** A message at the bottom left of the editor ("Saved as “Client demo”", "Look deleted" with Undo). */
 export interface Toast {
   id: number;
-  icon: "saved" | "default" | "deleted";
+  icon: "saved" | "default" | "deleted" | "copied";
   text: string;
   action?: { label: string; run: () => void };
 }
@@ -63,6 +64,8 @@ export interface UiState {
   collapsed: string[];
   /** The open crop frame, `null` unless the crop tool is active. */
   crop: CropDraft | null;
+  /** The Text panel: what reading the picture found. `null` while it is closed. */
+  text: TextState | null;
   /** The text layer being typed in; `isNew` while it is a fresh box that is removed again if it stays empty. */
   editing: { id: string; isNew: boolean } | null;
   /** The number the counter tool places next after "Restart at 1"; `null` = one above the highest in the document. */
@@ -103,6 +106,9 @@ export interface UiActions {
   setCounterNext(value: number | null): void;
   setEditing(editing: { id: string; isNew: boolean } | null): void;
   setCrop(crop: CropDraft | null): void;
+  setText(text: TextState | null): void;
+  /** Picks a block of the read text, or lets it go. */
+  toggleTextBlock(index: number): void;
   setAnimate(animate: boolean): void;
   setAnimatedLook(id: string | null): void;
   setStudio(open: boolean): void;
@@ -135,6 +141,7 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     counterNext: null,
     editing: null,
     crop: null,
+    text: null,
     animate: true,
     animatedLook: null,
     studio: false,
@@ -200,6 +207,17 @@ export function createUiStore(imageSize = { width: 1000, height: 1000 }): UiStor
     },
     setEditing: (editing) => {
       set({ editing });
+    },
+    setText: (text) => {
+      set({ text });
+    },
+    toggleTextBlock: (index) => {
+      const text = get().text;
+      if (text?.status !== "done") return;
+      const selected = text.selected.includes(index)
+        ? text.selected.filter((i) => i !== index)
+        : [...text.selected, index];
+      set({ text: { ...text, selected } });
     },
     setCrop: (crop) => {
       set({ crop });

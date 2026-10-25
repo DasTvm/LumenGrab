@@ -3,6 +3,7 @@ import { useEditor, useStores, useUi } from "./context";
 import { CropPanel } from "./CropPanel";
 import { LayersPanel } from "./LayersPanel";
 import { StylePanel } from "./StylePanel";
+import { TextPanel } from "./TextPanel";
 import { PresentationPanel } from "./presentation/PresentationPanel";
 import type { PanelTab } from "./ui-store";
 
@@ -13,6 +14,7 @@ export function RightPanel({ readOnly }: { readOnly: boolean }) {
   const layerCount = useEditor((s) => s.project.layers.length);
   const cropping = useUi((s) => s.crop !== null);
   const mode = useUi((s) => s.mode);
+  const reading = useUi((s) => s.text !== null);
   const tabs: { id: PanelTab; label: string }[] = [
     { id: "style", label: "Style" },
     { id: "layers", label: layerCount > 0 ? `Layers · ${String(layerCount)}` : "Layers" },
@@ -24,6 +26,8 @@ export function RightPanel({ readOnly }: { readOnly: boolean }) {
     >
       {mode === "presentation" ? (
         <PresentationPanel />
+      ) : reading ? (
+        <TextPanel />
       ) : cropping ? (
         <CropPanel />
       ) : (

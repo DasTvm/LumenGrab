@@ -39,6 +39,7 @@ drag = "2"
 tauri-plugin-single-instance = "2"
 webp = "0.3.1"
 fontdb = "0.24.0"
+rqrr = "0.11"
 
 # macOS: ScreenCaptureKit (macOS 14+) for capture; objc2 for window level and window z-order.
 [target.'cfg(target_os = "macos")'.dependencies]
@@ -47,9 +48,18 @@ objc2 = "0.6"
 objc2-app-kit = { version = "0.3", features = ["NSWindow", "NSResponder", "NSView"] }
 objc2-core-foundation = { version = "0.3", features = ["CFArray", "CFDictionary", "CFNumber", "CFString"] }
 objc2-core-graphics = { version = "0.3", features = ["CGWindow", "CGEvent"] }
+objc2-vision = "0.3"
+objc2-foundation = "0.3"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 xcap = { version = "0.9.8", default-features = false }
+windows = { version = "0.62", features = [
+    "Foundation_Collections",
+    "Graphics_Imaging",
+    "Media_Ocr",
+    "Storage_Streams",
+    "Win32_System_WinRT",
+] }
 
 [profile.release]
 codegen-units = 1
@@ -57,3 +67,6 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+[dev-dependencies]
+qrcode = { version = "0.14", default-features = false }

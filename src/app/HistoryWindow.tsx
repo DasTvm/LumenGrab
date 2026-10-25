@@ -21,6 +21,7 @@ import {
 import {
   DEFAULT_SETTINGS,
   platform,
+  PlatformError,
   type HistoryEntry,
   type HistoryFilters,
   type HistorySource,
@@ -54,6 +55,7 @@ import {
 
 const isMac = currentOs() === "macos";
 const MOD = isMac ? "⌘" : "Ctrl+";
+const SHIFT = isMac ? "⇧" : "Shift+";
 
 const SOURCE_ICONS: Record<HistorySource, typeof Monitor> = {
   area: SquareDashed,
@@ -232,6 +234,27 @@ export function HistoryWindow() {
     if (ids.length > 1) setAsking(ids);
     else trash(ids);
   };
+  const copyText = (id: string) => {
+    say("Reading text…");
+    platform.recognizeHistoryText(id).then(
+      async (found) => {
+        if (!found.text) {
+          say(found.codes.length > 0 ? "No text found, but a QR code" : "No text found");
+          return;
+        }
+        await platform.copyText(found.text);
+        say(`Text copied · ${String(found.words)} ${found.words === 1 ? "word" : "words"}`);
+      },
+      (e: unknown) => {
+        fail(
+          e instanceof PlatformError && e.code === "no-language-pack"
+            ? new Error("No language pack for text recognition. Windows needs one to read text.")
+            : e,
+          "The text could not be read.",
+        );
+      },
+    );
+  };
   const pin = (ids: string[]) => {
     const results = ids.map((id) => platform.pinHistory(id));
     Promise.all(results).then(
@@ -281,6 +304,14 @@ export function HistoryWindow() {
         disabled: gone,
       },
       {
+        label: "Copy text",
+        keys: `${SHIFT}${MOD}C`,
+        run: () => {
+          copyText(id);
+        },
+        disabled: gone,
+      },
+      {
         label: "Pin",
         keys: "P",
         run: () => {
@@ -324,7 +355,7 @@ export function HistoryWindow() {
 
   const onCardKey = (e: React.KeyboardEvent, entry: HistoryEntry) => {
     const mod = e.metaKey || e.ctrlKey;
-    if (mod && e.key.toLowerCase() === "c") {
+    if (mod && !e.shiftKey && e.key.toLowerCase() === "c") {
       e.preventDefault();
       if (!entry.missing) copy(entry.id);
     } else if (mod && e.key.toLowerCase() === "s") {
@@ -333,6 +364,9 @@ export function HistoryWindow() {
     } else if (mod && e.key.toLowerCase() === "r") {
       e.preventDefault();
       reveal(entry.id);
+    } else if (mod && e.shiftKey && e.key.toLowerCase() === "c") {
+      e.preventDefault();
+      if (!entry.missing) copyText(entry.id);
     } else if (!mod && e.key.toLowerCase() === "p") {
       e.preventDefault();
       if (!entry.missing) pin([entry.id]);

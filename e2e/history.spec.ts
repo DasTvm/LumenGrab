@@ -75,6 +75,19 @@ test.describe("history window (browser mock)", () => {
     ]);
   });
 
+  test("Copy text reads a capture by id, copies the text and says how many words", async ({
+    page,
+  }) => {
+    await page.goto("/?window=history");
+    const first = page.getByTestId("history-card").first();
+    await first.hover();
+    await first.getByRole("button", { name: "More" }).click();
+    await page.getByRole("menuitem", { name: /^Copy text/ }).click();
+    await expect(page.getByText(/Text copied · \d+ words/)).toBeVisible();
+    expect(await kinds(page)).toContain("recognize");
+    expect(await page.evaluate(() => window.__lumengrabMock?.copiedText)).toContain("Checkout");
+  });
+
   test("Move to Trash takes the card away at once, with an Undo that brings it back", async ({
     page,
   }) => {

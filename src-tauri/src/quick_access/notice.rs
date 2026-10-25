@@ -31,6 +31,10 @@ pub enum Handler {
         mode: CaptureMode,
         toolbar: bool,
     },
+    /// Opens a link from a QR code after a native question that shows the whole address.
+    OpenLinkAsking(String),
+    /// Windows: the settings page where an OCR language pack is added.
+    OpenLanguageSettings,
     /// Copies the saved file to the clipboard again.
     CopyAgain(PathBuf),
     /// Opens the "Save as…" dialog for a saved file.
@@ -88,6 +92,8 @@ pub struct Notice {
     pub keys: Vec<&'static str>,
     pub progress: Option<Progress>,
     pub actions: Vec<Action>,
+    /// Closes by itself after this many seconds (a result, not a problem); 0 = stays until dealt with.
+    pub auto_close_secs: u8,
 }
 
 /// What the page needs to draw a notice (camelCase for TypeScript).
@@ -102,6 +108,7 @@ pub struct NoticePayload {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub progress: Option<Progress>,
     pub actions: Vec<ActionPayload>,
+    pub auto_close_secs: u8,
 }
 
 #[derive(Clone, Serialize)]
@@ -129,6 +136,7 @@ impl Notice {
                     primary: a.primary,
                 })
                 .collect(),
+            auto_close_secs: self.auto_close_secs,
         }
     }
 }
@@ -176,6 +184,7 @@ pub fn save_failed(folder: &str, error: &str, frame: Arc<Frame>, source: Capture
                 Handler::ChooseFolder { frame, source },
             ),
         ],
+        auto_close_secs: 0,
     }
 }
 
@@ -193,6 +202,7 @@ pub fn clipboard_failed(error: &str, saved: PathBuf) -> Notice {
             button("Try again", "refresh", true, Handler::CopyAgain(saved.clone())),
             button("Save instead", "download", false, Handler::SaveAs(saved)),
         ],
+        auto_close_secs: 0,
     }
 }
 
@@ -209,6 +219,7 @@ pub fn look_failed(saved: PathBuf) -> Notice {
             button("Try again", "refresh", true, Handler::ApplyLook(saved)),
             dismiss(),
         ],
+        auto_close_secs: 0,
     }
 }
 
@@ -226,7 +237,99 @@ pub fn shortcut_in_use(keys: &str, what: &str) -> Notice {
             button("Open Settings", "settings", true, Handler::OpenSettings),
             dismiss(),
         ],
+        auto_close_secs: 0,
     }
+}
+
+// ---- text recognition (docs/adr/0012) -------------------------------------------------------------
+
+fn text_notice(icon: &'static str, title: String, body: &str, actions: Vec<Action>) -> Notice {
+    Notice {
+        tone: Tone::Info,
+        icon,
+        title,
+        body: body.into(),
+        keys: Vec::new(),
+        progress: None,
+        actions,
+        auto_close_secs: 0,
+    }
+}
+
+/// The text was copied: a result, so the card closes by itself.
+pub fn text_copied(words: usize) -> Notice {
+    let mut notice = text_notice(
+        "scan-text",
+        format!(
+            "{words} {} copied",
+            if words == 1 { "word" } else { "words" }
+        ),
+        "Paste it anywhere",
+        vec![],
+    );
+    notice.auto_close_secs = 5;
+    notice
+}
+
+pub fn no_text() -> Notice {
+    let mut notice = text_notice(
+        "scan-text",
+        "No text found".into(),
+        "Try a larger area or a sharper picture",
+        vec![dismiss()],
+    );
+    notice.auto_close_secs = 6;
+    notice
+}
+
+/// A QR code with a web address was found (and the text around it, if any, is on the clipboard).
+pub fn qr_found(link: String) -> Notice {
+    let shown = link
+        .trim_start_matches("https://")
+        .trim_start_matches("http://")
+        .to_string();
+    text_notice(
+        "scan-text",
+        "QR code found".into(),
+        &shown,
+        vec![
+            button("Copy", "copy", false, Handler::CopyText(link.clone())),
+            button("Open", "none", true, Handler::OpenLinkAsking(link)),
+        ],
+    )
+}
+
+pub fn text_failed(details: String) -> Notice {
+    let mut notice = text_notice(
+        "triangle-alert",
+        "Could not read the text".into(),
+        "Text recognition failed. Nothing was copied.",
+        vec![
+            button("Copy details", "copy", false, Handler::CopyText(details)),
+            dismiss(),
+        ],
+    );
+    notice.tone = Tone::Error;
+    notice
+}
+
+pub fn no_language_pack() -> Notice {
+    let mut notice = text_notice(
+        "triangle-alert",
+        "No language pack for text recognition".into(),
+        "Windows needs one to read text. It is a free download from Microsoft.",
+        vec![
+            button(
+                "Open language settings",
+                "settings",
+                true,
+                Handler::OpenLanguageSettings,
+            ),
+            dismiss(),
+        ],
+    );
+    notice.tone = Tone::Warning;
+    notice
 }
 
 pub fn pin_limit() -> Notice {
@@ -238,6 +341,7 @@ pub fn pin_limit() -> Notice {
         keys: Vec::new(),
         progress: None,
         actions: vec![button("Got it", "none", true, Handler::Dismiss)],
+        auto_close_secs: 0,
     }
 }
 
@@ -250,6 +354,7 @@ pub fn nothing_to_pin() -> Notice {
         keys: Vec::new(),
         progress: None,
         actions: vec![button("Got it", "none", true, Handler::Dismiss)],
+        auto_close_secs: 0,
     }
 }
 
@@ -272,6 +377,7 @@ pub fn capture_failed(details: String, mode: CaptureMode, toolbar: bool) -> Noti
             ),
             button("Copy details", "copy", false, Handler::CopyText(details)),
         ],
+        auto_close_secs: 0,
     }
 }
 
@@ -289,6 +395,7 @@ pub fn welcome() -> Notice {
             button("Open Settings", "none", false, Handler::OpenSettings),
             button("Got it", "none", true, Handler::Dismiss),
         ],
+        auto_close_secs: 0,
     }
 }
 
@@ -304,6 +411,7 @@ pub fn trash_failed(error: &str, file: PathBuf) -> Notice {
             button("Show file", "folder", true, Handler::Reveal(file)),
             dismiss(),
         ],
+        auto_close_secs: 0,
     }
 }
 
@@ -318,6 +426,7 @@ fn update(title: String, body: &str, progress: Option<Progress>, actions: Vec<Ac
         keys: Vec::new(),
         progress,
         actions,
+        auto_close_secs: 0,
     }
 }
 
@@ -397,6 +506,7 @@ pub fn update_failed(reason: crate::updater::FailReason) -> Notice {
             button("Try again", "none", true, Handler::UpdateCheck),
             second,
         ],
+        auto_close_secs: 0,
     }
 }
 

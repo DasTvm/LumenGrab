@@ -14,6 +14,7 @@ import { ToolRail } from "./ToolRail";
 import { LookNoticeBanner } from "./LookNoticeBanner";
 import { StudioHost } from "./studio/Studio";
 import { ToastStack } from "./ToastStack";
+import { OpenLinkDialog } from "./OpenLinkDialog";
 import { TopBar } from "./TopBar";
 import { createUiStore, type UiStoreApi } from "./ui-store";
 import { ExportDialog } from "./dialogs/ExportDialog";
@@ -188,6 +189,9 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
           copy: () => {
             void session.copy();
           },
+          copyText: () => {
+            void session.readText({ copy: true });
+          },
         },
       });
     };
@@ -216,6 +220,9 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
           }}
           onPin={() => {
             void session.pin();
+          }}
+          onReadText={() => {
+            void session.readText({ copy: true });
           }}
         />
         {warnings.length + missingFonts.length > 0 ? (
@@ -298,6 +305,21 @@ export function EditorWindow({ label, doc, source, info, app, warnings }: Props)
               setDialog(null);
               // An update restart that was waiting for this document is off.
               void platform.documentCloseCancelled();
+            }}
+          />
+        ) : null}
+        {dialog?.type === "open-link" ? (
+          <OpenLinkDialog
+            link={dialog.link}
+            onOpen={() => {
+              void session.openLink(dialog.link);
+            }}
+            onCopy={() => {
+              setDialog(null);
+              void session.copyCode(dialog.link);
+            }}
+            onCancel={() => {
+              setDialog(null);
             }}
           />
         ) : null}

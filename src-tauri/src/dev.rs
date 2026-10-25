@@ -28,6 +28,7 @@
 //!   LUMENGRAB_DEV_CONFIG_DIR=/path                 read and write settings.json there (try settings without
 //!                                                  touching the real file)
 //!   LUMENGRAB_DEV_HISTORY_DIR=/path                keep the history there instead of in the app data folder
+//!   LUMENGRAB_DEV_OCR=/path/picture.png           read the text and QR codes of that picture, print them and quit
 //!   LUMENGRAB_DEV_PIN=n                            after the synthetic captures, pin the newest history entry n times
 //!
 //! When `LUMENGRAB_DEV_CAPTURE` is set the app quits after the capture was delivered.
@@ -177,6 +178,29 @@ pub fn autostart(app: &AppHandle) {
             std::thread::sleep(Duration::from_millis(2500));
             crate::quick_access::show_intro(&app, true);
         });
+    }
+    if let Ok(path) = std::env::var("LUMENGRAB_DEV_OCR") {
+        let app = app.clone();
+        std::thread::spawn(move || {
+            let started = std::time::Instant::now();
+            match std::fs::read(&path)
+                .map_err(|e| e.to_string())
+                .and_then(|png| crate::ocr::recognize_png(&png))
+            {
+                Ok(found) => eprintln!(
+                    "[lumengrab:dev] ocr: {} blocks, {} words, {} codes in {} ms\n{}\ncodes: {:?}",
+                    found.blocks.len(),
+                    found.words,
+                    found.codes.len(),
+                    started.elapsed().as_millis(),
+                    found.text,
+                    found.codes
+                ),
+                Err(e) => eprintln!("[lumengrab:dev] ocr failed: {e}"),
+            }
+            app.exit(0);
+        });
+        return;
     }
     if let Ok(which) = std::env::var("LUMENGRAB_DEV_WINDOW") {
         let app = app.clone();

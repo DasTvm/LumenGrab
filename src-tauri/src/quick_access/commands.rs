@@ -223,6 +223,16 @@ pub async fn quick_access_notice_action(
             close(&app, &id);
             crate::capture::flow::start(&app, mode, toolbar);
         }
+        Handler::OpenLinkAsking(link) => {
+            // The question is native and shows the whole address; the card stays if the user says no.
+            if crate::ocr::link_open_confirmed(app.clone(), link).await? {
+                close(&app, &id);
+            }
+        }
+        Handler::OpenLanguageSettings => {
+            crate::ocr::text_open_language_settings();
+            close(&app, &id);
+        }
         Handler::CopyAgain(path) => {
             copy_file_to_clipboard(&app, &path)?;
             close(&app, &id);

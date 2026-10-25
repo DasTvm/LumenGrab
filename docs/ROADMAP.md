@@ -70,7 +70,7 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - Status: building.
   - [x] Capture history: a window with filters, search, grid and list, a copy of every capture, and settings for how long it is kept
   - [x] Pinned captures that float above other windows
-  - [ ] Local text and QR recognition: copy text from a capture, links from QR codes
+  - [x] Local text and QR recognition: copy text from a capture, links from QR codes
   - [ ] All-in-one capture mode and a Text capture mode
   - [ ] Complete native checks of history, pins, text recognition and the all-in-one mode on macOS and Windows
 - [ ] **M7 Screen recording**: MP4 and GIF with audio and click or key overlays.

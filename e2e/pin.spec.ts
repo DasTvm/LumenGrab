@@ -139,3 +139,70 @@ test.describe("quick access card (browser mock)", () => {
     });
   });
 });
+
+test.describe("copy text on the quick access card (browser mock)", () => {
+  test.use({ viewport: { width: 500, height: 320 } });
+
+  const copiedText = (page: Page) => page.evaluate(() => window.__lumengrabMock?.copiedText);
+
+  test("reads the picture, copies the text and says how many words", async ({ page }) => {
+    await page.goto("/?window=quick&card=compact&secs=0");
+    await page.getByRole("button", { name: "Copy text" }).click();
+    await expect(page.getByText(/Text copied · \d+ words/)).toBeVisible();
+    await expect(page.getByText("Paste it anywhere")).toBeVisible();
+    expect(await copiedText(page)).toContain("anna.schmidt@example.com");
+    await page.screenshot({
+      path: "test-results/qa-text-copied-light.png",
+      animations: "disabled",
+    });
+  });
+
+  test("a picture without text says so and copies nothing", async ({ page }) => {
+    await page.goto("/?window=quick&card=compact&secs=0&ocr=empty");
+    await page.getByRole("button", { name: "Copy text" }).click();
+    await expect(page.getByText("No text found")).toBeVisible();
+    expect(await copiedText(page)).toBeUndefined();
+  });
+
+  test("an error offers Retry; a missing language pack offers the Windows settings", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=compact&secs=0&ocr=fail");
+    await page.getByRole("button", { name: "Copy text" }).click();
+    await expect(page.getByText("Could not read the text")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Retry" })).toBeVisible();
+
+    await page.goto("/?window=quick&card=compact&secs=0&ocr=nolang");
+    await page.getByRole("button", { name: "Copy text" }).click();
+    await expect(page.getByText("No language pack for text recognition")).toBeVisible();
+    await page.getByRole("button", { name: "Open language settings" }).click();
+    expect((await submissions(page)).map((s) => s.kind)).toContain("openLanguageSettings");
+  });
+
+  test("a QR code with a link is offered first: Copy it, or Open it (the app asks)", async ({
+    page,
+  }) => {
+    await page.goto("/?window=quick&card=compact&secs=0&ocr=qr");
+    await page.getByRole("button", { name: "Copy text" }).click();
+    await expect(page.getByText("Link found")).toBeVisible();
+    await expect(page.getByText("lumengrab.app/docs/getting-started")).toBeVisible();
+    await page.screenshot({ path: "test-results/qa-link-light.png", animations: "disabled" });
+    await page.getByRole("button", { name: "Open" }).click();
+    await page.getByRole("button", { name: "Copy", exact: true }).click();
+    const log = await submissions(page);
+    expect(log.find((s) => s.kind === "openLink")?.url).toBe(
+      "https://lumengrab.app/docs/getting-started?ref=qr#install",
+    );
+    expect(await copiedText(page)).toBe(
+      "https://lumengrab.app/docs/getting-started?ref=qr#install",
+    );
+  });
+
+  test("the large card has the text button as a chip over the picture", async ({ page }) => {
+    await page.setViewportSize({ width: 500, height: 440 });
+    await page.goto("/?window=quick&card=large&secs=0");
+    await page.getByRole("button", { name: "Copy text" }).click();
+    await expect(page.getByText(/Text copied/)).toBeVisible();
+    await page.screenshot({ path: "test-results/qa-large-text-light.png", animations: "disabled" });
+  });
+});

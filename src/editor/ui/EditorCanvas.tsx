@@ -6,6 +6,7 @@ import type { BaseImage } from "./base-image";
 import { useEditor, useStores, useUi } from "./context";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { TextEditor } from "./TextEditor";
+import { TextOverlay } from "./TextOverlay";
 import { ZoomBar } from "./ZoomBar";
 import { finishEditing, startEditText } from "./text-edit";
 import { measureTextLayer } from "../draw/text-measure";
@@ -438,6 +439,7 @@ export function EditorCanvas({ base }: Props) {
         />
       ) : null}
       {view && cropping ? <CropOverlay view={view} size={size} /> : null}
+      {view && mode === "annotate" ? <TextOverlay view={view} size={size} /> : null}
       {view && mode === "annotate" ? <TextEditor view={view} /> : null}
       {view && layout ? <SafeAreaOverlay view={view} layout={layout} /> : null}
       <ZoomBar area={size} />

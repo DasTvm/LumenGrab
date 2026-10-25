@@ -11,6 +11,7 @@ import {
   type HistoryList,
   type HistoryUsage,
   type PinState,
+  type TextRecognition,
   type OverlayMode,
   type OverlaySession,
   type PixelRect,
@@ -24,6 +25,14 @@ import {
   type UnsavedDocument,
   type UpdateInfo,
 } from "./types";
+
+/** The error of a failed read: "no language pack" (Windows) is told apart, the rest is a message. */
+function recognitionError(err: unknown): PlatformError {
+  if (err === "NO_LANGUAGE_PACK") {
+    return new PlatformError("No language pack for text recognition.", "no-language-pack");
+  }
+  return new PlatformError(typeof err === "string" ? err : "The text could not be read.");
+}
 
 /** What the Rust command `capture_overlay_session` returns (see src-tauri/src/capture/commands.rs). */
 type RawQuickAccessCard = Omit<QuickAccessCard, "thumbUrl"> & { thumbKey: string };
@@ -568,6 +577,40 @@ export const nativePlatform: Platform = {
 
   listSystemFonts(): Promise<string[]> {
     return call<string[]>("list_system_fonts");
+  },
+
+  async recognizeText(png: Uint8Array): Promise<TextRecognition> {
+    try {
+      return await invoke<TextRecognition>("text_recognize", png);
+    } catch (err) {
+      throw recognitionError(err);
+    }
+  },
+  async recognizeCardText(id: string): Promise<TextRecognition> {
+    try {
+      return await invoke<TextRecognition>("text_recognize_card", { id });
+    } catch (err) {
+      throw recognitionError(err);
+    }
+  },
+  async recognizeHistoryText(id: string): Promise<TextRecognition> {
+    try {
+      return await invoke<TextRecognition>("text_recognize_history", { id });
+    } catch (err) {
+      throw recognitionError(err);
+    }
+  },
+  async copyText(text: string): Promise<void> {
+    await call("text_copy", { text });
+  },
+  async openLink(link: string): Promise<void> {
+    await call("link_open", { link });
+  },
+  openLinkConfirmed(link: string): Promise<boolean> {
+    return call<boolean>("link_open_confirmed", { link });
+  },
+  async openLanguageSettings(): Promise<void> {
+    await call("text_open_language_settings");
   },
 
   async copyPngToClipboard(png: Uint8Array): Promise<void> {

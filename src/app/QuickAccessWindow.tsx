@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { platform, type QuickAccessCard } from "@/platform";
+import { platform, PlatformError, type QuickAccessCard } from "@/platform";
+import { isWebLink } from "@/editor/ui/text-read";
 import { NoticeCardView } from "./quick-access/NoticeCard";
 import { saveScreenshotAs } from "./quick-access/save-as";
 import {
@@ -107,6 +108,16 @@ function NoticeController({
       window.removeEventListener("keydown", onKey);
     };
   }, [close]);
+
+  // A result ("Text copied") goes away by itself.
+  const closeAfter = card.notice.autoCloseSecs ?? 0;
+  useEffect(() => {
+    if (closeAfter <= 0) return;
+    const timer = window.setTimeout(close, closeAfter * 1000);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [closeAfter, close]);
 
   // The first report shows the window.
   useEffect(() => {
@@ -250,6 +261,38 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
         });
       },
     );
+  }, [id]);
+
+  const readText = useCallback(() => {
+    setStatus({ kind: "reading" });
+    setBusy(true);
+    platform
+      .recognizeCardText(id)
+      .then(async (found) => {
+        // A QR code with a web address is worth more than the text around it: it is offered first.
+        const link = found.codes.map((c) => c.value).find(isWebLink);
+        if (found.text) {
+          await platform.copyText(found.text);
+          setStatus(link ? { kind: "link", link } : { kind: "text-copied", words: found.words });
+        } else {
+          setStatus(link ? { kind: "link", link } : { kind: "no-text" });
+        }
+      })
+      .catch((e: unknown) => {
+        setStatus(
+          e instanceof PlatformError && e.code === "no-language-pack"
+            ? { kind: "no-language" }
+            : {
+                kind: "error",
+                title: "Could not read the text",
+                detail: message(e, "Text recognition failed. Nothing was copied."),
+                retry: "text",
+              },
+        );
+      })
+      .finally(() => {
+        setBusy(false);
+      });
   }, [id]);
 
   const remove = useCallback(() => {
@@ -413,6 +456,16 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
         onEdit={edit}
         pinned={pinned}
         onPin={pin}
+        onCopyText={readText}
+        onCopyLink={() => {
+          if (status?.kind === "link") void platform.copyText(status.link);
+        }}
+        onOpenLink={() => {
+          if (status?.kind === "link") void platform.openLinkConfirmed(status.link);
+        }}
+        onLanguageSettings={() => {
+          void platform.openLanguageSettings();
+        }}
         onClose={close}
         onReveal={() => {
           // After "Save as…" show the file that was just written, not the original screenshot.
@@ -423,6 +476,7 @@ function QuickAccessController({ card, slot }: { card: QuickAccessCard; slot: st
           if (status?.kind === "error" && status.retry === "save") saveAs();
           else if (status?.kind === "error" && status.retry === "edit") edit();
           else if (status?.kind === "error" && status.retry === "pin") pin();
+          else if (status?.kind === "error" && status.retry === "text") readText();
           else copy();
         }}
         onTip={showTip}

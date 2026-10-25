@@ -320,7 +320,7 @@
         {
           "id": "task-3",
           "title": "Local text and QR recognition: copy text from a capture, links from QR codes",
-          "done": false
+          "done": true
         },
         {
           "id": "task-4",

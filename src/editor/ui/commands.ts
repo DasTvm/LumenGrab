@@ -13,7 +13,7 @@ export interface CommandEnv {
   editor: EditorStoreApi;
   ui: UiStoreApi;
   /** Commands that leave the editor (save, export, copy); the window supplies them. */
-  outside?: Partial<Record<"save" | "saveAs" | "export" | "copy", () => void>>;
+  outside?: Partial<Record<"save" | "saveAs" | "export" | "copy" | "copyText", () => void>>;
   /** The document session, which the mode switch needs to apply a look with a picture. */
   session?: DocumentSession;
 }
@@ -47,6 +47,7 @@ const PRESENTATION_COMMANDS: ReadonlySet<EditorCommand["type"]> = new Set([
   "saveAs",
   "export",
   "copy",
+  "copyText",
   "toggleMode",
 ]);
 
@@ -125,6 +126,7 @@ export function runCommand(command: EditorCommand, env: CommandEnv): void {
     case "saveAs":
     case "export":
     case "copy":
+    case "copyText":
       env.outside?.[command.type]?.();
       return;
   }

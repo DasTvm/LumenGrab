@@ -5,8 +5,10 @@ import {
   Copy,
   Download,
   Grip,
+  LoaderCircle,
   Pencil,
   Pin,
+  ScanText,
   Trash2,
   TriangleAlert,
   X,
@@ -18,12 +20,25 @@ import { formatBytes } from "@/ui/lib/format";
 import { cn } from "@/ui/lib/utils";
 
 /** Which button a tooltip belongs to. */
-export type TipTarget = "copy" | "save" | "edit" | "pin" | "close" | "delete";
+export type TipTarget = "copy" | "save" | "edit" | "pin" | "text" | "close" | "delete";
 
 /** The row under the actions: where "Save as…" put a copy, or what went wrong. */
 export type StatusRow =
   | { kind: "saved"; folder: string; fileName: string; token?: string }
-  | { kind: "error"; title: string; detail: string; retry: "copy" | "save" | "edit" | "pin" };
+  | {
+      kind: "error";
+      title: string;
+      detail: string;
+      retry: "copy" | "save" | "edit" | "pin" | "text";
+    }
+  /** Reading the text of the picture (on this device). */
+  | { kind: "reading" }
+  | { kind: "text-copied"; words: number }
+  | { kind: "no-text" }
+  /** A QR code with a web address was found: copy it or open it (after a question). */
+  | { kind: "link"; link: string }
+  /** Windows: the OCR language pack is missing. */
+  | { kind: "no-language" };
 
 export interface QuickAccessCardViewProps {
   card: Card;
@@ -51,6 +66,12 @@ export interface QuickAccessCardViewProps {
   /** The picture floats on the screen as a pin: the button shows its "done" state and unpins. */
   pinned?: boolean;
   onPin?: () => void;
+  /** Reads the picture and copies its text. */
+  onCopyText?: () => void;
+  /** The "Link found" row: copy the link, or open it (the native side asks first). */
+  onCopyLink?: () => void;
+  onOpenLink?: () => void;
+  onLanguageSettings?: () => void;
   onClose?: () => void;
   onReveal?: () => void;
   onRetry?: () => void;
@@ -71,6 +92,7 @@ const TIP_TEXT: Record<TipTarget, { label: string; key?: string }> = {
   save: { label: "Save as…" },
   edit: { label: "Edit" },
   pin: { label: "Pin to screen" },
+  text: { label: "Copy text" },
   close: { label: "Close", key: "Esc" },
   delete: { label: "Delete screenshot" },
 };
@@ -253,6 +275,10 @@ function CompactBody({
   onEdit,
   pinned,
   onPin,
+  onCopyText,
+  onCopyLink,
+  onOpenLink,
+  onLanguageSettings,
   onClose,
   onReveal,
   onRetry,
@@ -334,6 +360,18 @@ function CompactBody({
               <Pin />
             </Button>
           ) : null}
+          {onCopyText ? (
+            <Button
+              ref={anchor("text")}
+              variant="ghost"
+              size="icon"
+              aria-label="Copy text"
+              onClick={onCopyText}
+              {...tipEvents("text")}
+            >
+              <ScanText />
+            </Button>
+          ) : null}
         </div>
         <span aria-hidden className="h-10 w-px shrink-0 bg-border" />
         <Button
@@ -347,7 +385,16 @@ function CompactBody({
           <X />
         </Button>
       </div>
-      {status ? <StatusRowView status={status} onReveal={onReveal} onRetry={onRetry} /> : null}
+      {status ? (
+        <StatusRowView
+          status={status}
+          onReveal={onReveal}
+          onRetry={onRetry}
+          onCopyLink={onCopyLink}
+          onOpenLink={onOpenLink}
+          onLanguageSettings={onLanguageSettings}
+        />
+      ) : null}
     </>
   );
 }
@@ -363,6 +410,10 @@ function LargeBody({
   onEdit,
   pinned,
   onPin,
+  onCopyText,
+  onCopyLink,
+  onOpenLink,
+  onLanguageSettings,
   onClose,
   onReveal,
   onRetry,
@@ -391,6 +442,16 @@ function LargeBody({
         <span className="absolute top-2.5 left-2.5 rounded-full bg-overlay-surface/85 px-[9px] py-1 text-[11px] font-semibold text-white tabular-nums">
           {`${String(card.pixelWidth)} × ${String(card.pixelHeight)}`}
         </span>
+        {onCopyText ? (
+          <button
+            type="button"
+            aria-label="Copy text"
+            onClick={onCopyText}
+            className="absolute top-2.5 right-[76px] flex size-7 items-center justify-center rounded-full bg-overlay-surface/85 text-white outline-none hover:bg-overlay-surface focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            <ScanText aria-hidden className="size-3.5" />
+          </button>
+        ) : null}
         {onPin ? (
           <button
             type="button"
@@ -456,7 +517,15 @@ function LargeBody({
       </div>
 
       {status ? (
-        <StatusRowView inset status={status} onReveal={onReveal} onRetry={onRetry} />
+        <StatusRowView
+          inset
+          status={status}
+          onReveal={onReveal}
+          onRetry={onRetry}
+          onCopyLink={onCopyLink}
+          onOpenLink={onOpenLink}
+          onLanguageSettings={onLanguageSettings}
+        />
       ) : null}
     </div>
   );
@@ -511,43 +580,95 @@ function StatusRowView({
   inset = false,
   onReveal,
   onRetry,
+  onCopyLink,
+  onOpenLink,
+  onLanguageSettings,
 }: {
   status: StatusRow;
   /** Large card: the row sits inside the card padding with rounded corners; compact: full width. */
   inset?: boolean;
   onReveal?: () => void;
   onRetry?: () => void;
+  onCopyLink?: () => void;
+  onOpenLink?: () => void;
+  onLanguageSettings?: () => void;
 }) {
-  const failed = status.kind === "error";
+  const failed = status.kind === "error" || status.kind === "no-language";
+  const small = "h-auto rounded-md px-3 py-[5px] text-xs font-semibold";
+  const line = (title: string, detail: string) => ({ title, detail });
+  const text =
+    status.kind === "saved"
+      ? line(`Saved to ${status.folder}`, status.fileName)
+      : status.kind === "error"
+        ? line(status.title, status.detail)
+        : status.kind === "reading"
+          ? line("Reading text…", "On this device, nothing is sent anywhere")
+          : status.kind === "text-copied"
+            ? line(
+                `Text copied · ${String(status.words)} ${status.words === 1 ? "word" : "words"}`,
+                "Paste it anywhere",
+              )
+            : status.kind === "no-text"
+              ? line("No text found", "Try a larger area or a clearer picture")
+              : status.kind === "link"
+                ? line("Link found", status.link.replace(/^https?:\/\//, ""))
+                : line(
+                    "No language pack for text recognition",
+                    "Windows needs one to read text. It is a free download from Microsoft.",
+                  );
   return (
     <div
       role="status"
       className={cn(
         "flex items-center gap-2.5 px-3.5 py-2.5",
         inset ? "rounded-md border border-border" : "border-t border-border",
-        failed ? "bg-destructive/5" : "bg-success/5",
+        failed
+          ? "bg-destructive/5"
+          : status.kind === "saved" || status.kind === "text-copied"
+            ? "bg-success/5"
+            : "bg-muted/40",
       )}
     >
-      {failed ? (
+      {status.kind === "reading" ? (
+        <LoaderCircle
+          aria-hidden
+          className="size-[17px] shrink-0 animate-spin text-muted-foreground"
+        />
+      ) : status.kind === "no-text" || status.kind === "link" ? (
+        <ScanText aria-hidden className="size-[17px] shrink-0 text-muted-foreground" />
+      ) : failed ? (
         <TriangleAlert aria-hidden className="size-[17px] shrink-0 text-destructive" />
       ) : (
         <CircleCheck aria-hidden className="size-[17px] shrink-0 text-success" />
       )}
       <div className="flex min-w-0 flex-1 flex-col gap-px">
-        <span className="truncate text-[13px] font-semibold">
-          {failed ? status.title : `Saved to ${status.folder}`}
-        </span>
-        <span className="truncate text-[11px] text-muted-foreground">
-          {failed ? status.detail : status.fileName}
+        <span className="truncate text-[13px] font-semibold">{text.title}</span>
+        <span className="truncate text-[11px] text-muted-foreground" title={text.detail}>
+          {text.detail}
         </span>
       </div>
-      <Button
-        variant="outline"
-        className="h-auto rounded-md px-3 py-[5px] text-xs font-semibold"
-        onClick={failed ? onRetry : onReveal}
-      >
-        {failed ? "Retry" : "Show"}
-      </Button>
+      {status.kind === "saved" ? (
+        <Button variant="outline" className={small} onClick={onReveal}>
+          Show
+        </Button>
+      ) : status.kind === "error" ? (
+        <Button variant="outline" className={small} onClick={onRetry}>
+          Retry
+        </Button>
+      ) : status.kind === "link" ? (
+        <>
+          <Button variant="outline" className={small} onClick={onCopyLink}>
+            Copy
+          </Button>
+          <Button variant="outline" className={small} onClick={onOpenLink}>
+            Open
+          </Button>
+        </>
+      ) : status.kind === "no-language" ? (
+        <Button variant="outline" className={small} onClick={onLanguageSettings}>
+          Open language settings
+        </Button>
+      ) : null}
     </div>
   );
 }

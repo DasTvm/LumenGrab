@@ -1,10 +1,10 @@
 import { useEffect } from "react";
-import { Bookmark, Star, Trash2 } from "lucide-react";
+import { Bookmark, Check, Star, Trash2 } from "lucide-react";
 import { ToastBar } from "@/ui/components/toast";
 import { useStores, useUi } from "./context";
 import type { Toast } from "./ui-store";
 
-const ICONS = { saved: Bookmark, default: Star, deleted: Trash2 } as const;
+const ICONS = { saved: Bookmark, default: Star, deleted: Trash2, copied: Check } as const;
 
 function ToastView({ toast }: { toast: Toast }) {
   const { ui } = useStores();
