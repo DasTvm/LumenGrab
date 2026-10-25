@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-25T23:08:44.998Z",
+  "generatedAt": "2026-10-25T23:09:05.834Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -849,6 +849,13 @@
       "category": "new",
       "title": "read text and QR codes from a picture (Vision on macOS, Windows.Media.Ocr, rqrr), Copy text in the editor, Quick Access, History and the pin menu",
       "url": "https://github.com/DasTvm/LumenGrab/commit/16f0fe7919a0539d7604ee292c13870e6b2513cf"
+    },
+    {
+      "id": "80109e63cefeedff4949cc4332ca90ca23eac2ab",
+      "date": "2026-10-25T23:08:55Z",
+      "category": "internal",
+      "title": "format the checklist",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/80109e63cefeedff4949cc4332ca90ca23eac2ab"
     }
   ],
   "releases": [
@@ -879,7 +886,8 @@
     "f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9",
     "909af2554eec4bbe63fa494610d6d07591fcbb17",
     "26e556001182ea07cb7937b964a1a4038e6e237d",
-    "16f0fe7919a0539d7604ee292c13870e6b2513cf"
+    "16f0fe7919a0539d7604ee292c13870e6b2513cf",
+    "80109e63cefeedff4949cc4332ca90ca23eac2ab"
   ],
   "roadmap": {
     "schemaVersion": 1,
