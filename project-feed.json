@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-25T22:52:11.308Z",
+  "generatedAt": "2026-10-25T23:08:44.998Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -842,6 +842,13 @@
       "category": "internal",
       "title": "the window-hover overlay test waits for the highlight before it clicks",
       "url": "https://github.com/DasTvm/LumenGrab/commit/26e556001182ea07cb7937b964a1a4038e6e237d"
+    },
+    {
+      "id": "16f0fe7919a0539d7604ee292c13870e6b2513cf",
+      "date": "2026-10-25T23:08:29Z",
+      "category": "new",
+      "title": "read text and QR codes from a picture (Vision on macOS, Windows.Media.Ocr, rqrr), Copy text in the editor, Quick Access, History and the pin menu",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/16f0fe7919a0539d7604ee292c13870e6b2513cf"
     }
   ],
   "releases": [
@@ -871,7 +878,8 @@
     "b4ae92faf5b45767abd36d6142358e544f8561df",
     "f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9",
     "909af2554eec4bbe63fa494610d6d07591fcbb17",
-    "26e556001182ea07cb7937b964a1a4038e6e237d"
+    "26e556001182ea07cb7937b964a1a4038e6e237d",
+    "16f0fe7919a0539d7604ee292c13870e6b2513cf"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -1195,7 +1203,7 @@
           {
             "id": "task-3",
             "title": "Local text and QR recognition: copy text from a capture, links from QR codes",
-            "done": false
+            "done": true
           },
           {
             "id": "task-4",
