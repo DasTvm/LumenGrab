@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-25T23:19:28.295Z",
+  "generatedAt": "2026-10-25T23:21:06.648Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -863,6 +863,13 @@
       "category": "new",
       "title": "the all-in-one overlay, repeat the last area, and the Text capture (Ctrl+Shift+T)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba"
+    },
+    {
+      "id": "25863ea4d3e07b613a89b1e2a39a3ce728d6e745",
+      "date": "2026-10-25T23:20:51Z",
+      "category": "internal",
+      "title": "zod 4.6.7 (the memory exhaustion advisory GHSA-mrhx-c7xc-m3w5 is fixed in 4.6.6)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/25863ea4d3e07b613a89b1e2a39a3ce728d6e745"
     }
   ],
   "releases": [
@@ -895,7 +902,8 @@
     "26e556001182ea07cb7937b964a1a4038e6e237d",
     "16f0fe7919a0539d7604ee292c13870e6b2513cf",
     "80109e63cefeedff4949cc4332ca90ca23eac2ab",
-    "6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba"
+    "6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba",
+    "25863ea4d3e07b613a89b1e2a39a3ce728d6e745"
   ],
   "roadmap": {
     "schemaVersion": 1,
