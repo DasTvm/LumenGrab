@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { cn } from "@/ui/lib/utils";
 
 /**
- * The dim backdrop and the card of every dialog in the editor (design: Export, Unsaved changes, Could not
+ * The dim backdrop and the card of every dialog (design: Export, Unsaved changes, Could not
  * save). Esc closes it (if `onClose` is given), Tab stays inside, and the focus goes back where it was.
  */
 export function Modal({

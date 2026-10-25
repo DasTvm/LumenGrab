@@ -4,6 +4,7 @@
   "description": "Capability for the app windows",
   "windows": [
     "settings",
+    "history",
     "permission",
     "permission-lost",
     "overlay-*",

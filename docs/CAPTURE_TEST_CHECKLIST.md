@@ -190,6 +190,20 @@ Everything here needs a real GPU and a real WebView: check it on a Mac with Appl
 - **Automatic look:** make an animated look the default (the star in the Animated tab or Settings > Presentation), then take a screenshot: the file, the clipboard and the card show the still frame, and it still takes about as long as a static look (the hidden window needs WebGL). Settings > Presentation shows "… · animated" with the loop length; "Edit look" opens the Studio, Apply changes the default look.
 - **No WebGL:** with the graphics acceleration of the WebView switched off (or in a virtual machine without a GPU) the Animated tab says so, the background is the plain fallback colour everywhere, nothing crashes, and the layers stay in the file.
 
+## 6i. History, pins, text and all-in-one (M6)
+
+Everything here is checked natively on macOS and on Windows. Tick the part that exists in the build you test.
+
+- **History records:** take a few captures (area, window, fullscreen). Ctrl+Shift+H (tray: History…) opens the window; the captures are listed newest first with the right source, size and time, thumbnails sharp. A capture taken while the window is open appears when the window gets focus again.
+- **History copies are separate files:** delete a screenshot in `Pictures/LumenGrab` in Finder / Explorer: its card in the history still works (Edit, Copy). "Show in folder" shows the history's copy then. Delete a file in the history folder (Settings > History > Open history folder): the card says "File not found" and can be removed.
+- **Edit with the automatic look:** with the automatic look on, Edit from the history opens the capture without the look and puts it back as a presentation (like the Quick Access card).
+- **Actions:** hover (Copy image, Edit, More), right-click menu, ⏎ opens, Cmd/Ctrl+C copies, Cmd/Ctrl+S saves a copy, Cmd/Ctrl+R shows in folder, ⌫ moves to the Trash. "Move to Trash" says "Moved to Trash · Undo": Undo within a few seconds brings the card back and nothing is in the Trash; after that the file is in the system Trash (Recycle Bin on Windows). Several selected ask first.
+- **Retention:** set "Keep captures for" to 1 week, change the clock or wait (or edit `capturedAt` in `index.json` while the app is closed): the old captures and their files disappear at the next start or capture, the user's own files stay.
+- **Off:** switch history off, take a capture: nothing new in the list, the notice "History is off" with "Turn on" shows. "Clear history…" frees the space it names, and the user's own files stay.
+- **Damaged file:** with the app closed write junk into `index.json`: the window says "History can't be read"; "Try again", "Open history folder", "Start with a new history" all work.
+- **Layouts:** Settings > History > Filters: sidebar and chips both work, the choice applies when the History window gets focus.
+- **Dark mode** and **a long list** (hundreds of captures): scrolling stays smooth, the window opens quickly.
+
 ## 7. Display changes
 
 - Plug/unplug a monitor, change resolution or scale, rearrange monitors, sleep/wake, lock screen: the next capture uses the new layout, no stale or offset overlays, no crash.

@@ -19,10 +19,12 @@ enum Action {
     Bar,
     /// Straight into one mode, no bar.
     Quick(CaptureMode),
+    /// The History window.
+    History,
 }
 
 /// Fixed for now. `(key, display text, action)`; the display text is also what the settings page shows.
-const HOTKEYS: [(Code, &str, Action); 4] = [
+const HOTKEYS: [(Code, &str, Action); 5] = [
     (Code::Digit1, "Ctrl+Shift+1", Action::Bar),
     (
         Code::Digit3,
@@ -39,6 +41,7 @@ const HOTKEYS: [(Code, &str, Action); 4] = [
         "Ctrl+Shift+5",
         Action::Quick(CaptureMode::Window),
     ),
+    (Code::KeyH, "Ctrl+Shift+H", Action::History),
 ];
 
 fn escape() -> Shortcut {
@@ -104,6 +107,7 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
                 match action {
                     Action::Bar => flow::start_with_bar(app),
                     Action::Quick(mode) => flow::start(app, *mode, false),
+                    Action::History => crate::history::show(app),
                 }
             }
         })
@@ -114,7 +118,7 @@ pub fn plugin() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct HotkeyInfo {
-    /// `capture` (the main shortcut with the capture bar), `area`, `window` or `fullscreen`.
+    /// `capture` (the main shortcut with the capture bar), `area`, `window`, `fullscreen` or `history`.
     pub id: &'static str,
     /// Key names, e.g. `["Ctrl", "Shift", "4"]`. The frontend renders them per OS.
     pub keys: Vec<&'static str>,
@@ -131,6 +135,7 @@ fn action_title(action: Action) -> &'static str {
         Action::Quick(CaptureMode::Area) => "Capture Area",
         Action::Quick(CaptureMode::Window) => "Capture Window",
         Action::Quick(CaptureMode::Fullscreen) => "Capture Fullscreen",
+        Action::History => "Open History",
     }
 }
 
@@ -140,6 +145,7 @@ fn action_id(action: Action) -> &'static str {
         Action::Quick(CaptureMode::Area) => "area",
         Action::Quick(CaptureMode::Window) => "window",
         Action::Quick(CaptureMode::Fullscreen) => "fullscreen",
+        Action::History => "history",
     }
 }
 
@@ -150,6 +156,7 @@ pub fn list(failed: &[&'static str]) -> Vec<HotkeyInfo> {
         Action::Quick(CaptureMode::Area),
         Action::Quick(CaptureMode::Window),
         Action::Quick(CaptureMode::Fullscreen),
+        Action::History,
     ]
     .into_iter()
     .filter_map(|action| HOTKEYS.iter().find(|(_, _, a)| *a == action))
@@ -208,6 +215,7 @@ mod tests {
                 ("area", vec!["Ctrl", "Shift", "4"]),
                 ("window", vec!["Ctrl", "Shift", "5"]),
                 ("fullscreen", vec!["Ctrl", "Shift", "3"]),
+                ("history", vec!["Ctrl", "Shift", "H"]),
             ]
         );
         assert!(l.iter().all(|h| h.registered));

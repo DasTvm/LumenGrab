@@ -141,7 +141,7 @@ export interface AppInfo {
 }
 
 export interface HotkeyInfo {
-  id: "capture" | "area" | "window" | "fullscreen";
+  id: "capture" | "area" | "window" | "fullscreen" | "history";
   /** Key names such as `Ctrl`, `Shift`, `4`; render them with `formatKey`. */
   keys: string[];
   /** False when another app already owns the shortcut. */
@@ -175,8 +175,51 @@ export interface Settings {
     /** Look for a new version once a day, in the background. Off: LumenGrab never goes online by itself. */
     auto: boolean;
   };
+  history: {
+    /** Keep a copy of every new capture in the history. */
+    enabled: boolean;
+    keep: HistoryKeep;
+    /** A text capture also leaves its picture in the history. */
+    textPicture: boolean;
+    /** Where the History window shows its filters. */
+    filters: HistoryFilters;
+  };
   /** The Windows first-start hint was shown. */
   seenIntro: boolean;
+}
+
+/** How long the history keeps a capture. */
+export type HistoryKeep = "week" | "month" | "quarter" | "year" | "forever";
+export type HistoryFilters = "sidebar" | "chips";
+/** How a capture in the history was made. */
+export type HistorySource = "area" | "window" | "fullscreen" | "allinone";
+
+/** One capture of the history, as the window lists it. */
+export interface HistoryEntry {
+  id: string;
+  name: string;
+  /** Milliseconds since 1970. */
+  capturedAt: number;
+  width: number;
+  height: number;
+  bytes: number;
+  source: HistorySource;
+  /** The picture file was moved or deleted outside the app. */
+  missing: boolean;
+  /** The capture floats on screen as a pin right now. */
+  pinned: boolean;
+}
+
+export interface HistoryList {
+  entries: HistoryEntry[];
+  /** Recording is switched off in the settings; the list shows what was kept earlier. */
+  off: boolean;
+}
+
+export interface HistoryUsage {
+  count: number;
+  /** What the history takes on disk. */
+  bytes: number;
 }
 
 /** Why an update failed, as far as a person can act on it. */
@@ -373,6 +416,37 @@ export interface Platform {
   copyPngToClipboard(png: Uint8Array): Promise<void>;
   /** "Edit" on a Quick Access card: opens the screenshot in the editor. */
   quickAccessEdit(id: string): Promise<void>;
+  /** The captures the history keeps, newest first. Rejects with a readable message if the list cannot be read. */
+  historyList(): Promise<HistoryList>;
+  historyUsage(): Promise<HistoryUsage>;
+  /** The address of a capture's small preview (valid in `<img src>`). */
+  historyThumbUrl(id: string): string;
+  /** Copies the capture's picture to the clipboard. */
+  historyCopy(id: string): Promise<void>;
+  /** Opens the capture in the editor (the capture before the automatic look, if there is one). */
+  historyEdit(id: string): Promise<void>;
+  /** Shows the capture's file in Finder / Explorer. */
+  historyReveal(id: string): Promise<void>;
+  /** The bytes of the capture's picture. */
+  historyFileBytes(id: string): Promise<Uint8Array>;
+  /** "Save as…" of a capture: the folder it went to, or `null` if the user cancelled. */
+  historySaveCopy(id: string): Promise<string | null>;
+  /** Takes captures out of the history for good (the user's own saved files stay). */
+  historyRemove(ids: string[]): Promise<void>;
+  /** Moves captures to the Trash after a short while; they vanish from the list at once. */
+  historyTrash(ids: string[]): Promise<void>;
+  /** Takes back a `historyTrash` while it can still be undone. */
+  historyUndoTrash(ids: string[]): Promise<void>;
+  /** Removes every capture from the history. */
+  historyClear(): Promise<void>;
+  /** The history file is damaged: starts with an empty history. */
+  historyReset(): Promise<void>;
+  /** Reads the history file again (after "Try again"). Rejects if it still cannot be read. */
+  historyReload(): Promise<void>;
+  /** Opens the folder the history keeps its copies in. */
+  historyOpenFolder(): Promise<void>;
+  /** Opens (or focuses) the History window. */
+  historyShow(): Promise<void>;
   /** Writes the recovery copy of a document (`id` = its document id). */
   recoveryWrite(id: string, bytes: Uint8Array, name: string): Promise<void>;
   recoveryList(): Promise<Recoverable[]>;
@@ -384,6 +458,8 @@ export interface Platform {
   /** Opens the Releases page in the default browser (the only address the native side allows). */
   openUrl(url: string): Promise<void>;
   getSettingsInfo(): Promise<SettingsInfo>;
+  /** Opens (or focuses) the Settings window on a page: `general`, `presentation`, `history`, `hotkeys`, `updates`. */
+  openSettings(page: string): Promise<void>;
   openScreenshotsFolder(): Promise<void>;
   /** Whether the OS currently lets LumenGrab record the screen (always true on Windows). */
   getPermissionStatus(): Promise<boolean>;

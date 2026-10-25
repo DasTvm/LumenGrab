@@ -7,5 +7,6 @@ export const DEFAULT_SETTINGS: Settings = {
   quickAccess: { enabled: true, style: "compact", autoCloseSecs: 5, corner: "bottomRight" },
   presentation: { auto: false, openInPresentation: false },
   updates: { auto: true },
+  history: { enabled: true, keep: "month", textPicture: false, filters: "sidebar" },
   seenIntro: false,
 };

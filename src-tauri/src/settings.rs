@@ -97,6 +97,50 @@ impl Default for UpdateSettings {
     }
 }
 
+/// How long the history keeps a capture.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum HistoryKeep {
+    Week,
+    #[default]
+    Month,
+    Quarter,
+    Year,
+    Forever,
+}
+
+/// Where the History window shows its filters (All, Pinned, the source of a capture).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum HistoryFilters {
+    #[default]
+    Sidebar,
+    Chips,
+}
+
+/// History (M6, docs/adr/0010-history.md).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct HistorySettings {
+    /// Keep a copy of every new capture in the history.
+    pub enabled: bool,
+    pub keep: HistoryKeep,
+    /// A text capture also leaves its picture in the history (off: it copies the text and keeps nothing).
+    pub text_picture: bool,
+    pub filters: HistoryFilters,
+}
+
+impl Default for HistorySettings {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            keep: HistoryKeep::Month,
+            text_picture: false,
+            filters: HistoryFilters::Sidebar,
+        }
+    }
+}
+
 /// Everything the user can change. Every field has a default, so an older or partial file still loads.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -107,6 +151,7 @@ pub struct Settings {
     pub quick_access: QuickAccessSettings,
     pub presentation: PresentationSettings,
     pub updates: UpdateSettings,
+    pub history: HistorySettings,
     /// The Windows first-start hint was shown (or dismissed).
     pub seen_intro: bool,
 }
@@ -119,6 +164,7 @@ impl Default for Settings {
             quick_access: QuickAccessSettings::default(),
             presentation: PresentationSettings::default(),
             updates: UpdateSettings::default(),
+            history: HistorySettings::default(),
             seen_intro: false,
         }
     }
@@ -211,7 +257,19 @@ pub fn settings_save(
     store.save(settings)?;
     // The hidden page that draws the automatic look is kept ready only while that is switched on.
     crate::present::on_settings_changed(&app, &settings);
+    // A shorter retention takes effect at once.
+    crate::history::sweep(&app);
     Ok(())
+}
+
+/// Opens (or focuses) the Settings window on a page. Async: building a window must not happen on the
+/// main thread on Windows, so the work is handed to it explicitly.
+#[tauri::command]
+pub async fn settings_open(app: AppHandle, page: String) {
+    const PAGES: [&str; 5] = ["general", "presentation", "history", "hotkeys", "updates"];
+    let page = PAGES.into_iter().find(|p| *p == page).unwrap_or("general");
+    let handle = app.clone();
+    let _ = app.run_on_main_thread(move || crate::tray::show_settings_page(&handle, page));
 }
 
 #[cfg(test)]
@@ -240,6 +298,8 @@ mod tests {
             }
         );
         assert!(!s.seen_intro);
+        assert_eq!(s.history, HistorySettings::default());
+        assert!(s.history.enabled && !s.history.text_picture);
         assert_eq!(s.presentation, PresentationSettings::default());
         assert!(
             !s.presentation.auto,

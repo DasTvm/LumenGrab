@@ -1,5 +1,5 @@
 import { Button } from "@/ui/components/button";
-import { Modal } from "./Modal";
+import { Modal } from "@/ui/components/modal";
 
 /** "Save changes to “name”?" (design: Unsaved changes). */
 export function UnsavedDialog({

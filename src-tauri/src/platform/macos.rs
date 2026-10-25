@@ -22,7 +22,7 @@ pub fn setup_app(app: &mut tauri::App) {
 /// Windows the user works in: they make the app a normal one (Dock icon, Cmd+Tab) while any is open.
 /// Overlays, Quick Access cards and the permission dialogs do not: they come and go without the Dock jumping.
 fn is_workspace_window(label: &str) -> bool {
-    label == "settings" || label == "recover" || label.starts_with("doc-")
+    label == "settings" || label == "history" || label == "recover" || label.starts_with("doc-")
 }
 
 /// A menu bar app has no Dock icon and cannot be reached with Cmd+Tab, which is wrong while an editor or

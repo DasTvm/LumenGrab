@@ -1,6 +1,6 @@
 import { TriangleAlert } from "lucide-react";
 import { Button } from "@/ui/components/button";
-import { Modal } from "./Modal";
+import { Modal } from "@/ui/components/modal";
 
 export interface Failure {
   /** "Could not save" or "Could not export". */

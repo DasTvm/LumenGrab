@@ -3,6 +3,10 @@ import type {
   AppInfo,
   DocumentInfo,
   CaptureMode,
+  HistoryEntry,
+  HistoryList,
+  HistorySource,
+  HistoryUsage,
   Recoverable,
   OverlayMode,
   OverlaySession,
@@ -92,7 +96,19 @@ export interface MockSubmission {
     | "openFolder"
     | "openPermissionSettings"
     | "closePermission"
-    | "restart";
+    | "restart"
+    | "historyCopy"
+    | "historyEdit"
+    | "historyReveal"
+    | "historySaveCopy"
+    | "historyRemove"
+    | "historyTrash"
+    | "historyUndoTrash"
+    | "historyClear"
+    | "historyReset"
+    | "historyOpenFolder"
+    | "historyShow"
+    | "openSettings";
   sessionId?: string;
   displayId?: number;
   rect?: PixelRect;
@@ -150,6 +166,73 @@ function record(entry: MockSubmission): void {
 
 async function fetchSample(): Promise<Uint8Array> {
   return new Uint8Array(await (await fetch(sampleCaptureUrl)).arrayBuffer());
+}
+
+/** The demo history of this page load: `?history=12` (default), `0`, `off`, `broken`, `missing`. Newest first. */
+let mockHistory: HistoryEntry[] | null = null;
+let mockHistoryBroken: boolean | null = null;
+const trashed: HistoryEntry[] = [];
+
+function historyEntries(): HistoryEntry[] {
+  if (mockHistory) return mockHistory;
+  const q = new URLSearchParams(window.location.search).get("history") ?? "12";
+  const count = Number.isNaN(Number(q)) ? (q === "empty" ? 0 : 12) : Number(q);
+  const names = [
+    "Screenshot_2026-10-25.png",
+    "Checkout_error.png",
+    "Invoice_Q3.png",
+    "Settings_dialog.png",
+    "Dashboard_full.png",
+    "Screenshot_2026-10-24.png",
+    "Login_flow.png",
+    "Error_toast.png",
+    "Roadmap_board.png",
+    "Screenshot_2026-10-20.png",
+    "Pricing_page.png",
+    "Mockup_v2.png",
+  ];
+  const sources: HistorySource[] = [
+    "area",
+    "window",
+    "area",
+    "window",
+    "fullscreen",
+    "area",
+    "allinone",
+  ];
+  const sizes: [number, number][] = [
+    [1920, 1080],
+    [2560, 1440],
+    [1440, 900],
+    [1280, 800],
+    [3024, 1964],
+    [1600, 1000],
+  ];
+  const day = 24 * 3_600_000;
+  const now = Date.now();
+  // Today: the first four, yesterday: the next four, then every day further back.
+  const when = (i: number) =>
+    i < 4 ? now - i * 2.5 * 3_600_000 : now - (Math.floor(i / 4) * day + (i % 4) * 3_600_000);
+  mockHistory = Array.from({ length: Math.max(0, count) }, (_, i) => {
+    const [width, height] = sizes[i % sizes.length] ?? [1920, 1080];
+    return {
+      id: `mock-${String(i + 1)}`,
+      name: names[i % names.length] ?? `Capture ${String(i + 1)}.png`,
+      capturedAt: when(i),
+      width,
+      height,
+      bytes: 400_000 + i * 90_000,
+      source: sources[i % sources.length] ?? "area",
+      missing: q === "missing",
+      pinned: i % 5 === 2,
+    };
+  });
+  return mockHistory;
+}
+
+function historyBroken(): boolean {
+  mockHistoryBroken ??= new URLSearchParams(window.location.search).get("history") === "broken";
+  return mockHistoryBroken;
 }
 
 const SETTINGS_KEY = "lumengrab.mock.settings";
@@ -446,6 +529,93 @@ export const mockPlatform: Platform = {
 
   quickAccessReveal(id: string): Promise<void> {
     record({ kind: "qaReveal", id });
+    return Promise.resolve();
+  },
+
+  async historyList(): Promise<HistoryList> {
+    await sleep(FAKE_LATENCY_MS / 3);
+    if (historyBroken())
+      throw new PlatformError("The history can't be read: the history file is damaged.");
+    return {
+      entries: historyEntries().map((e) => ({ ...e })),
+      off: new URLSearchParams(window.location.search).get("history") === "off",
+    };
+  },
+  historyUsage(): Promise<HistoryUsage> {
+    const entries = historyEntries();
+    return Promise.resolve({
+      count: entries.length,
+      bytes: entries.reduce((sum, e) => sum + e.bytes, 0),
+    });
+  },
+  historyThumbUrl(): string {
+    return sampleCaptureUrl;
+  },
+  historyCopy(id: string): Promise<void> {
+    record({ kind: "historyCopy", id });
+    return new URLSearchParams(window.location.search).get("copy") === "fail"
+      ? Promise.reject(new PlatformError("Another app is blocking the clipboard."))
+      : Promise.resolve();
+  },
+  historyEdit(id: string): Promise<void> {
+    record({ kind: "historyEdit", id });
+    return Promise.resolve();
+  },
+  historyReveal(id: string): Promise<void> {
+    record({ kind: "historyReveal", id });
+    return Promise.resolve();
+  },
+  historyFileBytes(): Promise<Uint8Array> {
+    return fetchSample();
+  },
+  historySaveCopy(id: string): Promise<string | null> {
+    record({ kind: "historySaveCopy", id });
+    return Promise.resolve(
+      new URLSearchParams(window.location.search).get("cancel") === "1"
+        ? null
+        : "Documents/Reports",
+    );
+  },
+  historyRemove(ids: string[]): Promise<void> {
+    record({ kind: "historyRemove", ids });
+    mockHistory = historyEntries().filter((e) => !ids.includes(e.id));
+    return Promise.resolve();
+  },
+  /** Like the real one, the entries only leave the list; `historyUndoTrash` brings them back. */
+  historyTrash(ids: string[]): Promise<void> {
+    record({ kind: "historyTrash", ids });
+    trashed.push(...historyEntries().filter((e) => ids.includes(e.id)));
+    mockHistory = historyEntries().filter((e) => !ids.includes(e.id));
+    return Promise.resolve();
+  },
+  historyUndoTrash(ids: string[]): Promise<void> {
+    record({ kind: "historyUndoTrash", ids });
+    const back = trashed.filter((e) => ids.includes(e.id));
+    mockHistory = [...historyEntries(), ...back].sort((a, b) => b.capturedAt - a.capturedAt);
+    return Promise.resolve();
+  },
+  historyClear(): Promise<void> {
+    record({ kind: "historyClear" });
+    mockHistory = [];
+    return Promise.resolve();
+  },
+  historyReset(): Promise<void> {
+    record({ kind: "historyReset" });
+    mockHistoryBroken = false;
+    mockHistory = [];
+    return Promise.resolve();
+  },
+  historyReload(): Promise<void> {
+    return historyBroken()
+      ? Promise.reject(new PlatformError("The history can't be read: the history file is damaged."))
+      : Promise.resolve();
+  },
+  historyOpenFolder(): Promise<void> {
+    record({ kind: "historyOpenFolder" });
+    return Promise.resolve();
+  },
+  historyShow(): Promise<void> {
+    record({ kind: "historyShow" });
     return Promise.resolve();
   },
 
@@ -865,8 +1035,14 @@ export const mockPlatform: Platform = {
         { id: "area", keys: ["Ctrl", "Shift", "4"], registered: true },
         { id: "window", keys: ["Ctrl", "Shift", "5"], registered: true },
         { id: "fullscreen", keys: ["Ctrl", "Shift", "3"], registered: true },
+        { id: "history", keys: ["Ctrl", "Shift", "H"], registered: true },
       ],
     });
+  },
+
+  openSettings(page: string): Promise<void> {
+    record({ kind: "openSettings", name: page });
+    return Promise.resolve();
   },
 
   openScreenshotsFolder(): Promise<void> {

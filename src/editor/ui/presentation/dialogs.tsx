@@ -6,7 +6,7 @@ import { Switch } from "@/ui/components/switch";
 import { cn } from "@/ui/lib/utils";
 import { LOOK_PARTS, lookFromPresentation, type LookPart } from "@/presentation/looks";
 import { LOOK_NAME_MAX } from "@/presentation/looks-store";
-import { Modal } from "../dialogs/Modal";
+import { Modal } from "@/ui/components/modal";
 import { LookThumb } from "./LookThumb";
 
 function Checkbox({

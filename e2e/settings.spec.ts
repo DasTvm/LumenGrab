@@ -84,6 +84,7 @@ test.describe("settings (browser mock)", () => {
       quickAccess: { enabled: true, style: "large", autoCloseSecs: 10, corner: "topLeft" },
       presentation: { auto: false, openInPresentation: false },
       updates: { auto: true },
+      history: { enabled: true, keep: "month", textPicture: false, filters: "sidebar" },
       seenIntro: false,
     });
     await page.screenshot({

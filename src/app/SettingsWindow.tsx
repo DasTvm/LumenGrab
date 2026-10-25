@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Folder, Frame, Keyboard, RefreshCw, SlidersHorizontal } from "lucide-react";
+import { Folder, Frame, History, Keyboard, RefreshCw, SlidersHorizontal } from "lucide-react";
 import { formatKey, spokenShortcut } from "@/platform/keys";
 import {
   DEFAULT_SETTINGS,
@@ -20,11 +20,12 @@ import { NavItem } from "@/ui/components/nav-item";
 import { Segmented } from "@/ui/components/segmented";
 import { Switch } from "@/ui/components/switch";
 import { Divider, Row, Section } from "./settings-parts";
+import { HistoryPage } from "./SettingsHistory";
 import { PresentationPage } from "./SettingsPresentation";
 import { UpdatesPage } from "./SettingsUpdates";
 import { readThemePreference, saveThemePreference, type ThemePreference } from "@/ui/theme";
 
-const PAGES = ["general", "presentation", "hotkeys", "updates"] as const;
+const PAGES = ["general", "presentation", "history", "hotkeys", "updates"] as const;
 type Page = (typeof PAGES)[number];
 
 const HOTKEY_TEXT: Record<HotkeyInfo["id"], { title: string; description: string }> = {
@@ -39,6 +40,7 @@ const HOTKEY_TEXT: Record<HotkeyInfo["id"], { title: string; description: string
     title: "Capture Fullscreen",
     description: "Quick pick: the whole display under the cursor",
   },
+  history: { title: "Open History", description: "Show your past captures" },
 };
 
 const DEFAULT_MODE_OPTIONS = [
@@ -142,6 +144,15 @@ export function SettingsWindow() {
           Presentation
         </NavItem>
         <NavItem
+          icon={<History />}
+          active={page === "history"}
+          onClick={() => {
+            setPage("history");
+          }}
+        >
+          History
+        </NavItem>
+        <NavItem
           icon={<Keyboard />}
           active={page === "hotkeys"}
           onClick={() => {
@@ -172,6 +183,8 @@ export function SettingsWindow() {
           <UpdatesPage settings={settings} onChange={change} saveError={saveError} />
         ) : page === "presentation" ? (
           <PresentationPage settings={settings} onChange={change} saveError={saveError} />
+        ) : page === "history" ? (
+          <HistoryPage settings={settings} onChange={change} saveError={saveError} />
         ) : (
           <HotkeysPage info={info} app={app} />
         )}

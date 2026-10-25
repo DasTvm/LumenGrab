@@ -34,6 +34,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         true,
         Some("Ctrl+Shift+3"),
     )?;
+    let history = MenuItem::with_id(app, "history", "History…", true, Some("Ctrl+Shift+H"))?;
     let folder = MenuItem::with_id(
         app,
         "open-folder",
@@ -60,6 +61,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
         &window,
         &fullscreen,
         &separator_two,
+        &history,
         &folder,
         &open_document,
         &recover,
@@ -80,6 +82,7 @@ pub fn init(app: &AppHandle) -> tauri::Result<()> {
             "capture-area" => flow::start(app, CaptureMode::Area, false),
             "capture-window" => flow::start(app, CaptureMode::Window, false),
             "capture-fullscreen" => flow::start(app, CaptureMode::Fullscreen, false),
+            "history" => crate::history::show(app),
             "open-folder" => output::open_screenshot_folder(app),
             "open-document" => {
                 // The file dialog blocks: not on the thread that runs the menu.

@@ -14,7 +14,7 @@ import {
   type ImageFormat,
   type Size,
 } from "../../export-model";
-import { Modal } from "./Modal";
+import { Modal } from "@/ui/components/modal";
 
 export interface ExportChoice {
   format: ExportFormat;

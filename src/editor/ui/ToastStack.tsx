@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Bookmark, Star, Trash2 } from "lucide-react";
+import { ToastBar } from "@/ui/components/toast";
 import { useStores, useUi } from "./context";
 import type { Toast } from "./ui-store";
 
@@ -19,26 +20,24 @@ function ToastView({ toast }: { toast: Toast }) {
       clearTimeout(timer);
     };
   }, [toast.id, toast.action, ui]);
+  const action = toast.action;
   return (
-    <div
-      role="status"
-      className="pointer-events-auto flex items-center gap-2.5 rounded-lg border border-white/10 bg-toast px-3.5 py-2.5 text-[13px] text-toast-foreground shadow-[0_6px_20px_rgb(0_0_0/0.25)]"
+    <ToastBar
+      icon={Icon}
+      action={
+        action
+          ? {
+              label: action.label,
+              run: () => {
+                ui.getState().dismissToast(toast.id);
+                action.run();
+              },
+            }
+          : undefined
+      }
     >
-      <Icon aria-hidden className="size-4 text-brand" />
-      <span>{toast.text}</span>
-      {toast.action ? (
-        <button
-          type="button"
-          className="font-semibold text-brand hover:underline"
-          onClick={() => {
-            ui.getState().dismissToast(toast.id);
-            toast.action?.run();
-          }}
-        >
-          {toast.action.label}
-        </button>
-      ) : null}
-    </div>
+      {toast.text}
+    </ToastBar>
   );
 }
 

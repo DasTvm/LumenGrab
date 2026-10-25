@@ -1,6 +1,7 @@
 import { DesignSystemWindow } from "./DesignSystemWindow";
 import { DialogWindow } from "./DialogWindow";
 import { DocumentWindow } from "./DocumentWindow";
+import { HistoryWindow } from "./HistoryWindow";
 import { HomeWindow } from "./HomeWindow";
 import { OverlayWindow } from "./OverlayWindow";
 import { PermissionWindow } from "./PermissionWindow";
@@ -39,6 +40,8 @@ export function App() {
       return <PermissionWindow />;
     case "settings":
       return <SettingsWindow />;
+    case "history":
+      return <HistoryWindow />;
     default:
       return <HomeWindow />;
   }

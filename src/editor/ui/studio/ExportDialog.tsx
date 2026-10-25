@@ -38,7 +38,7 @@ import {
 import { posterSeconds } from "@/shader/scene";
 import type { BaseImage } from "../base-image";
 import { useEditor, useStores } from "../context";
-import { Modal } from "../dialogs/Modal";
+import { Modal } from "@/ui/components/modal";
 import { renderPicture } from "../picture";
 import { StudioProvider, useStudio, useStudioStore } from "./context";
 import { createStudioStore } from "./studio-store";

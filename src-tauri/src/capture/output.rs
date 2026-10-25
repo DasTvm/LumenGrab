@@ -14,7 +14,7 @@ use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 
 use super::{encode, geometry, pixels, CaptureMode, Frame};
-use crate::{platform, present, quick_access, settings::SettingsStore};
+use crate::{history, platform, present, quick_access, settings::SettingsStore};
 
 const FOLDER: &str = "LumenGrab";
 /// Twice the 364 px preview of the large card, so it is sharp on a 2x display.
@@ -107,11 +107,29 @@ fn deliver_inner(
     match saved {
         Ok(path) => {
             // The capture as it was stays for Edit, which puts the look on as a presentation.
-            let original_path = original.and_then(|bytes| {
+            let original_path = original.as_deref().and_then(|bytes| {
                 path.file_name()
-                    .and_then(|name| present::save_original(app, &bytes, name).ok())
+                    .and_then(|name| present::save_original(app, bytes, name).ok())
             });
-            if !show_quick_access(app, &path, &frame, source, original_path) {
+            let thumb = make_thumb(&frame);
+            // The history keeps its own copy (off the way of the card: it only copies files).
+            if let Some(thumb) = &thumb {
+                history::record(
+                    app,
+                    &history::Recorded {
+                        saved: &path,
+                        width: frame.width,
+                        height: frame.height,
+                        thumb,
+                        source,
+                        original: original.as_deref(),
+                    },
+                );
+            }
+            if !thumb
+                .map(|thumb| show_quick_access(app, &path, &frame, source, original_path, thumb))
+                .unwrap_or(false)
+            {
                 announce_saved(app, &path);
             }
             if look_failed {
@@ -193,11 +211,8 @@ fn show_quick_access(
     frame: &Frame,
     source: CaptureMode,
     original: Option<PathBuf>,
+    thumb: Vec<u8>,
 ) -> bool {
-    let thumb = pixels::downscale(frame, THUMB_WIDTH);
-    let Ok(thumb) = encode::encode_png(&thumb, encode::Profile::Fast) else {
-        return false;
-    };
     quick_access::show(
         app,
         quick_access::NewCard {
@@ -210,6 +225,12 @@ fn show_quick_access(
             original,
         },
     )
+}
+
+/// The preview of a capture (a PNG), shared by the Quick Access card and the history.
+fn make_thumb(frame: &Frame) -> Option<Vec<u8>> {
+    let small = pixels::downscale(frame, THUMB_WIDTH);
+    encode::encode_png(&small, encode::Profile::Fast).ok()
 }
 
 /// Minimal feedback when Quick Access is switched off: the tray tooltip names the file, and on macOS

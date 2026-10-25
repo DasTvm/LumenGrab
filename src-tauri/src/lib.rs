@@ -5,6 +5,7 @@ mod capture;
 mod dev;
 mod document;
 mod fsutil;
+mod history;
 mod hotkeys;
 mod looks;
 mod permission;
@@ -75,6 +76,7 @@ pub fn run() {
             quick_access::commands::quick_access_file_bytes,
             commands::capture_set_mode,
             settings::settings_save,
+            settings::settings_open,
             commands::settings_info,
             commands::open_screenshots_folder,
             permission::permission_status,
@@ -127,6 +129,21 @@ pub fn run() {
             recovery::recovery_delete,
             recovery::recovery_open,
             recovery::recovery_close,
+            history::history_list,
+            history::history_usage,
+            history::history_copy,
+            history::history_edit,
+            history::history_reveal,
+            history::history_file_bytes,
+            history::history_save_copy,
+            history::history_remove,
+            history::history_trash,
+            history::history_undo_trash,
+            history::history_clear,
+            history::history_reset,
+            history::history_reload,
+            history::history_open_folder,
+            history::history_show,
         ])
         .on_window_event(|window, event| {
             // An overlay closed by the OS or the user must not leave the capture stuck "busy".
@@ -147,6 +164,7 @@ pub fn run() {
         .setup(|app| {
             platform::setup_app(app);
             settings::init(app.handle())?;
+            history::init(app.handle());
             // The updater's state before the tray, whose entry reads it (a build with an update key crashed at start otherwise).
             updates_ui::init(app.handle());
             updater::init(app.handle())?;

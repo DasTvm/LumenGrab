@@ -8,6 +8,8 @@ import {
   type AppInfo,
   type CaptureMode,
   type DocumentInfo,
+  type HistoryList,
+  type HistoryUsage,
   type OverlayMode,
   type OverlaySession,
   type PixelRect,
@@ -211,6 +213,59 @@ export const nativePlatform: Platform = {
 
   async quickAccessReveal(id) {
     await call("quick_access_reveal", { id });
+  },
+
+  historyList(): Promise<HistoryList> {
+    return call<HistoryList>("history_list");
+  },
+  historyUsage(): Promise<HistoryUsage> {
+    return call<HistoryUsage>("history_usage");
+  },
+  historyThumbUrl(id: string): string {
+    return convertFileSrc(`history-${id}`, "lgcapture");
+  },
+  async historyCopy(id) {
+    await call("history_copy", { id });
+  },
+  async historyEdit(id) {
+    await call("history_edit", { id });
+  },
+  async historyReveal(id) {
+    await call("history_reveal", { id });
+  },
+  async historyFileBytes(id: string): Promise<Uint8Array> {
+    try {
+      return new Uint8Array(await invoke<ArrayBuffer>("history_file_bytes", { id }));
+    } catch (err) {
+      throw new PlatformError(typeof err === "string" ? err : "The capture could not be read.");
+    }
+  },
+  historySaveCopy(id: string): Promise<string | null> {
+    return call<string | null>("history_save_copy", { id });
+  },
+  async historyRemove(ids) {
+    await call("history_remove", { ids });
+  },
+  async historyTrash(ids) {
+    await call("history_trash", { ids });
+  },
+  async historyUndoTrash(ids) {
+    await call("history_undo_trash", { ids });
+  },
+  async historyClear() {
+    await call("history_clear");
+  },
+  async historyReset() {
+    await call("history_reset");
+  },
+  async historyReload() {
+    await call("history_reload");
+  },
+  async historyOpenFolder() {
+    await call("history_open_folder");
+  },
+  async historyShow() {
+    await call("history_show");
   },
 
   getDocumentInfo(label: string): Promise<DocumentInfo> {
@@ -503,6 +558,10 @@ export const nativePlatform: Platform = {
 
   async openUrl(url: string): Promise<void> {
     await call("open_url", { url });
+  },
+
+  async openSettings(page: string): Promise<void> {
+    await call("settings_open", { page });
   },
 
   getSettingsInfo(): Promise<SettingsInfo> {

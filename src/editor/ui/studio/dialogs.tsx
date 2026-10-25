@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/ui/components/button";
-import { Modal } from "../dialogs/Modal";
+import { Modal } from "@/ui/components/modal";
 
 /** "Discard changes?" when the Studio is closed with changes (design: Studio / Dialog / Discard changes). */
 export function DiscardDialog({

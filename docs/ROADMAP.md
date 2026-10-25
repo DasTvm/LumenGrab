@@ -66,12 +66,13 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] A simpler way to write your own shader: New shader in one click, saved by itself, one Done button, Your shaders with a menu
   - [x] Export an animated background as a video or GIF from the normal Export dialog, with a file size that is measured
   - [ ] Complete native checks of animated backgrounds on macOS and Windows
-- [ ] **M6 History, pin and OCR**: History, pinned captures, copy text, QR, all-in-one mode.
-  - Status: planned.
-  - [ ] Capture history
-  - [ ] Pinned captures
-  - [ ] Local text and QR recognition
-  - [ ] All-in-one capture mode
+- [ ] **M6 History, pin and OCR**: A history of your captures, pinned captures, copy text and QR codes from a picture, a Text capture mode, and an all-in-one capture mode.
+  - Status: building.
+  - [x] Capture history: a window with filters, search, grid and list, a copy of every capture, and settings for how long it is kept
+  - [ ] Pinned captures that float above other windows
+  - [ ] Local text and QR recognition: copy text from a capture, links from QR codes
+  - [ ] All-in-one capture mode and a Text capture mode
+  - [ ] Complete native checks of history, pins, text recognition and the all-in-one mode on macOS and Windows
 - [ ] **M7 Screen recording**: MP4 and GIF with audio and click or key overlays.
   - Status: planned.
   - [ ] MP4 and GIF recording
