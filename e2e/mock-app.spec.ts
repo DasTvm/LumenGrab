@@ -148,8 +148,12 @@ test.describe("capture overlay: window (browser mock)", () => {
     await expect(page.getByTestId("selection-label")).toHaveCount(0);
 
     await page.mouse.move(400, 300);
+    // The highlight is the page's own idea of what is under the pointer: click only once it has it.
+    await expect(page.getByTestId("selection-label")).toContainText("Sheets · Quarterly report");
     await page.mouse.down();
-    expect(await submissions(page)).toEqual([{ kind: "window", sessionId: "mock", windowId: 101 }]);
+    await expect
+      .poll(() => submissions(page))
+      .toEqual([{ kind: "window", sessionId: "mock", windowId: 101 }]);
   });
 
   test("keyboard: Tab cycles windows front to back, Enter captures, Escape cancels", async ({
