@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-25T22:38:59.871Z",
+  "generatedAt": "2026-10-25T22:51:36.490Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -828,6 +828,13 @@
       "category": "new",
       "title": "a history of captures (own copies, retention, window with grid and list, settings page), shared Modal, Menu, Toast, EmptyState and SearchField",
       "url": "https://github.com/DasTvm/LumenGrab/commit/f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9"
+    },
+    {
+      "id": "909af2554eec4bbe63fa494610d6d07591fcbb17",
+      "date": "2026-10-25T22:51:25Z",
+      "category": "new",
+      "title": "pinned captures (floating, zoom, opacity, lock, native menu) from Quick Access, History, the editor and Ctrl+Shift+P",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/909af2554eec4bbe63fa494610d6d07591fcbb17"
     }
   ],
   "releases": [
@@ -855,7 +862,8 @@
     "c626b962859867db3ab3e21d6b839903bff80264",
     "d4f58c45e8647339b224e4531c3c5ab633cdf4a8",
     "b4ae92faf5b45767abd36d6142358e544f8561df",
-    "f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9"
+    "f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9",
+    "909af2554eec4bbe63fa494610d6d07591fcbb17"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -1174,7 +1182,7 @@
           {
             "id": "task-2",
             "title": "Pinned captures that float above other windows",
-            "done": false
+            "done": true
           },
           {
             "id": "task-3",
