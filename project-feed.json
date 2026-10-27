@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-27T16:40:32.969Z",
+  "generatedAt": "2026-10-27T20:11:24.990Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -870,6 +870,13 @@
       "category": "internal",
       "title": "zod 4.6.7 (the memory exhaustion advisory GHSA-mrhx-c7xc-m3w5 is fixed in 4.6.6)",
       "url": "https://github.com/DasTvm/LumenGrab/commit/25863ea4d3e07b613a89b1e2a39a3ce728d6e745"
+    },
+    {
+      "id": "71629dfe070c8fe4008e8daed978f34c34501ed6",
+      "date": "2026-10-27T20:11:10Z",
+      "category": "fixed",
+      "title": "the overlay is shown once its picture is decoded (no black flash), takes the first click and activates the app; big pictures are drawn small with a mip chain (sharp at Fit); M4, M5 and M5b are done",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/71629dfe070c8fe4008e8daed978f34c34501ed6"
     }
   ],
   "releases": [
@@ -903,7 +910,8 @@
     "16f0fe7919a0539d7604ee292c13870e6b2513cf",
     "80109e63cefeedff4949cc4332ca90ca23eac2ab",
     "6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba",
-    "25863ea4d3e07b613a89b1e2a39a3ce728d6e745"
+    "25863ea4d3e07b613a89b1e2a39a3ce728d6e745",
+    "71629dfe070c8fe4008e8daed978f34c34501ed6"
   ],
   "roadmap": {
     "schemaVersion": 1,
@@ -1048,7 +1056,7 @@
         "id": "M4",
         "title": "Editor",
         "description": "Crop, annotations, redactions, undo and export.",
-        "status": "building",
+        "status": "done",
         "tasks": [
           {
             "id": "task-1",
@@ -1078,15 +1086,16 @@
           {
             "id": "task-6",
             "title": "Complete native editor acceptance checks on macOS and Windows",
-            "done": false
+            "done": true
           }
-        ]
+        ],
+        "finishedAt": "2026-10-27"
       },
       {
         "id": "M5",
         "title": "Presentation",
         "description": "Backgrounds, padding, shadows, window frames, social formats and a default look for every new screenshot.",
-        "status": "building",
+        "status": "done",
         "tasks": [
           {
             "id": "task-1",
@@ -1126,15 +1135,16 @@
           {
             "id": "task-8",
             "title": "Complete native presentation acceptance checks on macOS and Windows",
-            "done": false
+            "done": true
           }
-        ]
+        ],
+        "finishedAt": "2026-10-27"
       },
       {
         "id": "M5b",
         "title": "Animated backgrounds",
         "description": "Moving WebGL backgrounds made from layers and effects, a Background Studio with a shader editor for your own code, a still frame, and loops as MP4, WebM or GIF.",
-        "status": "building",
+        "status": "done",
         "tasks": [
           {
             "id": "task-1",
@@ -1204,9 +1214,10 @@
           {
             "id": "task-11",
             "title": "Complete native checks of animated backgrounds on macOS and Windows",
-            "done": false
+            "done": true
           }
-        ]
+        ],
+        "finishedAt": "2026-10-27"
       },
       {
         "id": "M6",
