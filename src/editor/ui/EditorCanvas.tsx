@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { Point, Rect } from "@/document/schema";
 import { drawLayers } from "../draw/draw";
+import { drawSmooth } from "../draw/smooth";
 import { ensureFonts } from "../draw/fonts";
 import type { BaseImage } from "./base-image";
 import { useEditor, useStores, useUi } from "./context";
@@ -214,8 +215,12 @@ export function EditorCanvas({ base }: Props) {
     ctx.beginPath();
     ctx.rect(content.x, content.y, content.width, content.height);
     ctx.clip();
-    ctx.imageSmoothingEnabled = view.zoom < 2;
-    ctx.drawImage(base.canvas, 0, 0);
+    if (view.zoom < 2) drawSmooth(ctx, base.canvas, base.revision, 0, 0, base.width, base.height);
+    else {
+      // Zoomed in far: single pixels are the point.
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(base.canvas, 0, 0);
+    }
     drawLayers(ctx, shown, { width: base.width, height: base.height });
     ctx.restore();
   }, [

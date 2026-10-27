@@ -32,16 +32,16 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Migrations and golden fixtures
   - [x] Preview rendering
   - [x] File association
-- [ ] **M4 Editor**: Crop, annotations, redactions, undo and export.
-  - Status: building.
+- [x] **M4 Editor**: Crop, annotations, redactions, undo and export.
+  - Status: done; finished 2026-10-27.
   - [x] Crop and resize
   - [x] Annotation tools
   - [x] Permanent redactions in flat exports
   - [x] Undo and redo
   - [x] PNG, JPG and WebP export
-  - [ ] Complete native editor acceptance checks on macOS and Windows
-- [ ] **M5 Presentation**: Backgrounds, padding, shadows, window frames, social formats and a default look for every new screenshot.
-  - Status: building.
+  - [x] Complete native editor acceptance checks on macOS and Windows
+- [x] **M5 Presentation**: Backgrounds, padding, shadows, window frames, social formats and a default look for every new screenshot.
+  - Status: done; finished 2026-10-27.
   - [x] File format v3 and fixed rendering rules for presentation
   - [x] Backgrounds: solid, gradient, mesh, own image and blurred screenshot
   - [x] Padding, auto-balance, corner radius and shadows
@@ -49,9 +49,9 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Aspect ratios and social media formats
   - [x] Looks: built-in gallery and your own saved looks
   - [x] Default look for every new screenshot, set in Settings
-  - [ ] Complete native presentation acceptance checks on macOS and Windows
-- [ ] **M5b Animated backgrounds**: Moving WebGL backgrounds made from layers and effects, a Background Studio with a shader editor for your own code, a still frame, and loops as MP4, WebM or GIF.
-  - Status: building.
+  - [x] Complete native presentation acceptance checks on macOS and Windows
+- [x] **M5b Animated backgrounds**: Moving WebGL backgrounds made from layers and effects, a Background Studio with a shader editor for your own code, a still frame, and loops as MP4, WebM or GIF.
+  - Status: done; finished 2026-10-27.
   - [x] Animated backgrounds as a new background type (file format v4, loops without a jump)
   - [x] Building blocks: gradient, orbs, aurora, waves, liquid, cells, ripples, pattern, light rays, stars and solid
   - [x] Effects: warp, swirl, chromatic shift, pixelate, posterize, vignette, film grain, glow and colour grade
@@ -65,7 +65,7 @@ Generated from [website-roadmap.json](website-roadmap.json). Edit that file, the
   - [x] Calmer, softer animated looks that you can tune (speed, colours, key sliders) without the Studio
   - [x] A simpler way to write your own shader: New shader in one click, saved by itself, one Done button, Your shaders with a menu
   - [x] Export an animated background as a video or GIF from the normal Export dialog, with a file size that is measured
-  - [ ] Complete native checks of animated backgrounds on macOS and Windows
+  - [x] Complete native checks of animated backgrounds on macOS and Windows
 - [ ] **M6 History, pin and OCR**: A history of your captures, pinned captures, copy text and QR codes from a picture, a Text capture mode, and an all-in-one capture mode.
   - Status: building.
   - [x] Capture history: a window with filters, search, grid and list, a copy of every capture, and settings for how long it is kept

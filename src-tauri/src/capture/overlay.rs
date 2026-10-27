@@ -116,6 +116,8 @@ fn open_all(app: &AppHandle, displays: &[DisplayInfo]) -> tauri::Result<()> {
             .always_on_top(true)
             .skip_taskbar(true)
             .visible(false)
+            // The click that starts a selection must not be spent on making the window the key window.
+            .accept_first_mouse(true)
             .content_protected(content_protected());
         let window = platform::position_overlay(builder, &d.native).build()?;
         platform::configure_overlay(&window);
@@ -227,6 +229,8 @@ pub fn show(app: &AppHandle, display: &DisplayInfo, focus: bool) {
     if let Some(window) = app.get_webview_window(&pool_label(display.id)) {
         let _ = window.show();
         if focus {
+            // The app first, then the window: an inactive app cannot give a window the keyboard.
+            platform::activate_app(app);
             let _ = window.set_focus();
         }
     }

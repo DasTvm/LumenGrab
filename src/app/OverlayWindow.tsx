@@ -440,11 +440,16 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
           alt=""
           draggable={false}
           className="pointer-events-none absolute inset-0 size-full"
-          onLoad={() => {
-            if (!sentReady.current) {
-              sentReady.current = true;
+          onLoad={(e) => {
+            if (sentReady.current) return;
+            sentReady.current = true;
+            // The window is shown once this reports. A picture this large is decoded after it has loaded, so
+            // it is decoded first: showing the window with the picture half ready flashes the black
+            // background. (Not a frame callback: a hidden window never runs those.)
+            const ready = () => {
               void platform.overlayReady(params.sessionId, params.displayId);
-            }
+            };
+            e.currentTarget.decode().then(ready, ready);
           }}
           onError={() => {
             setError("The captured screen could not be loaded.");

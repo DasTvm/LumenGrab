@@ -16,6 +16,9 @@ pub fn cursor_position(app: &AppHandle) -> Option<(f64, f64)> {
 /// Always-on-top is set by the window builder; nothing else is needed on Windows.
 pub fn configure_overlay(_window: &WebviewWindow) {}
 
+/// Windows gives the foreground to the window that `set_focus` asks for after a hotkey: nothing to do.
+pub fn activate_app(_app: &AppHandle) {}
+
 /// Pins: always-on-top and the shadow come from the window builder.
 pub fn configure_pin(_window: &WebviewWindow) {}
 

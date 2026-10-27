@@ -192,6 +192,19 @@ pub fn configure_overlay(window: &WebviewWindow) {
     });
 }
 
+/// Makes LumenGrab the active app. A menu bar app is not active when its hotkey is pressed in another
+/// app, and a window of an inactive app does not become the key window: the first click would only
+/// activate it and be lost ("press again to get the crosshair").
+pub fn activate_app(app: &AppHandle) {
+    let _ = app.run_on_main_thread(|| {
+        if let Some(mtm) = objc2::MainThreadMarker::new() {
+            #[allow(deprecated)]
+            // `activate()` needs macOS 14 at run time; this works on every version we support
+            objc2_app_kit::NSApplication::sharedApplication(mtm).activateIgnoringOtherApps(true);
+        }
+    });
+}
+
 /// A pinned capture floats above other windows and fullscreen apps, on every Space, with the system shadow.
 pub fn configure_pin(window: &WebviewWindow) {
     let Ok(ptr) = window.ns_window() else {

@@ -23,6 +23,8 @@ export class BaseImage {
   readonly canvas: Canvas;
   readonly width: number;
   readonly height: number;
+  /** Counts every change of the pixels (a mip chain of the picture is only good for one revision). */
+  revision = 0;
   private readonly redactions: IncrementalRedactions;
   /** Shares its pixels with `redactions.image`, so a repaint copies nothing. */
   private readonly pixels: ImageData;
@@ -47,6 +49,7 @@ export class BaseImage {
         ? this.canvas.getContext("2d")
         : this.canvas.getContext("2d");
     if (!ctx) throw new Error("This system cannot process images in the browser engine.");
+    this.revision += 1;
     if (region)
       ctx.putImageData(this.pixels, 0, 0, region.x, region.y, region.width, region.height);
     else ctx.putImageData(this.pixels, 0, 0);

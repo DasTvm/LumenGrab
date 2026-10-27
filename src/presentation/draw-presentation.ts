@@ -1,6 +1,7 @@
 import type { RgbaImage } from "@/document/render/pixels";
 import type { Presentation } from "@/document/schema";
 import { cssColor } from "@/editor/draw/color";
+import { drawSmooth } from "@/editor/draw/smooth";
 import type { Ctx2D } from "@/editor/draw/draw";
 import { adjustImage, blurImage } from "./blur";
 import { fitBox, type Layout } from "./compose";
@@ -296,7 +297,15 @@ export function drawComposition(
   drawFrameChrome(ctx, frame, { x: unit.x, y: unit.y, width: unit.width, bar }, k);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(input.content, contentBox.x, contentBox.y, contentBox.width, contentBox.height);
+  drawSmooth(
+    ctx,
+    input.content,
+    0,
+    contentBox.x,
+    contentBox.y,
+    contentBox.width,
+    contentBox.height,
+  );
   ctx.restore();
   ctx.restore();
 }
