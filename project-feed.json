@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-27T20:11:24.990Z",
+  "generatedAt": "2026-10-27T20:47:52.656Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -877,6 +877,13 @@
       "category": "fixed",
       "title": "the overlay is shown once its picture is decoded (no black flash), takes the first click and activates the app; big pictures are drawn small with a mip chain (sharp at Fit); M4, M5 and M5b are done",
       "url": "https://github.com/DasTvm/LumenGrab/commit/71629dfe070c8fe4008e8daed978f34c34501ed6"
+    },
+    {
+      "id": "e779568504f793575a10e1fa05505f634de32843",
+      "date": "2026-10-27T20:47:40Z",
+      "category": "fixed",
+      "title": "menus open inside the window next to their button, the pin shows a grab cursor, and Edit puts the user's own default look on (it was the factory look when the looks had not loaded yet)",
+      "url": "https://github.com/DasTvm/LumenGrab/commit/e779568504f793575a10e1fa05505f634de32843"
     }
   ],
   "releases": [
@@ -911,7 +918,8 @@
     "80109e63cefeedff4949cc4332ca90ca23eac2ab",
     "6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba",
     "25863ea4d3e07b613a89b1e2a39a3ce728d6e745",
-    "71629dfe070c8fe4008e8daed978f34c34501ed6"
+    "71629dfe070c8fe4008e8daed978f34c34501ed6",
+    "e779568504f793575a10e1fa05505f634de32843"
   ],
   "roadmap": {
     "schemaVersion": 1,
