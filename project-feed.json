@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "DasTvm/LumenGrab",
-  "generatedAt": "2026-10-27T21:23:30.067Z",
+  "generatedAt": "2026-10-27T21:43:49.050Z",
   "changes": [
     {
       "id": "c4bda027818fbbfdc15349c0e1a8d62b945f0761",
@@ -902,6 +902,15 @@
   ],
   "releases": [
     {
+      "id": "426011680",
+      "version": "v0.1.2",
+      "title": "LumenGrab v0.1.2",
+      "publishedAt": "2026-10-27T21:43:39Z",
+      "prerelease": false,
+      "url": "https://github.com/DasTvm/LumenGrab/releases/tag/v0.1.2",
+      "body": "### New\n- History: every capture is kept in a window of its own (Ctrl+Shift+H) with filters, search, grid and list. You choose how long it stays (1 week to forever), and your own saved files are never touched.\n- Pins: float a capture above all other windows (Ctrl+Shift+P). Move it, resize it with the mouse wheel, make it see-through or click-through.\n- Copy text from a picture and read QR codes, in the editor, on the Quick Access card, in the History and from a pin. It runs on your computer, nothing is sent anywhere.\n- Text capture (Ctrl+Shift+T): select an area and only its words are copied, no picture is kept.\n- All-in-one capture: click a window or drag an area in the same overlay. Press R to take the last area again.\n- The Mac version is now signed and notarized, so macOS no longer warns when you open it.\n\n### Improved\n- Screenshots look sharper in the editor when they are shown smaller than they are.\n- Video and GIF of an animated background can be exported from the normal Export dialog, with a file size that is measured. Animation speed is shown as a factor, and dark mode is fixed in the editor and its dialogs.\n- Menus in the animated backgrounds and the Studio open next to their button and stay inside the window.\n- Pins show a hand cursor where you can move them.\n\n### Fixed\n- The capture overlay no longer flashes black and takes the first click.\n- Edit on a screenshot opens with your own default look, not the factory look.\n\nmacOS may ask once more for the Screen Recording permission after this update, because the app is now signed.\n\nFirst launch: see \"First launch\" in the README\n(macOS Gatekeeper, Windows SmartScreen).\n"
+    },
+    {
       "id": "420078568",
       "version": "v0.1.1",
       "title": "LumenGrab v0.1.1",
@@ -920,23 +929,7 @@
       "body": "### New\n- First release of LumenGrab for macOS and Windows: capture an area, a window or the whole screen with a hotkey, with a Quick Access card to copy, save, edit or drag the shot out.\n- An editor with arrows, shapes, text, counters, highlighter, spotlight and redactions that really destroy the pixels, with undo, crop and export as PNG, JPG or WebP.\n- Presentation: backgrounds, padding, shadow, window frames, aspect ratios and looks you can save and use automatically.\n- Animated backgrounds: twelve soft, slow looks you can tune (speed, colours, a few sliders), a Background Studio to build your own from layers and effects, and a shader editor for your own GLSL code. Export a loop as MP4, WebM or GIF, or use one frame as a picture.\n- Your own editable file format, `.lumengrab`: one file keeps the original and everything you changed.\n- Updates inside the app: LumenGrab tells you when a new version is out and installs it with one click.\n\n### Improved\n- Nothing yet: this is the first version.\n\n### Fixed\n- Nothing yet: this is the first version.\n\nFirst launch: this build is not signed with an Apple certificate. See \"First launch\" in the README for macOS Gatekeeper and the Screen Recording permission, and for the Windows SmartScreen warning.\n"
     }
   ],
-  "unreleasedIds": [
-    "b6748c10949bd711d5db41234714fbd0adddef86",
-    "c626b962859867db3ab3e21d6b839903bff80264",
-    "d4f58c45e8647339b224e4531c3c5ab633cdf4a8",
-    "b4ae92faf5b45767abd36d6142358e544f8561df",
-    "f2e2b39e7cbb2f392a7f022faf43b23c05fdadb9",
-    "909af2554eec4bbe63fa494610d6d07591fcbb17",
-    "26e556001182ea07cb7937b964a1a4038e6e237d",
-    "16f0fe7919a0539d7604ee292c13870e6b2513cf",
-    "80109e63cefeedff4949cc4332ca90ca23eac2ab",
-    "6a5dc15d4a536f9ece8af2c795bc6eb0dbdcb2ba",
-    "25863ea4d3e07b613a89b1e2a39a3ce728d6e745",
-    "71629dfe070c8fe4008e8daed978f34c34501ed6",
-    "e779568504f793575a10e1fa05505f634de32843",
-    "d9c4e6ac0ba930f32d72f6705d390dfe69215f5a",
-    "1c208707089406e474b8dee31868189695cb341a"
-  ],
+  "unreleasedIds": [],
   "roadmap": {
     "schemaVersion": 1,
     "milestones": [
