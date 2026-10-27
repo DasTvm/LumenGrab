@@ -23,6 +23,8 @@ export function PinWindow() {
   const [opacity, setOpacity] = useState(100);
   const [hover, setHover] = useState(false);
   const [slider, setSlider] = useState(false);
+  /** A move with the mouse is running (the native side owns the pointer then: the page only knows it began). */
+  const [grabbing, setGrabbing] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const windows = currentOs() === "windows";
@@ -104,6 +106,7 @@ export function PinWindow() {
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0 || (e.target as HTMLElement).closest("[data-bar]")) return;
+    setGrabbing(true);
     void platform.pinDrag();
   };
 
@@ -122,12 +125,22 @@ export function PinWindow() {
       tabIndex={0}
       className={cn(
         "relative h-screen w-screen overflow-hidden outline-none",
+        // The open hand says "you can move this"; the closed one while it is being moved. A locked pin is not touched at all.
+        locked ? "cursor-default" : grabbing ? "cursor-grabbing" : "cursor-grab",
         windows ? "rounded-lg" : "rounded-[10px]",
       )}
       onKeyDown={onKey}
       onPointerDown={onPointerDown}
       onPointerEnter={() => {
         setHover(true);
+        setGrabbing(false);
+      }}
+      onPointerMove={() => {
+        // A move ends without the page hearing about it: the next pointer movement is proof that it did.
+        if (grabbing) setGrabbing(false);
+      }}
+      onPointerUp={() => {
+        setGrabbing(false);
       }}
       onPointerLeave={() => {
         setHover(false);
@@ -159,7 +172,7 @@ export function PinWindow() {
           data-bar
           role="toolbar"
           aria-label="Pin"
-          className="absolute inset-x-0 top-0 flex items-center gap-1 bg-toast/95 px-2 py-1.5 text-toast-foreground"
+          className="absolute cursor-default inset-x-0 top-0 flex items-center gap-1 bg-toast/95 px-2 py-1.5 text-toast-foreground"
         >
           <BarButton
             label="Opacity"
@@ -287,7 +300,7 @@ function BarButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1 rounded p-1.5 outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-ring",
+        "flex cursor-pointer items-center gap-1 rounded p-1.5 outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-ring",
         active && "bg-white/15",
       )}
     >

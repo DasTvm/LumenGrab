@@ -29,6 +29,7 @@
 //!                                                  touching the real file)
 //!   LUMENGRAB_DEV_HISTORY_DIR=/path                keep the history there instead of in the app data folder
 //!   LUMENGRAB_DEV_OCR=/path/picture.png           read the text and QR codes of that picture, print them and quit
+//!   LUMENGRAB_DEV_QA_EDIT=1                        after the synthetic captures, press Edit on the newest card
 //!   LUMENGRAB_DEV_PIN=n                            after the synthetic captures, pin the newest history entry n times
 //!
 //! When `LUMENGRAB_DEV_CAPTURE` is set the app quits after the capture was delivered.
@@ -110,6 +111,19 @@ fn quick_access_demo(app: &AppHandle) {
                 ][(i % 3) as usize],
             );
             std::thread::sleep(Duration::from_millis(1200));
+        }
+        // LUMENGRAB_DEV_QA_EDIT=1: press "Edit" on the newest card.
+        if std::env::var("LUMENGRAB_DEV_QA_EDIT").is_ok() {
+            std::thread::sleep(Duration::from_millis(800));
+            if let Some(id) = crate::quick_access::newest_card_id(&app) {
+                let app2 = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    eprintln!(
+                        "[lumengrab:dev] edit -> {:?}",
+                        crate::quick_access::commands::quick_access_edit(app2, id).await
+                    );
+                });
+            }
         }
         // LUMENGRAB_DEV_PIN=n: float the newest capture of the history n times.
         let pins = std::env::var("LUMENGRAB_DEV_PIN")

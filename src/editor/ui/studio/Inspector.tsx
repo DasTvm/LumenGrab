@@ -848,7 +848,7 @@ export function Inspector() {
             onClose={() => {
               setMenu(false);
             }}
-            className="top-full right-0 mt-1 w-[160px]"
+            className="w-[160px]"
           >
             <div role="menu" aria-label="Layer actions">
               <MenuItem

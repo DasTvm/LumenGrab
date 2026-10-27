@@ -80,6 +80,24 @@ test.describe("pin window (browser mock)", () => {
     ]);
   });
 
+  test("the open hand shows that it can be moved, the closed hand while it is, the plain arrow on the bar and when locked", async ({
+    page,
+  }) => {
+    await openPin(page);
+    const app = page.getByRole("application");
+    await expect(app).toHaveCSS("cursor", "grab");
+    await page.mouse.move(200, 200);
+    await page.mouse.down();
+    await expect(app).toHaveCSS("cursor", "grabbing");
+    await page.mouse.up();
+    await expect(app).toHaveCSS("cursor", "grab");
+    await page.mouse.move(200, 20);
+    await expect(page.getByRole("toolbar", { name: "Pin" })).toHaveCSS("cursor", "default");
+    await expect(page.getByRole("button", { name: "Copy image" })).toHaveCSS("cursor", "pointer");
+    await page.getByRole("button", { name: "Lock (click-through)" }).click();
+    await expect(app).toHaveCSS("cursor", "default");
+  });
+
   test("dragging the picture starts moving the window", async ({ page }) => {
     await openPin(page);
     await page.mouse.move(200, 200);

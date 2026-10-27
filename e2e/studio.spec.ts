@@ -340,4 +340,30 @@ test.describe("Background Studio (browser mock)", () => {
     ).toBeVisible();
     await expect(studio(page).getByRole("button", { name: "Fallback colour" })).toBeVisible();
   });
+
+  test("the menu of the last layer opens inside the window and does not grow the list", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1200, height: 640 });
+    await open(page);
+    const list = studio(page).getByRole("list", { name: "Layers" });
+    const before = await list.evaluate((el) => el.scrollHeight);
+    await studio(page).getByRole("button", { name: "More for Gradient" }).click();
+    const menu = page.getByRole("menu", { name: "Actions for Gradient" });
+    await expect(menu).toBeVisible();
+    const box = await menu.evaluate((el) => {
+      const r = (el.closest("[data-popover]") ?? el).getBoundingClientRect();
+      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    });
+    expect(box.left).toBeGreaterThanOrEqual(0);
+    expect(box.top).toBeGreaterThanOrEqual(0);
+    expect(box.right).toBeLessThanOrEqual(1200);
+    expect(box.bottom).toBeLessThanOrEqual(640);
+    // It is drawn on top of the page, not inside the scrolling list.
+    expect(await list.evaluate((el) => el.scrollHeight)).toBe(before);
+    expect(await list.evaluate((el, m) => el.contains(m), await menu.elementHandle())).toBe(false);
+    await page.screenshot({ path: "test-results/studio-row-menu.png", animations: "disabled" });
+    await page.keyboard.press("Escape");
+    await expect(menu).toHaveCount(0);
+  });
 });

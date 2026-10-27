@@ -448,6 +448,17 @@ pub fn picture_path(app: &AppHandle, id: &str) -> Result<PathBuf, String> {
     }
 }
 
+/// Whether `path` is the kept capture-before-the-look of a history entry (Edit then puts the look back on as a presentation).
+pub fn is_original(app: &AppHandle, path: &Path) -> bool {
+    let Some(history) = app.try_state::<History>() else {
+        return false;
+    };
+    path.parent() == Some(history.dir.as_path())
+        && path
+            .file_name()
+            .is_some_and(|n| n.to_string_lossy().ends_with(".orig.png"))
+}
+
 /// The newest capture that is listed (the target of "Pin last capture").
 pub fn newest(app: &AppHandle) -> Option<String> {
     let history = app.state::<History>();

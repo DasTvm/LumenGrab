@@ -153,4 +153,39 @@ test.describe("automatic look (browser mock)", () => {
       ),
     ).toBe(false);
   });
+
+  test("a capture that opens in the Presentation tab gets the user's own default look, not the factory one", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "lumengrab.mock.looks",
+        JSON.stringify({
+          version: 1,
+          looks: [],
+          defaultLook: {
+            id: "d",
+            name: "Green",
+            parts: { background: { type: "solid", color: "#00FF00" } },
+          },
+        }),
+      );
+      window.localStorage.setItem(
+        "lumengrab.mock.settings",
+        JSON.stringify({ presentation: { auto: true, openInPresentation: true } }),
+      );
+    });
+    await page.setViewportSize({ width: 1280, height: 880 });
+    await page.goto("/?window=document&label=doc-1&kind=capture");
+    await page.waitForFunction(
+      () => window.__lumengrabEditor?.ui.getState().mode === "presentation",
+    );
+    await page.waitForFunction(
+      () => window.__lumengrabEditor?.editor.getState().project.presentation.enabled === true,
+    );
+    const background = await page.evaluate(
+      () => window.__lumengrabEditor?.editor.getState().project.presentation.background,
+    );
+    expect(background).toEqual({ type: "solid", color: "#00FF00" });
+  });
 });

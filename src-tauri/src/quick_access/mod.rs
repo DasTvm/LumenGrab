@@ -691,6 +691,18 @@ pub fn original_of(app: &AppHandle, id: &str) -> Option<PathBuf> {
         .and_then(|c| c.original.clone())
 }
 
+/// The id of the newest card that shows a screenshot (dev hooks).
+#[cfg(any(debug_assertions, feature = "dev-hooks"))]
+pub fn newest_card_id(app: &AppHandle) -> Option<String> {
+    let qa = app.state::<QuickAccess>();
+    let inner = qa.inner.lock().expect("quick access state");
+    inner
+        .cards
+        .iter()
+        .find(|c| c.notice.is_none())
+        .map(|c| c.id.clone())
+}
+
 pub fn file_of(app: &AppHandle, id: &str) -> Option<PathBuf> {
     let qa = app.state::<QuickAccess>();
     let inner = qa.inner.lock().expect("quick access state");

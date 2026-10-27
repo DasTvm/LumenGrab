@@ -42,6 +42,16 @@ export function applyDefaultLook(
   ui: UiStoreApi,
   session?: DocumentSession,
 ): void {
+  // The default look is read from disk. Until that has happened it is empty, and the factory look would go
+  // on in its place: a capture that opens straight in Presentation (or Edit on a Quick Access card) was
+  // then always framed with the factory look, never with the user's own default.
+  const run = () => {
+    putDefaultLook(editor, ui, session);
+  };
+  void looksStore.getState().init().then(run, run);
+}
+
+function putDefaultLook(editor: EditorStoreApi, ui: UiStoreApi, session?: DocumentSession): void {
   const { presentation, crop } = editor.getState().project;
   if (presentation.enabled) return;
   const width = Math.round(crop?.width ?? ui.getState().imageSize.width);

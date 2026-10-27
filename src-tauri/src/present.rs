@@ -241,6 +241,7 @@ pub fn is_original(app: &AppHandle, path: &Path) -> bool {
     originals_dir(app)
         .ok()
         .is_some_and(|dir| path.parent() == Some(dir.as_path()))
+        || crate::history::is_original(app, path)
 }
 
 /// Removes the originals that are older than `keep`. Returns how many went.

@@ -600,7 +600,7 @@ export function ShaderEditor({
             onClose={() => {
               setMenu(null);
             }}
-            className="top-full right-0 mt-1 max-h-[600px] w-[320px] overflow-y-auto"
+            className="max-h-[600px] w-[320px]"
           >
             <div role="menu" aria-label="Examples">
               {(

@@ -229,7 +229,7 @@ function ShaderTile({
         onClose={() => {
           onMenu(false);
         }}
-        className="top-7 right-0 w-[168px]"
+        className="w-[168px]"
       >
         <div role="menu" aria-label={`${shader.name} menu`}>
           <MenuItem

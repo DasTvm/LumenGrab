@@ -325,7 +325,7 @@ function LayerRow({
           onClose={() => {
             setMenu(false);
           }}
-          className="top-full right-0 mt-1 w-[168px]"
+          className="w-[168px]"
         >
           <div role="menu" aria-label={`Actions for ${name}`}>
             {layer.kind === "custom" ? (
@@ -441,7 +441,9 @@ function AddMenu({ onWriteShader }: { onWriteShader: () => void }) {
         onClose={() => {
           setOpen(false);
         }}
-        className="bottom-full left-0 mb-1.5 max-h-[560px] w-[256px] overflow-y-auto"
+        side="above"
+        align="start"
+        className="max-h-[560px] w-[256px]"
       >
         <div role="menu" aria-label="Add a layer">
           <MenuLabel>Generators</MenuLabel>
@@ -511,7 +513,8 @@ function TemplateMenu() {
         onClose={() => {
           setOpen(false);
         }}
-        className="right-0 bottom-full mb-1.5 w-[240px]"
+        side="above"
+        className="w-[240px]"
       >
         <div role="menu" aria-label="Start from">
           <MenuLabel>Start from</MenuLabel>
