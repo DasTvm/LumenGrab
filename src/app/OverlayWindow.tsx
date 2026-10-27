@@ -104,6 +104,8 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
   const [hovered, setHovered] = useState<OverlayWindowInfo | undefined>(undefined);
   /** Where the pointer is (CSS pixels), for the outline of "repeat the last area". */
   const [pointer, setPointer] = useState<Point | null>(null);
+  /** "Repeat last" is on: the outline of the last area follows the pointer and a click takes it. Off until R is pressed. */
+  const [repeating, setRepeating] = useState(false);
   const sentReady = useRef(false);
   const spaceHeld = useRef(false);
   const lastPointer = useRef<Point | null>(null);
@@ -149,6 +151,7 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
         setMode(next);
         setDrag(null);
         setHovered(undefined);
+        setRepeating(false);
       })
       .then((unlisten) => {
         if (disposed) unlisten();
@@ -194,29 +197,38 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
     }
   }, [params, px]);
 
-  /** The last area again, centred on the pointer (or the middle of the display) and kept on the screen. */
-  const repeatRect = useMemo<Rect | null>(() => {
-    const last = session?.lastArea;
-    if (!last) return null;
-    const width = Math.min(last.width, size.width);
-    const height = Math.min(last.height, size.height);
-    const at = pointer ?? { x: size.width / 2, y: size.height / 2 };
-    return {
-      x: Math.min(Math.max(at.x - width / 2, 0), size.width - width),
-      y: Math.min(Math.max(at.y - height / 2, 0), size.height - height),
-      width,
-      height,
-    };
-  }, [session, pointer, size]);
+  /** The last area again, centred on `at` (or the middle of the display) and kept on the screen. */
+  const lastAreaAt = useCallback(
+    (at: Point | null): Rect | null => {
+      const last = session?.lastArea;
+      if (!last) return null;
+      const width = Math.min(last.width, size.width);
+      const height = Math.min(last.height, size.height);
+      const centre = at ?? { x: size.width / 2, y: size.height / 2 };
+      return {
+        x: Math.min(Math.max(centre.x - width / 2, 0), size.width - width),
+        y: Math.min(Math.max(centre.y - height / 2, 0), size.height - height),
+        width,
+        height,
+      };
+    },
+    [session, size],
+  );
+  const repeatRect = useMemo(() => lastAreaAt(pointer), [lastAreaAt, pointer]);
 
-  const repeatLast = useCallback(() => {
-    if (!repeatRect || !px) return;
-    void platform.submitArea(
-      params.sessionId,
-      params.displayId,
-      cssRectToPixelRect(repeatRect, size, px),
-    );
-  }, [repeatRect, px, size, params]);
+  /** Takes the last area where the pointer is (`at`: the pointer of the click itself, not of the last render). */
+  const repeatLast = useCallback(
+    (at: Point) => {
+      const rect = lastAreaAt(at);
+      if (!rect || !px) return;
+      void platform.submitArea(
+        params.sessionId,
+        params.displayId,
+        cssRectToPixelRect(rect, size, px),
+      );
+    },
+    [lastAreaAt, px, size, params],
+  );
 
   const chooseMode = useCallback(
     (next: OverlayMode | "fullscreen") => {
@@ -227,6 +239,7 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
       setMode(next);
       setDrag(null);
       setHovered(undefined);
+      setRepeating(false);
       void platform.setCaptureMode(params.sessionId, next);
     },
     [captureFullDisplay, params],
@@ -248,10 +261,13 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
         !e.ctrlKey &&
         !e.altKey &&
         !drag &&
-        repeatRect
+        session?.lastArea &&
+        mode !== "window"
       ) {
+        // R shows the last area at the pointer (and again hides it); a click takes it.
         e.preventDefault();
-        repeatLast();
+        setRepeating((on) => !on);
+        setHovered(undefined);
         return;
       }
       const shortcut = session?.toolbar
@@ -290,12 +306,16 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("keyup", onKeyUp);
     };
-  }, [session, mode, hovered, drag, cancel, submitWindow, chooseMode, repeatRect, repeatLast]);
+  }, [session, mode, hovered, drag, cancel, submitWindow, chooseMode]);
 
   const localPoint = (e: PointerEvent): Point => clampPoint({ x: e.clientX, y: e.clientY }, size);
 
   const onPointerDown = (e: PointerEvent) => {
     if (e.button !== 0 || !session) return;
+    if (repeating && session.lastArea) {
+      repeatLast(localPoint(e));
+      return;
+    }
     if (mode === "window") {
       submitWindow(hovered);
       return;
@@ -312,7 +332,7 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
     setPointer(p);
     // All-in-one points at the window under the pointer until a drag has really begun.
     const dragging = drag && (mode !== "allinone" || moved(drag));
-    if (mode === "window" || (mode === "allinone" && !dragging)) {
+    if (mode === "window" || (mode === "allinone" && !dragging && !repeating)) {
       setHovered(hitTestWindow(session.windows, cssPointToPixelPoint(p, size, px)));
     }
     if (mode === "window") {
@@ -358,12 +378,11 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
   const dragShown = drag && (mode !== "allinone" || moved(drag));
   const selection: Rect | null = dragShown
     ? normalizeRect(drag.start, drag.current)
-    : (mode === "window" || mode === "allinone") && hovered && px
+    : (mode === "window" || mode === "allinone") && hovered && px && !repeating
       ? pixelRectToCssRect(hovered, size, px)
       : null;
-  // "Repeat last": only while nothing else is chosen.
-  const showRepeat =
-    (mode === "allinone" || mode === "area") && !!repeatRect && !selection && !drag && !!pointer;
+  // The outline of the last area: only after R (or the bar's "Repeat last"), never by itself.
+  const showRepeat = repeating && !!repeatRect && !selection && !drag;
 
   const label = (() => {
     if (!selection || !px) return null;
@@ -377,21 +396,20 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
       : null;
   })();
 
-  const hint =
-    mode === "window"
+  const hint = repeating
+    ? "Click to take this area again  ·  R to go back  ·  Esc to cancel"
+    : mode === "window"
       ? "Click a window  ·  Tab to cycle  ·  Esc to cancel"
       : mode === "text"
         ? "Select text  ·  Esc to cancel"
         : mode === "allinone"
           ? hovered
             ? "Click to capture this window"
-            : showRepeat
-              ? "Press R to take this area again  ·  or drag a new one"
-              : session?.toolbar
-                ? "Click a window or drag an area"
-                : "Click a window or drag an area  ·  Esc to cancel"
+            : session?.toolbar
+              ? "Click a window or drag an area"
+              : "Click a window or drag an area  ·  Esc to cancel"
           : session?.lastArea
-            ? "Drag to select  ·  R repeats the last area  ·  Esc to cancel"
+            ? "Drag to select  ·  R shows the last area  ·  Esc to cancel"
             : "Drag to select  ·  Space to move  ·  Esc to cancel";
 
   if (error) {
@@ -593,11 +611,23 @@ function OverlaySurface({ sessionId, displayId }: { sessionId: string; displayId
                   <button
                     type="button"
                     aria-keyshortcuts="R"
-                    title="Take the last area again (R)"
-                    onClick={repeatLast}
-                    className="flex items-center gap-2 rounded-[10px] px-3.5 py-2 text-sm font-medium text-overlay-foreground outline-none hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-brand"
+                    aria-pressed={repeating}
+                    title="Show the last area at the pointer (R)"
+                    onClick={() => {
+                      setRepeating((on) => !on);
+                      setHovered(undefined);
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 rounded-[10px] px-3.5 py-2 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-brand",
+                      repeating
+                        ? "bg-brand text-brand-foreground"
+                        : "text-overlay-foreground hover:bg-white/10",
+                    )}
                   >
-                    <Repeat2 className="size-4 text-overlay-muted" aria-hidden />
+                    <Repeat2
+                      className={cn("size-4", repeating ? "" : "text-overlay-muted")}
+                      aria-hidden
+                    />
                     Repeat last
                     <kbd className="rounded bg-white/15 px-1.5 text-[11px]">R</kbd>
                   </button>

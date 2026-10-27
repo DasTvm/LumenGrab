@@ -90,40 +90,87 @@ test.describe("all-in-one overlay (browser mock)", () => {
 });
 
 test.describe("repeat the last area (browser mock)", () => {
-  test("with a remembered size an outline follows the pointer and R takes it", async ({ page }) => {
+  test("the last area is not shown by itself; R shows it at the pointer, a click takes it", async ({
+    page,
+  }) => {
     await open(page, "allinone", "last=1280x720");
-    // Away from every window, the outline of the last size sits on the pointer.
     await page.mouse.move(40, 40);
+    await expect(page.getByTestId("repeat-outline")).toHaveCount(0);
+    await expect(page.getByText("Click a window or drag an area")).toBeVisible();
+
+    await page.keyboard.press("r");
     await expect(page.getByTestId("repeat-outline")).toBeVisible();
     await expect(page.getByTestId("repeat-label")).toHaveText("1280 × 720");
-    await expect(page.getByText("Press R to take this area again")).toBeVisible();
+    await expect(page.getByText("Click to take this area again")).toBeVisible();
     await page.screenshot({ path: "test-results/allinone-repeat.png", animations: "disabled" });
-    await page.keyboard.press("r");
-    const [first] = await submissions(page);
-    // Centred on the pointer, but kept on the display: the corner of the screen.
-    expect(first).toMatchObject({ kind: "area", rect: { x: 0, y: 0, width: 1280, height: 720 } });
+    // Nothing was taken yet: R only shows the outline.
+    expect(await submissions(page)).toEqual([]);
+
+    // It follows the pointer ...
+    await page.mouse.move(720, 450);
+    await expect(page.getByTestId("repeat-outline")).toHaveCSS("left", "80px");
+    // ... and a click takes that area (a window under the pointer does not count while it is shown).
+    await page.mouse.down();
+    await page.mouse.up();
+    expect(await submissions(page)).toEqual([
+      expect.objectContaining({
+        kind: "area",
+        rect: { x: 80, y: 90, width: 1280, height: 720 },
+      }),
+    ]);
   });
 
-  test("R centres the area on the pointer when there is room", async ({ page }) => {
+  test("near the edge the area is kept on the display; R again hides the outline", async ({
+    page,
+  }) => {
+    await open(page, "allinone", "last=1280x720");
+    await page.keyboard.press("r");
+    await page.mouse.move(40, 40);
+    await page.mouse.down();
+    await page.mouse.up();
+    expect((await submissions(page))[0]).toMatchObject({
+      kind: "area",
+      rect: { x: 0, y: 0, width: 1280, height: 720 },
+    });
+
+    await open(page, "allinone", "last=400x300");
+    await page.keyboard.press("r");
+    await page.mouse.move(720, 450);
+    await expect(page.getByTestId("repeat-outline")).toBeVisible();
+    await page.keyboard.press("r");
+    await expect(page.getByTestId("repeat-outline")).toHaveCount(0);
+  });
+
+  test("in Area mode it works the same, centred on the pointer", async ({ page }) => {
     await open(page, "area", "last=400x300");
     await page.mouse.move(720, 450);
+    await expect(page.getByTestId("repeat-outline")).toHaveCount(0);
     await page.keyboard.press("r");
+    await page.mouse.move(721, 451);
+    await page.mouse.down();
+    await page.mouse.up();
     const [first] = await submissions(page);
-    expect(first?.rect).toEqual({ x: 520, y: 300, width: 400, height: 300 });
+    expect(first?.rect).toEqual({ x: 521, y: 301, width: 400, height: 300 });
   });
 
-  test("the bar's Repeat last button takes it too; without a remembered area there is none", async ({
+  test("the bar's Repeat last button switches it on and off; a new mode switches it off; without a remembered area there is no button", async ({
     page,
   }) => {
     await open(page, "allinone", "last=400x300");
-    await page.getByRole("button", { name: /Repeat last/ }).click();
-    expect((await submissions(page))[0]).toMatchObject({ kind: "area" });
+    const button = page.getByRole("button", { name: /Repeat last/ });
+    await expect(button).toHaveAttribute("aria-pressed", "false");
+    await button.click();
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await page.mouse.move(700, 400);
+    await expect(page.getByTestId("repeat-outline")).toBeVisible();
+    await page.getByRole("button", { name: "Window", exact: true }).click();
+    await expect(page.getByTestId("repeat-outline")).toHaveCount(0);
 
     await page.goto("/?window=overlay&session=mock&display=1&mode=allinone&toolbar=1");
     await expect(page.getByRole("button", { name: /Repeat last/ })).toHaveCount(0);
     await page.mouse.move(40, 40);
-    await expect(page.getByTestId("repeat-outline")).toHaveCount(0);
     await page.keyboard.press("r");
+    await expect(page.getByTestId("repeat-outline")).toHaveCount(0);
     expect(await submissions(page)).toEqual([]);
   });
 });
